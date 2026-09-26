@@ -2,6 +2,21 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-26 — M2 graph core done (branch m2-graph, merged)
+
+What works:
+- Signed sparse matrices with four sign policies; aggregation; reachability-pruned 1–3 hop path enumeration; native effective connectivity that matches `connectome_interpreter.compress_paths_signed` (excitatory minus inhibitory) to 1e-6 on a random graph.
+- W1 single-run acceptance (golden): FlyWire (Shiu v630 export) 21 sugar GRNs → 2 MN9: 31 three-hop paths (29 net-excitatory, 2 net-inhibitory) at min_weight 5 and ≥1 % per-hop input fraction, 0.1 s. MaleCNS 78 LB3 GRNs → 2 MN9: 74 three-hop paths (44 / 30), 0.1 s. No direct or 2-hop paths survive the 1 % per-hop filter; with no fraction filter there are 10 two-hop paths in FlyWire.
+- Shiu v630 converter reproduces 127,400 neurons / 14,687,178 edges / 52,793,639 synapses.
+
+Honest discrepancies:
+- JO-CE→aBN1 and JO-F→aBN1 from the repo notebook ID lists on the repo's own v630 parquet give 77 and 69 synapses, not the paper's 103 and 78. Pinned as regression values; cause UNVERIFIED (different JON list or export in the paper).
+- "Sugar GRN" cannot be selected by cell type: v783 types both sugar and water labellar GRNs as `LB3` (MaleCNS: `LB3a–d`). FlyWire W1 uses the Shiu ID list; MaleCNS W1 uses the LB3 group, documented as sugar+water.
+
+Deferred to M3+: threshold sweeps / NT sampling around these paths (M3), type-level path aggregation (fold into W1 report in M3).
+
+Next: M3 uncertainty (NT sampling incl. MaleCNS `--level nt-probs`, threshold sweeps, degree-preserving and sign-shuffle nulls, version diff v630↔v783, stability wrapper; W1 + W4 end-to-end).
+
 ## 2026-09-26 — M1 data layer done (branch m1-data, merged)
 
 What works:

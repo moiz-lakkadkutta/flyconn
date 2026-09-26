@@ -56,7 +56,7 @@ def _filtered(
 
 def _bfs_distances(adj: sp.csr_matrix, start: np.ndarray, max_depth: int) -> np.ndarray:
     """Min hop distance from ``start`` to every node (``max_depth + 1`` = unreachable)."""
-    n = adj.shape[0]
+    n = cast("tuple[int, int]", adj.shape)[0]
     dist = np.full(n, max_depth + 1, dtype=np.int32)
     dist[start] = 0
     frontier = start
