@@ -312,6 +312,7 @@ Shiu parquet as a separate, sim-only edge source.
 | MaleCNS dimorphic/male-specific types | 138/289 (Cell abstract), 114/262 (preprint), file `dimorphism` column gives 102+65 "potentially" / 266+47 | not a test; documented caveat |
 | MaleCNS neurons | 166,700 (Cell, v1.0 file) vs 166,691 (preprint) | 166,700 |
 | Shiu JON count | 147 (paper) vs 146 IDs (notebook) | use the 146 IDs; note it |
+| JO-CE / JO-F → aBN1 synapses | 103 / 78 (Shiu24 Fig. 5g text) vs **77 / 69** computed from the repo notebook ID lists on the repo's own v630 parquet (all 146 JONs → aBN1: 148) | not reproduced; the computed values are pinned in `tests/golden/test_w1_paths.py`; the paper likely used a different JON list or export (UNVERIFIED) |
 | Shiu sugar/water overlap | 250 (paper) vs 280 (naive recount) | documented only |
 | Codex "connections" header counts (e.g. 3,732,460 for v783) | unstated definition | never used as a test |
 

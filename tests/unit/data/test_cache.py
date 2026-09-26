@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pytest
-from flyconn.data.cache import cache_root, raw_dir, store_dir
 
+from flyconn.data.cache import cache_root, raw_dir, store_dir
 from flyconn.data.registry import get_dataset
 
 

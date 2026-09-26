@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from flyconn.data.store import Store
 
 from flyconn.data.convert.common import write_parquet, write_provenance
 from flyconn.data.schema import conform_edges, conform_neurons
+from flyconn.data.store import Store
 from flyconn.testing import synthetic_connectome
 
 
