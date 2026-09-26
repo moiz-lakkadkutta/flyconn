@@ -78,7 +78,8 @@ def aggregate_edges(m: ConnectivityMatrix, by: str, *, signed: bool = False) -> 
     agg = aggregate(m, by, signed=signed)
     df = agg.to_frame()
     labels, member, _, _ = _membership(m, by)
-    binary = sp.csr_matrix((m.weights > 0).astype(float))
+    binary = sp.csr_matrix(m.weights, dtype=float, copy=True)
+    binary.data = np.ones_like(binary.data)
     pairs = sp.coo_matrix(member.T @ binary @ member)
     pair_counts = pd.Series(
         pairs.data, index=pd.MultiIndex.from_arrays([labels[pairs.row], labels[pairs.col]])

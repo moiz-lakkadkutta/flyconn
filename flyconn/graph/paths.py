@@ -95,8 +95,7 @@ def find_paths(
     if label:
         cols.append("labels")
     if not rows:
-        return pd.DataFrame(columns=cols).astype(
-            {"hops": int, "min_weight": int, "strength": float}
-        )
-    df = pd.DataFrame(rows, columns=cols)
+        empty: dict[str, list[object]] = {c: [] for c in cols}
+        return pd.DataFrame(empty).astype({"hops": int, "min_weight": int, "strength": float})
+    df = pd.DataFrame(rows)[cols]
     return df.sort_values(["strength", "hops"], ascending=[False, True], ignore_index=True)

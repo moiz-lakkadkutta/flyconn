@@ -65,8 +65,10 @@ def neuron_signs(
     if policy is SignPolicy.UNSIGNED:
         return np.ones(n, dtype=float)
 
-    label_sign = neurons["nt_pred"].map(lambda v: 0 if pd.isna(v) else table[str(v)])
-    argmax = label_sign.to_numpy(dtype=float)
+    def _label_sign(v: object) -> int:
+        return 0 if v is None or (isinstance(v, float) and np.isnan(v)) else table[str(v)]
+
+    argmax = neurons["nt_pred"].map(_label_sign).to_numpy(dtype=float)
     if policy is SignPolicy.ARGMAX:
         return argmax
 

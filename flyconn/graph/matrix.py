@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -57,8 +57,13 @@ class ConnectivityMatrix:
         Uses ``meta[total_column]`` when present (MaleCNS totals include synapses
         from unannotated fragments), else the column sums of ``weights``.
         """
-        if total_column in self.meta.columns and self.meta[total_column].notna().all():
-            total = self.meta[total_column].to_numpy(dtype=float)
+        col = (
+            cast("pd.Series", self.meta[total_column])
+            if total_column in self.meta.columns
+            else None
+        )
+        if col is not None and bool(col.notna().all()):
+            total = col.to_numpy(dtype=float)
         else:
             total = np.asarray(self.weights.sum(axis=0)).ravel().astype(float)
         inv = np.divide(1.0, total, out=np.zeros_like(total), where=total > 0)
@@ -88,13 +93,14 @@ class ConnectivityMatrix:
         neurons = neurons.reset_index(drop=True)
         ids = neurons["neuron_id"].to_numpy(dtype=np.int64)
         pos = pd.Index(ids)
-        e = edges[edges["weight"] >= min_weight]
-        i = pos.get_indexer(e["pre"].to_numpy())
-        j = pos.get_indexer(e["post"].to_numpy())
+        e = cast("pd.DataFrame", edges[edges["weight"] >= min_weight])
+        pre = cast("pd.Series", e["pre"]).to_numpy()
+        post = cast("pd.Series", e["post"]).to_numpy()
+        wt = cast("pd.Series", e["weight"]).to_numpy(dtype=np.int64)
+        i = pos.get_indexer(pre)
+        j = pos.get_indexer(post)
         ok = (i >= 0) & (j >= 0)
-        w = sp.csr_matrix(
-            (e["weight"].to_numpy(dtype=np.int64)[ok], (i[ok], j[ok])), shape=(len(ids), len(ids))
-        )
+        w = sp.csr_matrix((wt[ok], (i[ok], j[ok])), shape=(len(ids), len(ids)))
         w.sum_duplicates()
         rng = np.random.default_rng(seed) if seed is not None else None
         signs = neuron_signs(neurons, sign_policy, sign_overrides, rng)
@@ -126,7 +132,8 @@ class ConnectivityMatrix:
         """Build from a converted dataset; optionally restricted to ``neuron_ids``."""
         neurons = store.neurons()
         if neuron_ids is not None:
-            neurons = neurons[neurons["neuron_id"].isin(np.asarray(neuron_ids))]
+            keep = cast("pd.Series", neurons["neuron_id"]).isin(list(np.asarray(neuron_ids)))
+            neurons = cast("pd.DataFrame", neurons[keep])
         edges = store.edges(min_weight=min_weight)
         prov = {"dataset": store.ref, "store_provenance": store.provenance.get("counts", {})}
         return cls.from_frames(
