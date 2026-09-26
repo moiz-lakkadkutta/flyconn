@@ -2,6 +2,18 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-26 — M3 uncertainty (branch m3-uncertainty)
+
+What works (golden, real data):
+- W1 stability, FlyWire (Shiu v630): 50 paths over thresholds 5/10/20 at ≥1 % per-hop fraction, mean threshold presence 0.81, sign stability 1.0 (Shiu signs are certain by construction), 0.5 s.
+- W1 stability, MaleCNS (confidence-only NT model before the tbar aggregation): 74 paths, mean sign stability 0.89, threshold presence 0.77; example prints type-level paths such as LB3c → GNG232 → DNge080 → MN9 (net excitatory) and LB3c → GNG132 → GNG130 → MN9 (net inhibitory).
+- W4 v630→v783 for the 24 sugar-circuit neurons: 2 ids unmatched (incl. ipsilateral MN9), 21 attribute changes (sugar GRNs gained cell type `LB3` in v783), 55 edges added / 179 removed / 3 changed, 0.8 s.
+- MaleCNS `--level nt-probs` aggregation implemented and unit-tested; the 2.65 GB download was started on this machine (golden test `test_malecns_nt_probs.py` runs once it is cached).
+
+Deferred: statistical tests around whole-pathway counts vs nulls are available via `null_distribution` but not yet wired into a report (M5).
+
+Next: M4 sim.
+
 ## 2026-09-26 — M2 graph core done (branch m2-graph, merged)
 
 What works:
