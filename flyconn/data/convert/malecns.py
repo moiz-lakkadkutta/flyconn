@@ -208,15 +208,14 @@ def _stream_edges(
 def aggregate_tbar_nt(tbar_path: Path, out_path: Path, batch_rows: int = 1 << 20) -> pa.Table:
     """Stream the per-presynapse NT file and write per-body mean probabilities.
 
-    Memory stays bounded by ``batch_rows`` rows at a time; sums are accumulated
-    per body id in a dictionary-of-arrays keyed by a compact index.
+    Memory stays bounded: one record batch at a time plus per-body accumulators
+    grown by capacity doubling (about 100 MB for the 1.8 M bodies of v1.0).
     """
     cols = [f"nt_{c}_prob" for c in _TBAR_CLASSES]
     body_index: dict[int, int] = {}
-    sums: list[np.ndarray] = []
-    counts: list[int] = []
-    sums_arr = np.zeros((0, len(cols)), dtype=np.float64)
-    counts_arr = np.zeros(0, dtype=np.int64)
+    cap = 1 << 16
+    sums = np.zeros((cap, len(cols)), dtype=np.float64)
+    counts = np.zeros(cap, dtype=np.int64)
     with pa.memory_map(str(tbar_path)) as source:
         reader = ipc.open_file(source)
         for i in range(reader.num_record_batches):
@@ -224,21 +223,26 @@ def aggregate_tbar_nt(tbar_path: Path, out_path: Path, batch_rows: int = 1 << 20
             bodies = batch.column("body").to_numpy()
             probs = np.column_stack([batch.column(c).to_numpy().astype(np.float64) for c in cols])
             uniq, inv = np.unique(bodies, return_inverse=True)
-            new = [b for b in uniq.tolist() if b not in body_index]
-            if new:
-                start = len(body_index)
-                for k, b in enumerate(new):
-                    body_index[b] = start + k
-                sums_arr = np.vstack([sums_arr, np.zeros((len(new), len(cols)))])
-                counts_arr = np.concatenate([counts_arr, np.zeros(len(new), dtype=np.int64)])
-            rows = np.array([body_index[b] for b in uniq.tolist()])[inv]
+            slots = np.empty(len(uniq), dtype=np.int64)
+            for k, b in enumerate(uniq.tolist()):
+                slot = body_index.get(b)
+                if slot is None:
+                    slot = len(body_index)
+                    body_index[b] = slot
+                slots[k] = slot
+            n_known = len(body_index)
+            while n_known > cap:
+                cap *= 2
+                sums = np.vstack([sums, np.zeros_like(sums)])
+                counts = np.concatenate([counts, np.zeros_like(counts)])
+            rows = slots[inv]
             for j in range(len(cols)):
-                sums_arr[:, j] += np.bincount(rows, probs[:, j], minlength=len(body_index))
-            counts_arr += np.bincount(rows, minlength=len(body_index)).astype(np.int64)
-    del sums, counts
-    ids = np.fromiter(body_index.keys(), dtype=np.int64, count=len(body_index))
-    means = sums_arr / counts_arr[:, None]
-    data: dict[str, object] = {"neuron_id": ids, "n_presynapses": counts_arr}
+                sums[:n_known, j] += np.bincount(rows, probs[:, j], minlength=n_known)[:n_known]
+            counts[:n_known] += np.bincount(rows, minlength=n_known)[:n_known]
+    n = len(body_index)
+    ids = np.fromiter(body_index.keys(), dtype=np.int64, count=n)
+    means = sums[:n] / counts[:n, None]
+    data: dict[str, object] = {"neuron_id": ids, "n_presynapses": counts[:n]}
     for j, c in enumerate(_TBAR_CLASSES):
         data[f"nt_p_{c}"] = means[:, j].astype(np.float32)
     table = pa.Table.from_pydict(data)
