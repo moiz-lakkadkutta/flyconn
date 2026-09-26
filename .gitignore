@@ -1,0 +1,16 @@
+# data cache (pinned downloads live here; never committed)
+.cache/
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+# os / editors
+.DS_Store
+.idea/
+.vscode/
