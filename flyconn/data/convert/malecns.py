@@ -38,6 +38,17 @@ VERSION = "1.0"
 ANNOTATIONS = "body-annotations-male-cns-v1.0-minconf-0.5.feather"
 NEUROTRANSMITTERS = "body-neurotransmitters-male-cns-v1.0.feather"
 WEIGHTS = "connectome-weights-male-cns-v1.0-minconf-0.5.feather"
+TBAR = "tbar-neurotransmitters-male-cns-v1.0.feather"
+NT_SOURCE_TBAR = "malecns_v1.0_tbar_mean"
+_TBAR_CLASSES = (
+    "acetylcholine",
+    "dopamine",
+    "gaba",
+    "glutamate",
+    "histamine",
+    "octopamine",
+    "serotonin",
+)
 NT_SOURCE = "malecns_v1.0_body_consensus"
 NEURON_DEFINITION = "superclass IS NOT NULL"
 
@@ -194,6 +205,47 @@ def _stream_edges(
     return edges, totals, raw_edges, raw_weight
 
 
+def aggregate_tbar_nt(tbar_path: Path, out_path: Path, batch_rows: int = 1 << 20) -> pa.Table:
+    """Stream the per-presynapse NT file and write per-body mean probabilities.
+
+    Memory stays bounded by ``batch_rows`` rows at a time; sums are accumulated
+    per body id in a dictionary-of-arrays keyed by a compact index.
+    """
+    cols = [f"nt_{c}_prob" for c in _TBAR_CLASSES]
+    body_index: dict[int, int] = {}
+    sums: list[np.ndarray] = []
+    counts: list[int] = []
+    sums_arr = np.zeros((0, len(cols)), dtype=np.float64)
+    counts_arr = np.zeros(0, dtype=np.int64)
+    with pa.memory_map(str(tbar_path)) as source:
+        reader = ipc.open_file(source)
+        for i in range(reader.num_record_batches):
+            batch = reader.get_batch(i)
+            bodies = batch.column("body").to_numpy()
+            probs = np.column_stack([batch.column(c).to_numpy().astype(np.float64) for c in cols])
+            uniq, inv = np.unique(bodies, return_inverse=True)
+            new = [b for b in uniq.tolist() if b not in body_index]
+            if new:
+                start = len(body_index)
+                for k, b in enumerate(new):
+                    body_index[b] = start + k
+                sums_arr = np.vstack([sums_arr, np.zeros((len(new), len(cols)))])
+                counts_arr = np.concatenate([counts_arr, np.zeros(len(new), dtype=np.int64)])
+            rows = np.array([body_index[b] for b in uniq.tolist()])[inv]
+            for j in range(len(cols)):
+                sums_arr[:, j] += np.bincount(rows, probs[:, j], minlength=len(body_index))
+            counts_arr += np.bincount(rows, minlength=len(body_index)).astype(np.int64)
+    del sums, counts
+    ids = np.fromiter(body_index.keys(), dtype=np.int64, count=len(body_index))
+    means = sums_arr / counts_arr[:, None]
+    data: dict[str, object] = {"neuron_id": ids, "n_presynapses": counts_arr}
+    for j, c in enumerate(_TBAR_CLASSES):
+        data[f"nt_p_{c}"] = means[:, j].astype(np.float32)
+    table = pa.Table.from_pydict(data)
+    write_parquet(table, out_path)
+    return table
+
+
 def convert_malecns(raw_dir: Path, out_dir: Path) -> dict[str, object]:
     """Convert MaleCNS v1.0 flat files in ``raw_dir`` to the harmonized store in ``out_dir``.
 
@@ -221,6 +273,24 @@ def convert_malecns(raw_dir: Path, out_dir: Path) -> dict[str, object]:
         counts.update(edges=len(edges), raw_edges=raw_edges, raw_weight_sum=raw_weight)
         inputs.append(weights_path)
         extra["edge_threshold"] = {"minconf": 0.5, "pair_min_synapses": 1}
+
+    tbar_path = raw_dir / TBAR
+    if tbar_path.exists():
+        probs = aggregate_tbar_nt(tbar_path, out_dir / "nt_probs.parquet").to_pandas()
+        probs = probs.set_index("neuron_id").reindex(neurons["neuron_id"].to_numpy())
+        has = probs["n_presynapses"].notna().to_numpy()
+        for c in _TBAR_CLASSES:
+            neurons[f"nt_p_{c}"] = probs[f"nt_p_{c}"].to_numpy(dtype=np.float32)
+        neurons["nt_presynapses"] = probs["n_presynapses"].to_numpy()
+        src = neurons["nt_source"].to_numpy(dtype=object) if "nt_source" in neurons else None
+        if src is not None:
+            neurons["nt_source"] = np.where(has, NT_SOURCE_TBAR, src)
+        inputs.append(tbar_path)
+        extra["nt_probs"] = {
+            "source_file": TBAR,
+            "aggregation": "mean of per-presynapse probabilities",
+            "bodies_with_probabilities": int(has.sum()),
+        }
 
     write_parquet(conform_neurons(neurons), out_dir / "neurons.parquet")
     return write_provenance(
