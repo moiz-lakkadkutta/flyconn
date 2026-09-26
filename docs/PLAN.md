@@ -13,7 +13,7 @@ Inputs: `LANDSCAPE.md`, `DATA_SOURCES.md`, `GOLDEN_RESULTS.md`, ADRs 0001–0008
 | 4 | Evaluate eonsystems fly-brain as backend | GPL-2.0 benchmark harness: forward Euler, CUDA/CPU only, unseeded, no API, no tests | ADR-0004: own engine; borrow its batching and comparison metrics |
 | 5 | Build compare on cocoa; upstream MaleCNS v1.0/BANC | cocoa has zero tests, no CI, GPL, tokens + internal SeaTable; v1.0 reached by string-ordering accident; BANC only on an unmerged branch | ADR-0003: reimplement label-graph matching with tests; offer a small PR upstream |
 | 6 | sjcabs harmonized files solve M1 | They are a workshop bundle on MaleCNS v0.9 with no checksums/DuckDB | ADR-0001: adopt their column vocabulary, not their files |
-| 7 | FlyWire current public release v783 (verify) | See DATA_SOURCES.md §FlyWire for the verdict and what needs login | Registry pins v630 and v783; anything newer is a follow-up |
+| 7 | FlyWire current public release v783 (verify) | Confirmed: v783 is still the latest public snapshot. **No login is needed for any Codex bulk file** (public GCS bucket); Codex web/CAVE need Google sign-in. Codex `connections.csv` = ≥5-synapse pairs split per neuropil; since July 2025 there are two synapse detections (Buhmann vs Princeton) | Registry pins v630 and v783 from the public bucket with per-file hashes (files are refreshed in place); `synapse_source` is explicit metadata |
 | 8 | Apple MPS supported like CUDA | torch 2.14 on MPS: sparse COO matmul and `index_add_` work; CSR, float64 and deterministic `index_add_` do not | Engine is COO/edge-list based; exactness claimed on CPU float64 only |
 | 9 | W5 gated on openly licensed data | Data exists: Meissner 2025 line table (CC BY 4.0, 409 KB, 4,433 lines with connectome-style type names) + NeuronBridge precomputed matches on public S3 (CC BY 4.0, v3_10_0) + VFB public Neo4j | W5 stays last, but it is a build, not a skip |
 | 10 | neuPrint access via token | Tokens issued before 2026-08 are invalid (auth migration); the library refuses to start without one; MaleCNS bulk files need no token at all | Bulk-first design; neuPrint optional |
@@ -58,7 +58,7 @@ Default neuron universe: MaleCNS `superclass IS NOT NULL` (166,700); FlyWire all
 | Milestone | Deliverable | Acceptance | Depends on |
 |---|---|---|---|
 | **M0 scaffold** | uv project, ruff, pyright strict on public API, pytest+hypothesis, CI (lint/types/unit on Linux+macOS; heavy manual/scheduled), mkdocs skeleton, CLAUDE.md, CHANGELOG, `ATTRIBUTION.md`, tiny synthetic fixture connectome | CI green on empty package | – |
-| **M1 data** | registry YAML (MaleCNS 1.0, FlyWire 630/783, hemibrain 1.2.1, MANC 1.2.1, BANC 888 as available), resumable checksummed pull, Feather/CSV→Parquet, DuckDB queries, `citations()` | Tier 0 counts in GOLDEN_RESULTS.md reproduce; MaleCNS + FlyWire load < 16 GB; unit tests offline | M0 |
+| **M1 data** | registry YAML (MaleCNS 1.0, FlyWire 630/783, Shiu v630 sim inputs, hemibrain 1.2.1, MANC 1.2.1, BANC 888), resumable checksummed pull, Feather/CSV→Parquet, DuckDB queries, `citations()` | Tier 0 counts in GOLDEN_RESULTS.md reproduce; MaleCNS + FlyWire load < 16 GB; unit tests offline | M0 |
 | **M2 graph** | signed sparse matrices (3 sign policies), aggregation by type/superclass/ROI, thresholds, 1–3 hop paths, connectome_interpreter adapter | W1 single-run on both datasets in minutes; parity test vs `find_paths_of_length` | M1 |
 | **M3 uncertainty** | NT sampling (probabilities or confidence-only), threshold sweeps, degree-preserving rewiring, sign shuffle, version diff (v630↔v783, MaleCNS v0.9↔v1.0 if v0.9 files still public), stability wrapper | **W1 and W4 end-to-end** with stability + drift sections; null tests | M2 |
 | **M4 sim** | engine (CPU f64 oracle, f32 batched CPU/MPS/CUDA), Brian2 gate, Shiu golden tests, benchmarks, MaleCNS calibration protocol + "uncalibrated" flag | validation rungs 1–3 pass (heavy job) | M1 |
@@ -73,14 +73,14 @@ Order: M0 → M1 → M2 → M3 → M4 → M5 → M6 → M7. M4 can start in para
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| FlyWire Codex downloads require login (see DATA_SOURCES.md) | see §FlyWire | registry supports a "user-supplied file + checksum" mode; Zenodo 10676866 for v783; Shiu repo for sim inputs |
+| FlyWire Codex files are refreshed in place without version bumps | certain | registry pins SHA-256 + GCS `updated` time per file and refuses silently changed files; Zenodo 10676866 as the frozen v783 alternative |
 | Brian2 parity fails on refractory/delay edge cases | medium | copy the MLX port's tick semantics; start with 20-neuron hand-checkable nets |
 | MPS non-determinism confuses users | high | scope the determinism claim; report device in provenance |
 | MaleCNS NT sampling under confidence-only model is crude | medium | label outputs; make `--level nt-probs` cheap (streamed aggregation, ~2 GB peak) |
 | connectome_interpreter PyPI staleness | certain | pin git SHA; vendor nothing |
 | Cell paper Methods unreachable | medium | ask owner for institutional PDF; tests use files |
 | Session/token limits during long builds | observed in Phase 0 | ≤3 parallel agents; incremental file writes |
-| BANC/FANC access terms | see DATA_SOURCES.md | ship adapters only for what is public without agreement; document the rest |
+| BANC/FANC access terms | low (BANC) / high (FANC) | BANC v888 is fully public, CC BY 4.0, with cross-dataset match columns: include in M1. FANC live access is restricted and its public export has no cell types: adapter only |
 
 ## 7. Open questions for the owner (do not block M0–M2)
 

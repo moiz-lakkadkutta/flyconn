@@ -280,7 +280,7 @@ test: identical input matrix ⇒ identical `compress_paths` output.
 | Codex v630 `cell_stats.csv.gz` rows | 127,978 ✓ (= Lin24) |
 | Codex v630 `connections.csv.gz` | 3,794,615 rows (one per pre, post, neuropil); **2,613,129 distinct pre→post pairs, all with summed syn_count ≥5** ✓ (= Lin24 exactly) |
 | Codex v783 `connections.csv.gz` | 3,869,878 rows; **2,700,513 distinct pairs ≥5** ✓ (= Dork24 exactly; so Lin24's 2,701,601 is the outlier) |
-| Codex v783 `cell_stats.csv.gz` rows | **139,246**, i.e. 9 fewer than the published 139,255 — resolve against `neurons.csv`/`classification.csv` in DATA_SOURCES.md before making it a test |
+| Codex v783 `cell_stats.csv.gz` rows | 139,246 (9 neurons lack morphology stats); `neurons.csv.gz` and `classification.csv.gz` both have **139,255** rows ✓ — use those for the neuron count |
 
 Interpretation: the Codex `connections.csv` is the ≥5-synapse *pair* table
 split by neuropil (per-row syn_count can be <5). Summing over neuropils recovers
