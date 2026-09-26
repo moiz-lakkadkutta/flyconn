@@ -15,6 +15,7 @@ first to resume; `docs/PLAN.md` is the scope; `docs/adr/` holds decisions.
 Raw research notes: `docs/research/`. Pinned downloads: `.cache/data/` (gitignored).
 
 ## Commands
+- `scripts/check.sh` runs the full local gate (ruff, format, pyright, unit tests); use it before every commit
 - `uv sync` · `uv run pytest` (unit, offline) · `uv run pytest -m golden` (needs cached data) · `uv run ruff check` · `uv run pyright`
 - `flyconn data list` · `flyconn data info malecns@1.0` · `flyconn data pull malecns@1.0 --level weights`
 - Golden tests on real cached data: `FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m golden`

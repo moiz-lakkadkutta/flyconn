@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -97,5 +98,5 @@ def find_paths(
     if not rows:
         empty: dict[str, list[object]] = {c: [] for c in cols}
         return pd.DataFrame(empty).astype({"hops": int, "min_weight": int, "strength": float})
-    df = pd.DataFrame(rows)[cols]
+    df = cast("pd.DataFrame", pd.DataFrame(rows)[cols])
     return df.sort_values(["strength", "hops"], ascending=[False, True], ignore_index=True)
