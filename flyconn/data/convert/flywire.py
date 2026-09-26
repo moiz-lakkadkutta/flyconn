@@ -35,6 +35,10 @@ _NT_AVG = {
 }
 
 
+def _super_class(raw: object) -> str | None:
+    return normalize_super_class("codex_fafb", raw)
+
+
 def _read(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, dtype={"root_id": "int64"}, low_memory=False)
 
@@ -65,9 +69,7 @@ def _neurons(raw: Path, version: str) -> tuple[pd.DataFrame, list[Path]]:
             "neuron_id": ids,
             "flow": cls["flow"].to_numpy(),
             "super_class_raw": cls["super_class"].to_numpy(),
-            "super_class": cls["super_class"]
-            .map(lambda v: normalize_super_class("codex_fafb", v))
-            .to_numpy(),
+            "super_class": cls["super_class"].map(_super_class).to_numpy(),
             "cell_class": cls["class"].to_numpy(),
             "cell_sub_class": cls["sub_class"].to_numpy(),
             "cell_type": cell_type.to_numpy(),
@@ -98,11 +100,8 @@ def _edges(raw: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
             "roi": conns["neuropil"],
         }
     )
-    pairs = (
-        roi.groupby(["pre", "post"], sort=True, as_index=False)["weight"]
-        .sum()
-        .astype({"weight": "int32"})
-    )
+    grouped = roi.groupby(["pre", "post"], sort=True, as_index=False)["weight"].sum()
+    pairs = pd.DataFrame(grouped).astype({"weight": "int32"})
     return pairs, roi
 
 

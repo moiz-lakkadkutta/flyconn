@@ -15,6 +15,7 @@ Inputs (official Feather exports, see ``docs/DATA_SOURCES.md`` §1):
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -62,15 +63,25 @@ _ANN_COLUMNS = [
 
 def _read_feather(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
     table = pf.read_table(path, columns=columns)
-    return table.to_pandas(types_mapper=None)
+    df: pd.DataFrame = table.to_pandas()
+    return df
+
+
+def _super_class(raw: object) -> str | None:
+    return normalize_super_class("malecns", raw)
+
+
+def _col(df: pd.DataFrame, name: str) -> pd.Series | None:
+    return cast("pd.Series", df[name]) if name in df.columns else None
 
 
 def _neurons(raw: Path) -> pd.DataFrame:
-    ann = _read_feather(raw / ANNOTATIONS)
-    ann = ann[[c for c in _ANN_COLUMNS if c in ann.columns]]
-    ann = ann[ann["superclass"].notna()].reset_index(drop=True)
+    full = _read_feather(raw / ANNOTATIONS)
+    keep = [c for c in _ANN_COLUMNS if c in full.columns]
+    mask = cast("pd.Series", full["superclass"]).notna()
+    ann: pd.DataFrame = full.loc[mask, keep].reset_index(drop=True)
     # Categorical statusLabel -> plain strings.
-    status_label = ann["statusLabel"].astype("string") if "statusLabel" in ann else None
+    status_label = ann["statusLabel"].astype("string") if "statusLabel" in ann.columns else None
 
     neurons = pd.DataFrame(
         {
@@ -79,19 +90,19 @@ def _neurons(raw: Path) -> pd.DataFrame:
             "neuron_id": ann["bodyId"].astype("int64"),
             "status": status_label,
             "super_class_raw": ann["superclass"],
-            "super_class": ann["superclass"].map(lambda v: normalize_super_class("malecns", v)),
-            "cell_class": ann.get("class"),
-            "cell_sub_class": ann.get("subclass"),
+            "super_class": ann["superclass"].map(_super_class),
+            "cell_class": _col(ann, "class"),
+            "cell_sub_class": _col(ann, "subclass"),
             "cell_type": ann["type"],
-            "hemilineage": ann.get("itoleeHl"),
-            "hemilineage_truman": ann.get("trumanHl"),
+            "hemilineage": _col(ann, "itoleeHl"),
+            "hemilineage_truman": _col(ann, "trumanHl"),
             "side": ann["somaSide"].map(normalize_side),
-            "soma_neuromere": ann.get("somaNeuromere"),
-            "fafb_783_cell_type": ann.get("flywireType"),
-            "hemibrain_121_cell_type": ann.get("hemibrainType"),
-            "manc_121_cell_type": ann.get("mancType"),
-            "dimorphism": ann.get("dimorphism"),
-            "vfb_id": ann.get("vfbId"),
+            "soma_neuromere": _col(ann, "somaNeuromere"),
+            "fafb_783_cell_type": _col(ann, "flywireType"),
+            "hemibrain_121_cell_type": _col(ann, "hemibrainType"),
+            "manc_121_cell_type": _col(ann, "mancType"),
+            "dimorphism": _col(ann, "dimorphism"),
+            "vfb_id": _col(ann, "vfbId"),
         }
     )
 
