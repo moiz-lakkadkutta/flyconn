@@ -113,9 +113,16 @@ Common snippet:
 
 ```python
 import pyarrow.feather as pf, pandas as pd, time
-t0 = time.time(); t = pf.read_table(path); print(t.num_rows, t.num_columns, t.nbytes, time.time() - t0)
-print(t.schema.to_string(show_schema_metadata=False))   # all files carry only a b'pandas' metadata blob
-df = t.to_pandas(); print(df.memory_usage(deep=True).sum()); print(df.head())
+
+t0 = time.time()
+t = pf.read_table(path)
+print(t.num_rows, t.num_columns, t.nbytes, time.time() - t0)
+print(
+    t.schema.to_string(show_schema_metadata=False)
+)  # all files carry only a b'pandas' metadata blob
+df = t.to_pandas()
+print(df.memory_usage(deep=True).sum())
+print(df.head())
 ```
 
 Note: with pandas 3.x, Arrow `string` columns load as the new `str` dtype (not `object`); code that tests `dtype == object` will miss them.
@@ -247,8 +254,12 @@ Every body in body-stats appears in the weights file and vice versa (88,384,522 
 
 ```python
 import pyarrow.feather as pf, numpy as np, pandas as pd, time, resource
-t0=time.time(); t=pf.read_table('connectome-weights-male-cns-v1.0-minconf-0.5.feather'); t_arrow=time.time()-t0
-df=t.to_pandas(); w=df.weight.to_numpy()
+
+t0 = time.time()
+t = pf.read_table("connectome-weights-male-cns-v1.0-minconf-0.5.feather")
+t_arrow = time.time() - t0
+df = t.to_pandas()
+w = df.weight.to_numpy()
 ```
 
 - **Columns: `body_pre` int64, `body_post` int64, `weight` int64** — no per-ROI breakdown, no type columns (the `-traced-only` /
@@ -302,19 +313,45 @@ Using a minimal HTTP-Range file object wrapped in `pa.PythonFile` and `pyarrow.i
 
 ```python
 import requests, io, pyarrow as pa, pyarrow.ipc as ipc
+
+
 class HttpFile(io.RawIOBase):
-    def __init__(s,url): s.url=url; s.pos=0; s.size=int(requests.head(url).headers['content-length'])
-    def readable(s): return True
-    def seekable(s): return True
-    def tell(s): return s.pos
-    def seek(s,off,whence=0): s.pos={0:off,1:s.pos+off,2:s.size+off}[whence]; return s.pos
-    def read(s,n=-1):
-        if n<0: n=s.size-s.pos
-        if n==0: return b''
-        r=requests.get(s.url,headers={'Range':f'bytes={s.pos}-{s.pos+n-1}'}); r.raise_for_status(); s.pos+=len(r.content); return r.content
-    def readinto(s,b): d=s.read(len(b)); b[:len(d)]=d; return len(d)
-rd = ipc.open_file(pa.PythonFile(HttpFile(url), mode='r'))
-rows = (rd.num_record_batches-1)*65536 + rd.get_batch(rd.num_record_batches-1).num_rows
+    def __init__(s, url):
+        s.url = url
+        s.pos = 0
+        s.size = int(requests.head(url).headers["content-length"])
+
+    def readable(s):
+        return True
+
+    def seekable(s):
+        return True
+
+    def tell(s):
+        return s.pos
+
+    def seek(s, off, whence=0):
+        s.pos = {0: off, 1: s.pos + off, 2: s.size + off}[whence]
+        return s.pos
+
+    def read(s, n=-1):
+        if n < 0:
+            n = s.size - s.pos
+        if n == 0:
+            return b""
+        r = requests.get(s.url, headers={"Range": f"bytes={s.pos}-{s.pos + n - 1}"})
+        r.raise_for_status()
+        s.pos += len(r.content)
+        return r.content
+
+    def readinto(s, b):
+        d = s.read(len(b))
+        b[: len(d)] = d
+        return len(d)
+
+
+rd = ipc.open_file(pa.PythonFile(HttpFile(url), mode="r"))
+rows = (rd.num_record_batches - 1) * 65536 + rd.get_batch(rd.num_record_batches - 1).num_rows
 ```
 
 | File | Batches | Rows (exact) | Schema |
@@ -382,14 +419,21 @@ Listing snippet:
 
 ```python
 import requests
-url="https://storage.googleapis.com/storage/v1/b/flyem-male-cns/o"
-params={'prefix':'v1.0/database/neo4j/','fields':'items(name,size),nextPageToken','maxResults':1000}
-items=[]
+
+url = "https://storage.googleapis.com/storage/v1/b/flyem-male-cns/o"
+params = {
+    "prefix": "v1.0/database/neo4j/",
+    "fields": "items(name,size),nextPageToken",
+    "maxResults": 1000,
+}
+items = []
 while True:
-    d=requests.get(url,params=params).json(); items+=d['items']
-    if 'nextPageToken' not in d: break
-    params['pageToken']=d['nextPageToken']
-print(len(items), sum(int(i['size']) for i in items))
+    d = requests.get(url, params=params).json()
+    items += d["items"]
+    if "nextPageToken" not in d:
+        break
+    params["pageToken"] = d["nextPageToken"]
+print(len(items), sum(int(i["size"]) for i in items))
 ```
 
 ## 8. Caveats and definitions (verified against `janelia-flyem/flyem-snapshot`, branch `master`)

@@ -1,0 +1,20 @@
+site_name: flyconn
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy]
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options: { show_source: false }
+nav:
+  - Home: index.md
+  - Plan: PLAN.md
+  - Data sources: DATA_SOURCES.md
+  - Golden results: GOLDEN_RESULTS.md
+  - Landscape: LANDSCAPE.md
+  - Scientific caveats: caveats.md
+  - Tutorials: tutorials/index.md
+  - ADRs: adr/README.md
+  - Progress: PROGRESS.md
