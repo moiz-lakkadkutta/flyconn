@@ -218,9 +218,10 @@ stored *minus the common prefix 720575940*). The Buhmann synapse table (Zenodo `
 
 ```python
 import pandas as pd
-c = pd.read_csv('.cache/data/flywire/783/connections.csv.gz')            # 3,869,878 rows
-g = c.groupby(['pre_root_id','post_root_id']).syn_count.sum()            # 2,700,513 pairs, min 5
-assert g.min() == 5 and (c.syn_count < 5).sum() > 0                      # per-row counts can be < 5
+
+c = pd.read_csv(".cache/data/flywire/783/connections.csv.gz")  # 3,869,878 rows
+g = c.groupby(["pre_root_id", "post_root_id"]).syn_count.sum()  # 2,700,513 pairs, min 5
+assert g.min() == 5 and (c.syn_count < 5).sum() > 0  # per-row counts can be < 5
 ```
 
 ### 1.5 Neuron counts, computed vs stated
@@ -258,11 +259,16 @@ columns `Presynaptic_ID, Postsynaptic_ID, Presynaptic_Index, Postsynaptic_Index,
 - Sign rule used by Shiu: neuron is inhibitory if >50% of its presynapses are predicted GABA or glutamate; DA/OA/5-HT treated as excitatory.
 
 ```python
-comp = pd.read_csv('shiu_repo/comp630.csv'); con = pd.read_parquet('shiu_repo/conn630.parquet')
-n630 = pd.read_csv('.cache/data/flywire/630/neurons.csv.gz'); c630 = pd.read_csv('.cache/data/flywire/630/connections.csv.gz')
-ids, cids = set(comp.iloc[:,0]), set(n630.root_id)          # 127,400 vs 127,978 -> 127,319 common
-g  = con.groupby(['Presynaptic_ID','Postsynaptic_ID']).Connectivity.sum(); cg = c630.groupby(['pre_root_id','post_root_id']).syn_count.sum()
-m  = pd.concat([g[g>=5].rename('shiu'), cg.rename('codex')], axis=1)     # 2,613,129 both (all equal), 899 shiu-only, 0 codex-only
+comp = pd.read_csv("shiu_repo/comp630.csv")
+con = pd.read_parquet("shiu_repo/conn630.parquet")
+n630 = pd.read_csv(".cache/data/flywire/630/neurons.csv.gz")
+c630 = pd.read_csv(".cache/data/flywire/630/connections.csv.gz")
+ids, cids = set(comp.iloc[:, 0]), set(n630.root_id)  # 127,400 vs 127,978 -> 127,319 common
+g = con.groupby(["Presynaptic_ID", "Postsynaptic_ID"]).Connectivity.sum()
+cg = c630.groupby(["pre_root_id", "post_root_id"]).syn_count.sum()
+m = pd.concat(
+    [g[g >= 5].rename("shiu"), cg.rename("codex")], axis=1
+)  # 2,613,129 both (all equal), 899 shiu-only, 0 codex-only
 ```
 
 ### 1.8 Schlegel/flyconnectome annotation files (v3.1.0 content, on disk)
@@ -345,10 +351,19 @@ export (the README says they are dropped, but the file contains a `NotPrimary` r
 
 ```python
 import pandas as pd, pyarrow.feather as pf
-tn = pd.read_csv('.cache/data/hemibrain/extracted/exported-traced-adjacencies-v1.2/traced-neurons.csv')
-tc = pd.read_csv('.cache/data/hemibrain/extracted/exported-traced-adjacencies-v1.2/traced-total-connections.csv')
-nt = pf.read_table('.cache/data/hemibrain/hemibrain-v1.2-body-mean-neurotransmitters.feather').to_pandas()   # index name 'body'
-print(len(tn), len(tc), tc.weight.sum(), tn.bodyId.isin(nt.index).sum())   # 21739 3550403 14329229 21709
+
+tn = pd.read_csv(
+    ".cache/data/hemibrain/extracted/exported-traced-adjacencies-v1.2/traced-neurons.csv"
+)
+tc = pd.read_csv(
+    ".cache/data/hemibrain/extracted/exported-traced-adjacencies-v1.2/traced-total-connections.csv"
+)
+nt = pf.read_table(
+    ".cache/data/hemibrain/hemibrain-v1.2-body-mean-neurotransmitters.feather"
+).to_pandas()  # index name 'body'
+print(
+    len(tn), len(tc), tc.weight.sum(), tn.bodyId.isin(nt.index).sum()
+)  # 21739 3550403 14329229 21709
 ```
 
 ### 2.4 License, citations, caveats
@@ -428,9 +443,18 @@ print(len(tn), len(tc), tc.weight.sum(), tn.bodyId.isin(nt.index).sum())   # 217
 
 ```python
 import pyarrow.feather as pf, pandas as pd
-npf = pf.read_table('.cache/data/manc/manc-v1.0-neuron-properties.feather').to_pandas()
-print((npf.status=='Traced').sum(), npf.predictedNt.value_counts().to_dict())           # 23200 {'acetylcholine': 11701, 'glutamate': 8037, 'gaba': 6147, 'unknown': 502}
-assert (npf[['ntGabaProb','ntAcetylcholineProb','ntGlutamateProb','ntUnknownProb']].sum(axis=1).round(3).dropna()==1).all()
+
+npf = pf.read_table(".cache/data/manc/manc-v1.0-neuron-properties.feather").to_pandas()
+print(
+    (npf.status == "Traced").sum(), npf.predictedNt.value_counts().to_dict()
+)  # 23200 {'acetylcholine': 11701, 'glutamate': 8037, 'gaba': 6147, 'unknown': 502}
+assert (
+    npf[["ntGabaProb", "ntAcetylcholineProb", "ntGlutamateProb", "ntUnknownProb"]]
+    .sum(axis=1)
+    .round(3)
+    .dropna()
+    == 1
+).all()
 ```
 
 ### 3.4 License, citations, caveats
@@ -484,9 +508,14 @@ Computed joins: 17,136 of the 102,136 presynaptic roots are in `cell_ids_v2`; re
 
 ```python
 import pyarrow.parquet as pq
-cc = pq.read_table('.cache/data/fanc/v1444/synapses_nov2022_human_readable_connectioncounts_countthresh3.parquet').to_pandas()
-print(len(cc), cc.num_synapses.sum(), cc.num_synapses.min(), (cc.num_synapses>=5).sum())      # 1878659 11801582 3 630322
-print(pq.read_schema('.cache/data/fanc/v1444/cell_ids_v2.parquet').metadata[b'PANDAS_ATTRS'][:300])
+
+cc = pq.read_table(
+    ".cache/data/fanc/v1444/synapses_nov2022_human_readable_connectioncounts_countthresh3.parquet"
+).to_pandas()
+print(
+    len(cc), cc.num_synapses.sum(), cc.num_synapses.min(), (cc.num_synapses >= 5).sum()
+)  # 1878659 11801582 3 630322
+print(pq.read_schema(".cache/data/fanc/v1444/cell_ids_v2.parquet").metadata[b"PANDAS_ATTRS"][:300])
 ```
 
 ### 4.2 Access model, version, license, citations
@@ -639,10 +668,15 @@ unlike other BANC CAVE tables which are 4×4×45 nm voxels).
 
 ```python
 import pyarrow.feather as pf, pyarrow.parquet as pq
-m = pf.read_table('.cache/data/banc/banc_888_meta.feather').to_pandas()
-pr = m.proofread.eq('TRUE'); rp = m.roughly_proofread.eq('TRUE'); print(len(m), pr.sum(), rp.sum(), (pr|rp).sum())  # 188508 150952 5060 156012
-ca = pq.read_table('.cache/data/banc/neuron_annotations/v888/codex_annotations.parquet').to_pandas()
-print(ca.classification_system.value_counts().head(8).to_dict(), ca.target_id.nunique())                           # ... 158230
+
+m = pf.read_table(".cache/data/banc/banc_888_meta.feather").to_pandas()
+pr = m.proofread.eq("TRUE")
+rp = m.roughly_proofread.eq("TRUE")
+print(len(m), pr.sum(), rp.sum(), (pr | rp).sum())  # 188508 150952 5060 156012
+ca = pq.read_table(".cache/data/banc/neuron_annotations/v888/codex_annotations.parquet").to_pandas()
+print(
+    ca.classification_system.value_counts().head(8).to_dict(), ca.target_id.nunique()
+)  # ... 158230
 ```
 
 ### 5.5 License, citations, caveats
@@ -746,7 +780,11 @@ incl. 12,750 glia and 28,632 without super_class). Counts per `super_class` are 
 
 ```python
 import pyarrow.feather as pf
-metas = {n: pf.read_table(f'.cache/data/sjcabs/{n}_meta.feather').to_pandas() for n in ['fafb_783','hemibrain_121','manc_121','malecns_09','banc_888']}
+
+metas = {
+    n: pf.read_table(f".cache/data/sjcabs/{n}_meta.feather").to_pandas()
+    for n in ["fafb_783", "hemibrain_121", "manc_121", "malecns_09", "banc_888"]
+}
 common = set.intersection(*[set(m.columns) for m in metas.values()])
 # {'region','hemilineage','nerve','flow','super_class','cell_class','cell_sub_class','cell_type','neurotransmitter_predicted',
 #  'cell_function','cell_function_detailed','body_part_sensory','body_part_effector'}
