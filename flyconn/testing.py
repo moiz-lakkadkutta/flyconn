@@ -10,16 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-NT_CLASSES: tuple[str, ...] = (
-    "acetylcholine",
-    "glutamate",
-    "gaba",
-    "dopamine",
-    "octopamine",
-    "serotonin",
-    "histamine",
-)
-"""Transmitter classes of the seven-class MaleCNS classifier, in a fixed order."""
+from flyconn.data.schema import NT_CLASSES
 
 _SUPER_CLASSES: tuple[str, ...] = (
     "central_brain_intrinsic",
