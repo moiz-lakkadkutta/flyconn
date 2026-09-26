@@ -2,6 +2,25 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-26 — M1 data layer done (branch m1-data, merged)
+
+What works:
+- `flyconn data pull malecns@1.0 --level weights` and `flywire@{630,783}`: download (resumable, SHA-256/MD5 verified), convert to harmonized Parquet, query offline via `Store` (DuckDB). Golden Tier 0 tests pass: MaleCNS 166,700 neurons, 151,856,684 raw edges, 311,833,243 PSDs, 25,582,938 neuron→neuron edges; FlyWire v783 139,255 / 2,700,513; v630 127,978 / 2,613,129.
+- MaleCNS conversion: 26 s, 5.7 GB peak RSS (memory-mapped record-batch streaming; the 16 GB target holds with margin).
+- Registry also lists hemibrain@1.2.1, manc@1.2.1, banc@888 and shiu@630 with pinned checksums; their converters are deferred (BANC/hemibrain/MANC to M6, Shiu to M4) and `pull` raises NotImplementedError for them.
+
+What doesn't / deferred:
+- MaleCNS NT probabilities (`--level nt-probs`, ADR-0008) not yet implemented: neurons carry consensus label + confidence only.
+- FlyWire per-neuron NT probabilities are Codex `*_avg` means (6 classes); histamine/tyramine columns null.
+- No MaleCNS ROI edge table (flat weights have no ROI); needs syn-partners (opt-in) or neuPrint.
+- Raw files for this machine were hard-linked from `.cache/data/` into `.cache/flyconn/raw/` (set `FLYCONN_CACHE=$PWD/.cache/flyconn`).
+
+Learned / plan changes:
+- Codex `connections.csv` per-neuropil rows must be summed per pair before thresholding; the converter does this and keeps the per-neuropil table separately.
+- pandas-stubs under pyright strict need `cast("pd.Series", df[col])` for column access; keep helpers for this.
+
+Next: M2 graph (signed sparse matrices, aggregation, 1–3 hop paths, connectome_interpreter adapter).
+
 ## 2026-09-26 — Phase 0 complete; waiting for go-ahead
 
 Deliverables (all committed on `main`):

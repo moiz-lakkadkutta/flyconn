@@ -170,10 +170,14 @@ def _stream_edges(
             pre_in = pi >= 0
             post_in = qi >= 0
             both = pre_in & post_in
-            np.add.at(totals["output_synapses_total"], pi[pre_in], w[pre_in])
-            np.add.at(totals["input_synapses_total"], qi[post_in], w[post_in])
-            np.add.at(totals["output_synapses_neurons"], pi[both], w[both])
-            np.add.at(totals["input_synapses_neurons"], qi[both], w[both])
+            totals["output_synapses_total"] += np.bincount(pi[pre_in], w[pre_in], n).astype(
+                np.int64
+            )
+            totals["input_synapses_total"] += np.bincount(qi[post_in], w[post_in], n).astype(
+                np.int64
+            )
+            totals["output_synapses_neurons"] += np.bincount(pi[both], w[both], n).astype(np.int64)
+            totals["input_synapses_neurons"] += np.bincount(qi[both], w[both], n).astype(np.int64)
             if both.any():
                 kept_pre.append(pre[both])
                 kept_post.append(post[both])

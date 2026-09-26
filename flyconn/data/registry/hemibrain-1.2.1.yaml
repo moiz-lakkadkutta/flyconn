@@ -1,0 +1,40 @@
+name: hemibrain
+version: "1.2.1"
+title: "Hemibrain v1.2.1 (Janelia FlyEM); flat export tarball is the v1.2 traced adjacency set"
+homepage: https://www.janelia.org/project-team/flyem/hemibrain
+release_date: "2020-12-23"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: scheffer2020
+    doi: 10.7554/eLife.57443
+    text: "Scheffer LK, Xu CS, Januszewski M, Lu Z, Takemura S-y, et al. A connectome and analysis of the adult Drosophila central brain. eLife 9:e57443 (2020)."
+  - key: eckstein2024
+    doi: 10.1016/j.cell.2024.03.016
+    text: "Eckstein N, Bates AS, Champion A, et al. Neurotransmitter classification from electron microscopy images at synaptic sites in Drosophila melanogaster. Cell 187:2574-2594 (2024)."
+neuprint:
+  server: https://neuprint.janelia.org
+  dataset: "hemibrain:v1.2.1"
+id_space: bodyId
+synapse_threshold:
+  note: "neuPrint weight for hemibrain includes all PSDs (postHighAccuracyThreshold 0); the export tar carries that weight."
+files:
+  - name: exported-traced-adjacencies-v1.2.tar.gz
+    url: https://storage.googleapis.com/hemibrain/v1.2/exported-traced-adjacencies-v1.2.tar.gz
+    bytes: 45872577
+    sha256: 07d8946eb0c4e3a5cb23d5769c9817847494f9fcadbc0ca239eed7bbd5555cf7
+    md5_b64: 7B4HbRVELzaPpZeLAPSmHA==
+    level: weights
+    role: traced_adjacencies
+    note: "21,739 non-cropped traced neurons; 3,550,403 edges; sum weight 14,329,229."
+  - name: hemibrain-v1.2-body-mean-neurotransmitters.feather
+    url: https://storage.googleapis.com/hemibrain/v1.2/hemibrain-v1.2-body-mean-neurotransmitters.feather
+    bytes: 45591786
+    sha256: aab49d858415f559f469a9293adfb4d58e423db83a5debb24272ee4d66e059ad
+    md5_b64: 711dUR0Z7ZvKXY3FyMymkA==
+    level: meta
+    role: nt_probs
+    note: "Per-body mean probabilities (6 classes + neither), uploaded 2026-05-15; provenance UNVERIFIED (no README)."
+notes: >
+  Side and hemilineage are not in neuPrint; Schlegel et al. 2024 Supplemental_file5 supplies them.
+  Converter lands with the compare milestone (M6).
