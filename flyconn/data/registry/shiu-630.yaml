@@ -1,0 +1,33 @@
+name: shiu
+version: "630"
+title: "Shiu et al. 2024 whole-brain LIF model inputs (FlyWire v630 export of 2023-03-23, unthresholded)"
+homepage: https://github.com/philshiu/Drosophila_brain_model
+release_date: "2023-03-23"
+license: MIT
+license_url: https://github.com/philshiu/Drosophila_brain_model/blob/main/LICENSE
+citations:
+  - key: shiu2024
+    doi: 10.1038/s41586-024-07763-9
+    text: "Shiu PK, Sterne GR, Spiller N, Franconville R, Sandoval A, et al. A Drosophila computational brain model reveals sensorimotor processing. Nature 634:210-219 (2024)."
+  - key: dorkenwald2024
+    doi: 10.1038/s41586-024-07558-y
+    text: "Dorkenwald S, et al. Neuronal wiring diagram of an adult brain. Nature 634:124-138 (2024)."
+id_space: root_id
+synapse_threshold:
+  pair_min_synapses: 1
+  synapse_source: buhmann
+  note: "Cleft score >= 50; no pair threshold; signs pre-baked (GABA/Glu inhibitory)."
+files:
+  - name: 2023_03_23_connectivity_630_final.parquet
+    url: https://raw.githubusercontent.com/philshiu/Drosophila_brain_model/main/2023_03_23_connectivity_630_final.parquet
+    bytes: 86630944
+    sha256: 94db8c650533bc36ffa3223f2e62325d5648b8d6bd31c3a4e1c804628c7557b3
+    level: weights
+    role: connections_signed
+  - name: 2023_03_23_completeness_630_final.csv
+    url: https://raw.githubusercontent.com/philshiu/Drosophila_brain_model/main/2023_03_23_completeness_630_final.csv
+    bytes: 3057611
+    sha256: e6b71e17671a9bdb05f55e4bc6774640a1418cb7a05125e0fc994ad40f9bfdfb
+    level: meta
+    role: neurons
+notes: "127,400 neurons, 14,687,178 edges, 52,793,639 synapses; golden input for flyconn.sim."

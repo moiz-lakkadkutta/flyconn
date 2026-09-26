@@ -1,0 +1,51 @@
+name: flywire
+version: "630"
+title: "FlyWire FAFB whole-brain connectome, public snapshot v630 (Codex exports)"
+homepage: https://codex.flywire.ai/
+release_date: "2023-06"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: dorkenwald2024
+    doi: 10.1038/s41586-024-07558-y
+    text: "Dorkenwald S, et al. Neuronal wiring diagram of an adult brain. Nature 634:124-138 (2024)."
+  - key: schlegel2024
+    doi: 10.1038/s41586-024-07686-5
+    text: "Schlegel P, et al. Whole-brain annotation and multi-connectome cell typing of Drosophila. Nature 634:139-152 (2024)."
+  - key: lin2024
+    doi: 10.1038/s41586-024-07968-y
+    text: "Lin A, et al. Network statistics of the whole-brain connectome of Drosophila. Nature 634:153-165 (2024)."
+  - key: eckstein2024
+    doi: 10.1016/j.cell.2024.03.016
+    text: "Eckstein N, et al. Neurotransmitter classification from electron microscopy images at synaptic sites in Drosophila melanogaster. Cell 187:2574-2594 (2024)."
+id_space: root_id
+coordinate_units: "4x4x40 nm voxels"
+synapse_threshold:
+  pair_min_synapses: 5
+  synapse_source: buhmann
+files:
+  - name: neurons.csv.gz
+    url: https://storage.googleapis.com/flywire-data/codex/data/fafb/630/neurons.csv.gz
+    bytes: 1572661
+    sha256: a0be4670993d86cea0a4724ba24f874c9d867a24f4e248ff30dcf9b6565d81bb
+    level: meta
+    role: neurons
+  - name: classification.csv.gz
+    url: https://storage.googleapis.com/flywire-data/codex/data/fafb/630/classification.csv.gz
+    bytes: 1011550
+    sha256: b2cf34ef76f5750e647334b56c73ae7f49c96f0fee3371e8a52d26c835a3b499
+    level: meta
+    role: classification
+    note: "v630 classification includes cell_type and hemibrain_type columns."
+  - name: connections.csv.gz
+    url: https://storage.googleapis.com/flywire-data/codex/data/fafb/630/connections.csv.gz
+    bytes: 26124953
+    sha256: 68144490b8585fb6b1bf5979d923a3b1081b435cd52b7f82daed1beb6b84781a
+    level: weights
+    role: connections
+  - name: no_threshold_connections.csv.gz
+    url: https://storage.googleapis.com/flywire-data/codex/data/fafb/630/no_threshold_connections.csv.gz
+    bytes: 116904594
+    level: synapses
+    role: connections_unthresholded
+    note: "No header row."

@@ -1,0 +1,34 @@
+name: manc
+version: "1.2.1"
+title: "Male Adult Nerve Cord connectome v1.2.1 (Janelia FlyEM)"
+homepage: https://www.janelia.org/project-team/flyem/manc-connectome
+release_date: "2024-03-11"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: takemura2024
+    doi: 10.7554/eLife.97769
+    text: "Takemura S-y, Hayworth KJ, Huang GB, Januszewski M, Lu Z, et al. A Connectome of the Male Drosophila Ventral Nerve Cord. eLife 13:RP97769 (2024)."
+  - key: marin2024
+    doi: 10.7554/eLife.97766
+    text: "Marin EC, Morris BJ, Stuerner T, Champion AS, Krzeminski D, et al. Systematic annotation of a complete adult male Drosophila nerve cord connectome reveals principles of functional organisation. eLife 13:RP97766 (2024)."
+  - key: cheong2025
+    doi: 10.7554/eLife.96084
+    text: "Cheong HSJ, Boone KN, Bennett MM, Salman F, Ralston JD, et al. Transforming descending input into behavior: The organization of premotor circuits in the Drosophila Male Adult Nerve Cord connectome. eLife 13:RP96084 (2025)."
+neuprint:
+  server: https://neuprint.janelia.org
+  dataset: "manc:v1.2.1"
+id_space: bodyId
+synapse_threshold:
+  note: "neuPrint postHighAccuracyThreshold 0.4; NT classifier is 3-class (ACh/GABA/Glu) + unknown."
+files:
+  - name: neurons.csv.gz
+    url: https://storage.googleapis.com/flywire-data/codex/data/manc/1.2.1/neurons.csv.gz
+    bytes: 1019361
+    sha256: ddeea1ff2859941d60a8f24933eb963d1f65d28d2399768c589a74bb90ac4a80
+    level: meta
+    role: neurons
+    note: "Codex export of the 23,665 traced v1.2.1 neurons (21 columns)."
+notes: >
+  No v1.2.x flat edge export exists in a public bucket (only v1.0 under gs://flyem-manc-exports/);
+  edges come from neuPrint or the sjcabs manc_121_simple_edgelist. Converter lands with M6.

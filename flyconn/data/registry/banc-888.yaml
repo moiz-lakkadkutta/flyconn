@@ -1,0 +1,34 @@
+name: banc
+version: "888"
+title: "BANC brain-and-nerve-cord connectome, publication release v888 (Lee, Wilson and Bates labs)"
+homepage: https://flywire.ai/banc
+release_date: "2026-04-16"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: bates2026
+    doi: 10.1038/s41586-026-10735-w
+    text: "Bates AS, Phelps JS, Kim M, Yang HH, et al. Distributed control circuits across a brain-and-cord connectome. Nature 656:957-970 (2026)."
+  - key: banc_dataverse
+    doi: 10.7910/DVN/7WTH1N
+    text: "BANC connectome data, publication version (Harvard Dataverse, CC BY 4.0)."
+id_space: root_id
+coordinate_units: "4x4x45 nm voxels"
+synapse_threshold:
+  note: "edgelist_simple_v2 has no pair threshold (synapse size >= 5); Codex BANC applies >= 3."
+files:
+  - name: banc_888_meta.feather
+    url: https://storage.googleapis.com/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_meta.feather
+    bytes: 57503026
+    sha256: 86ccf5df0c67419f8c5f43e93a7ed38d23a080e9f7fde26737290252f3780098
+    md5_b64: jCuTpgjHFj7J2U1o4HVv9A==
+    level: meta
+    role: annotations
+    note: "188,508 x 81; patched in place after publication (root_890 column) - checksum pins the 2026-08-21 version."
+  - name: banc_888_edgelist_simple_v2.feather
+    url: https://storage.googleapis.com/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_edgelist_simple_v2.feather
+    bytes: 305250378
+    level: weights
+    role: edgelist
+    note: "11,510,975 rows: pre, post, count, norm, pre_count, post_count (synapse detector v2, paper version)."
+notes: "Converter lands with the compare milestone (M6)."

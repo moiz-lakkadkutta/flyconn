@@ -282,6 +282,19 @@ test: identical input matrix ⇒ identical `compress_paths` output.
 | Codex v783 `connections.csv.gz` | 3,869,878 rows; **2,700,513 distinct pairs ≥5** ✓ (= Dork24 exactly; so Lin24's 2,701,601 is the outlier) |
 | Codex v783 `cell_stats.csv.gz` rows | 139,246 (9 neurons lack morphology stats); `neurons.csv.gz` and `classification.csv.gz` both have **139,255** rows ✓ — use those for the neuron count |
 
+M1 converter output for MaleCNS v1.0, neuron universe `superclass IS NOT NULL` (166,700), first computed 2026-09-26 and pinned as regression targets in `tests/golden/test_tier0_counts.py`:
+
+| Quantity | Value |
+|---|---|
+| Neuron→neuron edges | 25,582,938 (= Phase 0 superclass→superclass count) |
+| Weight sum | 124,177,617 (= Σ input_synapses_neurons = Σ output_synapses_neurons) |
+| Edges ≥5 / ≥10 | 6,242,118 / 2,753,975 |
+| Σ input_synapses_total (incl. fragments) / Σ output_synapses_total | 130,453,923 / 295,069,014 |
+| Consensus NT over the universe | ACh 103,720; Glu 29,302; GABA 22,069; His 7,891; unclear 3,177; DA 392; OA 101; 5-HT 48 |
+| Conversion cost (M4 Pro) | 26 s, peak RSS 5.7 GB; store 4.4 MB neurons + 74.9 MB edges Parquet |
+
+FlyWire via the same converter: v783 139,255 neurons / 2,700,513 edges / 3,869,878 neuropil rows; v630 127,978 / 2,613,129.
+
 Interpretation: the Codex `connections.csv` is the ≥5-synapse *pair* table
 split by neuropil (per-row syn_count can be <5). Summing over neuropils recovers
 the published connection counts exactly. Ingest must therefore aggregate

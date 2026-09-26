@@ -14,9 +14,11 @@ first to resume; `docs/PLAN.md` is the scope; `docs/adr/` holds decisions.
 `flyconn/{data,graph,uncertainty,sim,experiments,compare,report,cli}`, `docs/`, `tests/`, `benchmarks/`, `examples/`.
 Raw research notes: `docs/research/`. Pinned downloads: `.cache/data/` (gitignored).
 
-## Commands (populated in M0)
+## Commands
 - `uv sync` · `uv run pytest` (unit, offline) · `uv run pytest -m golden` (needs cached data) · `uv run ruff check` · `uv run pyright`
-- `flyconn data pull <dataset>@<version> --level weights`
+- `flyconn data list` · `flyconn data info malecns@1.0` · `flyconn data pull malecns@1.0 --level weights`
+- Golden tests on real cached data: `FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m golden`
+- Cache layout: `$FLYCONN_CACHE/raw/<name>/<version>/` (downloads), `$FLYCONN_CACHE/store/<name>/<version>/` (Parquet + provenance.json)
 
 ## Conventions
 - Python ≥3.11, `uv`, `ruff`, `pyright` strict on public API, `pytest` + `hypothesis`, `pytest-benchmark`.

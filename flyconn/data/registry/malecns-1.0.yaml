@@ -1,0 +1,66 @@
+name: malecns
+version: "1.0"
+title: "Male CNS connectome v1.0 (Janelia FlyEM, Cambridge Drosophila Connectomics, MRC LMB, Google Research)"
+homepage: https://male-cns.janelia.org/
+release_date: "2026-06-08"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: berg2026
+    doi: 10.1016/j.cell.2026.08.015
+    text: "Berg S, Beckett IR, Costa M, Schlegel P, Januszewski M, et al. Sexual dimorphism in the complete Drosophila male central nervous system connectome. Cell 189(18):5504-5526.e15 (2026)."
+neuprint:
+  server: https://neuprint.janelia.org
+  dataset: "male-cns:v1.0"
+id_space: bodyId
+coordinate_units: "8 nm voxels"
+synapse_threshold:
+  minconf: 0.5
+  note: "Synapse predictions with confidence < 0.5 excluded before export; presynapses are all >= 0.70 upstream."
+neuron_definition: "superclass IS NOT NULL (166,700 rows)"
+files:
+  - name: body-annotations-male-cns-v1.0-minconf-0.5.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather
+    bytes: 14483314
+    sha256: 2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2
+    md5_b64: UKdxh3DFciDxYLpPQxq4ng==
+    level: meta
+    role: annotations
+  - name: body-neurotransmitters-male-cns-v1.0.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather
+    bytes: 43282834
+    sha256: 95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621
+    md5_b64: PYQrEv5cSe763lKNfdJKHw==
+    level: meta
+    role: neurotransmitters
+    note: "Body-level argmax + confidence only; per-transmitter probabilities live in the tbar file."
+  - name: connectome-weights-male-cns-v1.0-minconf-0.5.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/connectome-weights-male-cns-v1.0-minconf-0.5.feather
+    bytes: 1051241946
+    sha256: e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1
+    md5_b64: 8w6dzKJc/QIb8eez2XVZng==
+    level: weights
+    role: weights
+    note: "All 88.4M segments; 151,856,684 edges; sum of weight = 311,833,243 PSDs."
+  - name: tbar-neurotransmitters-male-cns-v1.0.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/tbar-neurotransmitters-male-cns-v1.0.feather
+    bytes: 2651680218
+    md5_b64: UbAsEWkGYq7e8o+G05T/DQ==
+    level: nt-probs
+    role: nt_probs
+    note: "45,656,140 presynapses with 7-class probabilities; aggregated per body by flyconn."
+  - name: syn-partners-male-cns-v1.0-minconf-0.5.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/syn-partners-male-cns-v1.0-minconf-0.5.feather
+    bytes: 6777179098
+    md5_b64: WO/PcS+MTU3l8q1R6X3vdg==
+    level: synapses
+    role: synapse_partners
+  - name: syn-points-male-cns-v1.0-minconf-0.5.feather
+    url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/syn-points-male-cns-v1.0-minconf-0.5.feather
+    bytes: 13061489098
+    md5_b64: xp0IdY3gdYIDXMiENXRJOg==
+    level: synapses
+    role: synapse_points
+notes: >
+  Release notes: v1.0 (June 8, 2026) minor proofreading changes and annotation refinement;
+  v0.9 (October 5, 2025) initial release. Checksums verified 2026-09-26 (docs/DATA_SOURCES.md).
