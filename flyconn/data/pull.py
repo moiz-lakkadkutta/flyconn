@@ -11,6 +11,7 @@ from typing import Any
 from flyconn.data.cache import raw_dir, store_dir
 from flyconn.data.convert.flywire import convert_flywire
 from flyconn.data.convert.malecns import convert_malecns
+from flyconn.data.convert.shiu import convert_shiu
 from flyconn.data.download import DownloadResult, download
 from flyconn.data.registry import LEVELS, DatasetSpec, Level, get_dataset
 
@@ -25,9 +26,14 @@ def _convert_flywire(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     return convert_flywire(raw, out, version=spec.version)
 
 
+def _convert_shiu(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
+    return convert_shiu(raw, out)
+
+
 CONVERTERS: dict[str, Converter] = {
     "malecns": _convert_malecns,
     "flywire": _convert_flywire,
+    "shiu": _convert_shiu,
 }
 
 
