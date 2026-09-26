@@ -1,6 +1,6 @@
 # ADR-0001: Build our own harmonized Parquet/DuckDB data layer (reuse the SJCABS vocabulary, not its files)
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

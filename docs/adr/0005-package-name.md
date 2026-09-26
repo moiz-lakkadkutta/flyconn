@@ -1,6 +1,6 @@
 # ADR-0005: Package name stays `flyconn`
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

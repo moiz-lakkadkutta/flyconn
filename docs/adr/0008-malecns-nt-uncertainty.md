@@ -1,6 +1,6 @@
 # ADR-0008: MaleCNS neurotransmitter uncertainty comes from the per-presynapse file, aggregated by us, with a confidence-only fallback
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

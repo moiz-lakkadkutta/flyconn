@@ -1,6 +1,6 @@
 # ADR-0007: Default sign policy = Shiu/Eckstein rule (GABA, Glu inhibitory; ACh, DA, OA, 5-HT excitatory; unknown excluded), configurable
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

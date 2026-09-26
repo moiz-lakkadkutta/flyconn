@@ -1,6 +1,6 @@
 # ADR-0006: flyconn is licensed Apache-2.0; GPL packages are optional extras, never hard imports; data stays CC-BY with per-output citation lists
 
-Status: Proposed (2026-09-26) — **needs the owner's confirmation**
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

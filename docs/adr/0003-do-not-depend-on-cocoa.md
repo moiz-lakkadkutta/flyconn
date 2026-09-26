@@ -1,6 +1,6 @@
 # ADR-0003: Do not depend on `cocoa`; reimplement label-graph type matching with tests, contribute upstream where cheap
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 

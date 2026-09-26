@@ -1,6 +1,6 @@
 # ADR-0002: Wrap `connectome_interpreter` for multi-hop / effective connectivity instead of reimplementing
 
-Status: Proposed (2026-09-26)
+Status: Accepted (2026-09-26, owner approved)
 
 ## Context
 
