@@ -20,7 +20,10 @@ def test_meissner_table_counts_match_phase0_verification(catalog: LineCatalog):
     print(f"\nW5 catalog: {c}")
     assert c["lines"] == 4_433
     assert c["adult_with_cell_types"] == 2_667
-    assert c["with_em_body_ids"] == 323
+    assert c["with_em_body_ids_raw"] == 323  # Phase 0 count of non-empty cells
+    assert (
+        c["with_em_body_ids"] == 320
+    )  # three cells hold non-numeric text (kept in em_body_ids_raw)
 
 
 def test_lines_for_known_types(catalog: LineCatalog):

@@ -142,7 +142,12 @@ def test_convert_writes_parquet_with_token_lists(fake_xlsx: Path, tmp_path: Path
     assert list(row["cell_types"]) == ["DNp01", "DNp02"]
     assert list(row["em_body_ids"]) == [1234567890, 2345678901]
     assert df.set_index("line").loc["SS00090", "quality"] == 1
-    assert prov["counts"] == {"lines": 5, "adult_with_cell_types": 3, "with_em_body_ids": 2}
+    assert prov["counts"] == {
+        "lines": 5,
+        "adult_with_cell_types": 3,
+        "with_em_body_ids": 2,
+        "with_em_body_ids_raw": 2,
+    }
     assert (out / "provenance.json").exists()
 
 

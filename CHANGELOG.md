@@ -4,6 +4,12 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M7 access (exploratory)
+- Registry entry `flylight_lines@meissner2025` (eLife 13:RP98405 Figure 1-source data 1, CC BY 4.0, SHA-256 pinned) and converter to `lines.parquet` (token lists for cell types and EM body ids, raw text kept).
+- `LineCatalog`: `lines_for_type` (glob, quality filter, specificity flag), `types_for_line`, `lines_for_body`, citation.
+- NeuronBridge (CC BY 4.0): `aggregate_cds_matches` over the published JSON schema; `fetch_line_off_targets` (public S3, cached) returns best-scored candidate EM bodies per dataset for a line. Candidates, not expression calls.
+- Golden W5: 4,433 lines / 2,667 adult with types / 320 parsed EM-id rows; DNp01 -> SS02299, SS00727; network test on SS02299.
+
 ### M6 compare
 - `match_types`: cross-dataset type mapping from the published cross-reference columns (MaleCNS `fafb_783_cell_type` -> FlyWire `cell_type`, comma lists split); 6,836 MaleCNS types map to FlyWire v783.
 - `type_profile`: partner-type fraction vectors per type and side; `compare_type`: male-vs-female comparison whose statistic is cross-dataset cosine dissimilarity minus within-brain left/right dissimilarity, with a permutation null (dataset labels shuffled within side), partner-level differences, unmatched-partner reporting and a graded verdict referenced to Schlegel et al. 2024's between-brain effect size.

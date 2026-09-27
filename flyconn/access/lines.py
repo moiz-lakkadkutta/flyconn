@@ -36,6 +36,10 @@ _COLUMNS = {
 }
 
 
+def _as_text(value: object) -> str | None:
+    return None if value is None or (isinstance(value, float) and pd.isna(value)) else str(value)
+
+
 def _tokens(value: object) -> list[str]:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return []
@@ -52,21 +56,29 @@ def convert_meissner_lines(xlsx_path: Path, out_dir: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     raw = pd.read_excel(xlsx_path)
     raw = raw.rename(columns={k: v for k, v in _COLUMNS.items() if k in raw.columns})
+
+    def text(col: str) -> pd.Series:
+        if col not in raw.columns:
+            return pd.Series([None] * len(raw), dtype="object")
+        values = cast("pd.Series", raw[col])
+        return values.map(_as_text).astype("string")
+
     df = pd.DataFrame(
         {
             "line": raw["line"].astype(str),
-            "adult_larval": raw.get("adult_larval"),
+            "adult_larval": text("adult_larval"),
             "quality": pd.to_numeric(raw.get("quality"), errors="coerce"),
-            "sex_difference": raw.get("sex_difference"),
-            "vnc_only": raw.get("vnc_only"),
-            "brain_only": raw.get("brain_only"),
-            "doi": raw.get("doi"),
-            "first_author_year": raw.get("first_author_year"),
-            "lab": raw.get("lab"),
-            "alias": raw.get("alias"),
-            "genotype": raw.get("genotype"),
+            "sex_difference": text("sex_difference"),
+            "vnc_only": text("vnc_only"),
+            "brain_only": text("brain_only"),
+            "doi": text("doi"),
+            "first_author_year": text("first_author_year"),
+            "lab": text("lab"),
+            "alias": text("alias"),
+            "genotype": text("genotype"),
             "cell_types": [_tokens(v) for v in raw["cell_types_raw"]],
             "em_body_ids": [_ids(v) for v in raw["em_body_ids_raw"]],
+            "em_body_ids_raw": text("em_body_ids_raw"),
         }
     )
     adult = cast("pd.Series", df["adult_larval"]).astype(str).str.startswith("Adult")
@@ -74,6 +86,7 @@ def convert_meissner_lines(xlsx_path: Path, out_dir: Path) -> dict[str, Any]:
         "lines": len(df),
         "adult_with_cell_types": int((adult & (df["cell_types"].map(len) > 0)).sum()),
         "with_em_body_ids": int((df["em_body_ids"].map(len) > 0).sum()),
+        "with_em_body_ids_raw": int(df["em_body_ids_raw"].notna().sum()),
     }
     table = pa.Table.from_pandas(df, preserve_index=False)
     write_parquet(table, out_dir / "lines.parquet")
