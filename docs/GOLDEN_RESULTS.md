@@ -292,6 +292,7 @@ M1 converter output for MaleCNS v1.0, neuron universe `superclass IS NOT NULL` (
 | Σ input_synapses_total (incl. fragments) / Σ output_synapses_total | 130,453,923 / 295,069,014 |
 | Consensus NT over the universe | ACh 103,720; Glu 29,302; GABA 22,069; His 7,891; unclear 3,177; DA 392; OA 101; 5-HT 48 |
 | Conversion cost (M4 Pro) | 26 s, peak RSS 5.7 GB; store 4.4 MB neurons + 74.9 MB edges Parquet |
+| `--level nt-probs` (tbar file, 45.7 M presynapses) | 165,665 neurons with per-body mean probabilities; argmax(mean) = consensus label for 96.2 % (M3, 2026-09-27) |
 
 FlyWire via the same converter: v783 139,255 neurons / 2,700,513 edges / 3,869,878 neuropil rows; v630 127,978 / 2,613,129.
 

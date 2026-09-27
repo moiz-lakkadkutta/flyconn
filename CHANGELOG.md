@@ -4,6 +4,14 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M3 uncertainty
+- NT uncertainty models: real per-neuron probabilities where available, confidence-only model otherwise (ADR-0008); seeded sign sampling.
+- MaleCNS `--level nt-probs`: streams the 2.65 GB per-presynapse file into per-body mean probabilities and joins them into `neurons` (`nt_source = malecns_v1.0_tbar_mean`).
+- Null models: degree-preserving rewiring (out-degree, out-weights and in-degree preserved), sign shuffle; `null_distribution` with empirical z and two-sided p.
+- `path_stability`: paths across synapse thresholds with `threshold_presence`, `modal_sign`, `sign_stability`.
+- `diff_versions` (W4): neurons added/removed, attribute changes, edge changes for neurons of interest, unmatched-id caveat.
+- Golden: W1 stability on FlyWire (Shiu v630) and MaleCNS; W4 v630→v783 drift for the sugar circuit; examples `examples/w1_pathways.py`, `examples/w4_version_drift.py`.
+
 ### M2 graph
 - `ConnectivityMatrix` (pre-in-rows CSR) from a `Store` or frames; `SignPolicy` argmax / probabilistic / sampled / unsigned with per-transmitter overrides (ADR-0007); input-normalised weights using fragment-inclusive totals.
 - `aggregate` / `aggregate_edges` by any label column; `find_paths` (1..k hops, reachability-pruned, per-hop fraction and strength filters, signs and strengths per path); native `effective_connectivity` and `effective_by_hops`.
