@@ -28,3 +28,11 @@ Grows with each milestone. Seeds:
 - Baseline firing is 0 Hz; there is no intrinsic activity, noise, neuromodulation, gap junctions, or synaptic plasticity. Outputs are model predictions of wiring-constrained excitability, not predictions of behaviour.
 - Signs come from predicted transmitters under a single-sign-per-neuron rule; histamine is inhibitory by default in flyconn but Shiu's FlyWire predictions had no histamine class.
 - Exactness: bit-identical spikes are guaranteed only for the CPU float64 path. float32 on CPU/MPS/CUDA matched the reference in every test so far, but summation order can move borderline spikes by a tick; compare distributions, not single runs.
+
+## Experiment and report caveats (M5)
+
+- Readout statistics compare per-trial mean rates of a readout group between conditions. Trials share the connectome and differ only in Poisson input seeds, so "n" is the number of trials, not of animals; effect sizes describe the model, not biology.
+- Controls are simulated with the *same* seeds on degree-preserving rewired and sign-shuffled connectomes; a stimulated-vs-control difference shows that the specific wiring (or the specific signs) matters for the readout under this model, nothing more.
+- Benjamini-Hochberg correction is applied across all readout x comparison rows of one experiment; with few rows the correction is mild.
+- Sign shuffling as a null: with roughly two thirds of neurons excitatory, permuting signs across neurons breaks excitation/inhibition balance and typically produces runaway activity (seen in the W2 run: 59M spikes vs 0.6M). Treat it as a test of whether inhibitory identities matter *where they are*, not as a matched-activity null; compare readouts under the rewired control first.
+- Perturbations are all-or-none (silencing zeroes outgoing synapses; stimulation is Poisson kicks); they do not model partial knockdown, developmental compensation or neuromodulation.
