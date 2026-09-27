@@ -1,0 +1,22 @@
+name: flylight_lines
+version: "meissner2025"
+title: "FlyLight split-GAL4 driver line to cell type table (Meissner et al. 2025, eLife 13:RP98405, Figure 1-source data 1)"
+homepage: https://splitgal4.janelia.org/
+release_date: "2025"
+license: CC-BY-4.0
+license_url: https://creativecommons.org/licenses/by/4.0/
+citations:
+  - key: meissner2025
+    doi: 10.7554/eLife.98405
+    text: "Meissner GW, Vannan A, Jeter J, Close K, DePasquale GM, et al. A split-GAL4 driver line resource for Drosophila neuron types. eLife 13:RP98405 (2025)."
+files:
+  - name: elife-98405-fig1-data1-v2.xlsx
+    url: https://cdn.elifesciences.org/articles/98405/elife-98405-fig1-data1-v2.xlsx
+    bytes: 418803
+    sha256: 108ae1b01d971e7c578393f1a0e3ea127edc70f7c2cdcf2f204055c437c13d5d
+    level: meta
+    role: lines
+    note: "4,433 lines x 15 columns; free-text 'Cell types' (2,667 adult lines) and 'EM Body IDs' (323 lines, dataset untagged)."
+notes: >
+  Type names are dataset-agnostic free text (hemibrain, MANC, optic-lobe and FlyWire nomenclature mixed);
+  quality 1-4 per line; expression confidence lives in the cited source paper for each line.

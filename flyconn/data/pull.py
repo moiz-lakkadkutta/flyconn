@@ -30,7 +30,14 @@ def _convert_shiu(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     return convert_shiu(raw, out)
 
 
+def _convert_lines(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
+    from flyconn.access.lines import XLSX, convert_meissner_lines
+
+    return convert_meissner_lines(raw / XLSX, out)
+
+
 CONVERTERS: dict[str, Converter] = {
+    "flylight_lines": _convert_lines,
     "malecns": _convert_malecns,
     "flywire": _convert_flywire,
     "shiu": _convert_shiu,

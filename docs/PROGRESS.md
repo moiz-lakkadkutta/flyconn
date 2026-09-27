@@ -2,6 +2,15 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-27 — M7 access done (exploratory; branch m7-access, merged)
+
+- `flyconn data pull flylight_lines@meissner2025`: 4,433 lines; 2,667 adult lines with cell-type annotations; EM body ids parsed for 320 lines (323 non-empty cells; 3 contain non-numeric text, kept raw). `LineCatalog.lines_for_type("DNp01")` -> SS02299 (quality 1, specific), SS00727 (quality 2).
+- NeuronBridge off-target candidates for SS02299 (10 of its images): 6,073 scored candidate EM bodies across datasets, cached under `$FLYCONN_CACHE/neuronbridge/`. Marked `network`; not part of CI.
+- Not built: VFB and FlyBase adapters; the NeuronBridge curated Confident/Probable/Candidate matches (only behind an authenticated API as of Phase 0).
+- Unit: 176 offline; golden: 34 (+1 network).
+
+Project status after M7: all planned milestones M0–M7 delivered; see PLAN.md status table and the "What is not done" list there.
+
 ## 2026-09-27 — M6 compare done (branch m6-compare, merged)
 
 - `match_types(malecns@1.0, flywire@783)`: 6,836 MaleCNS types mapped via the published `fafb_783_cell_type` column (comma lists split).

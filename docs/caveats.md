@@ -43,3 +43,9 @@ Grows with each milestone. Seeds:
 - Partner types without a cross-dataset match (e.g. VNC neurons, which FlyWire's brain volume cannot contain, or unmatched types) are excluded from the profiles and their fraction is reported; a large unmatched fraction means the comparison covers only part of the type's output or input.
 - Datasets differ in synapse detection, confidence thresholds and proofreading completeness; use the same `min_weight` on both sides and expect residual technical differences.
 - Sex-specific types by definition have no counterpart; `match_types` cannot represent them, and dimorphism annotations should be consulted separately (MaleCNS `dimorphism`, FlyWire `dimorphism`).
+
+## Genetic access caveats (M7, exploratory)
+
+- Line-to-type annotations (Meissner et al. 2025) are free text across nomenclatures (hemibrain, MANC, optic lobe, FlyWire) and carry a 1-4 quality grade; expression confidence lives in each line's source paper. EM body ids in the table have no dataset tag.
+- NeuronBridge hits are colour-depth similarity candidates ranked by score; a hit is not an expression call, scores are not comparable across libraries, and absence of a hit is weak evidence. Off-target lists are long by construction; rank and inspect.
+- Most FlyLight imagery is female and adult with specific reporters; expression can differ in males or with other effectors.
