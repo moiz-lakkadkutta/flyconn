@@ -6,7 +6,36 @@ data layer, signed sparse graphs, uncertainty propagation, a validated
 cross-platform LIF simulator, declarative in-silico experiments with reports,
 and cross-dataset comparison.
 
-Status: pre-alpha, under construction milestone by milestone. See `docs/PLAN.md`.
+Status: pre-alpha; milestones M0–M7 of `docs/PLAN.md` are implemented and validated against
+published results on real data (`docs/GOLDEN_RESULTS.md`, `docs/PROGRESS.md`).
+
+## Quickstart
+
+```bash
+uv sync --extra sim --extra interpret --extra access
+uv run flyconn data list
+uv run flyconn data pull malecns@1.0 --level weights      # ~1.1 GB, checksummed, resumable
+uv run flyconn data pull shiu@630 --level weights          # Shiu et al. 2024 model inputs (90 MB)
+uv run flyconn run examples/specs/w2_malecns_lb3_silence_gng232.yaml --out runs/w2
+```
+
+Python:
+
+```python
+from flyconn.data.store import Store
+from flyconn.graph import ConnectivityMatrix, find_paths
+from flyconn.uncertainty import path_stability
+
+m = ConnectivityMatrix.from_store(Store.open("malecns@1.0"), min_weight=5)
+lb3 = m.meta.index[m.meta["cell_type"].str.match(r"^LB3", na=False)]
+mn9 = m.meta.index[m.meta["cell_type"] == "MN9"]
+paths = find_paths(m, lb3, mn9, max_hops=3, min_edge_fraction=0.01, label="cell_type")
+stab = path_stability(m, lb3, mn9, thresholds=[5, 10, 20], n_samples=100, seed=0)
+```
+
+Anchor workflows: `examples/w1_pathways.py`, `examples/w4_version_drift.py`,
+`examples/specs/w2_*.yaml`, `examples/w3_male_vs_female.py`, `examples/w5_driver_lines.py`.
+Scientific caveats: `docs/caveats.md`.
 
 Not to be confused with the Cambridge FlyConnectome group's tools (`cocoa`,
 `flywire_annotations`); flyconn is independent and builds on that ecosystem.

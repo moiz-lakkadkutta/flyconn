@@ -1,6 +1,19 @@
 # PLAN — scope, decisions, milestones, risks
 
-Status: Phase 0 output, 2026-09-26. Awaiting go-ahead before Phase 1.
+Status: Phase 0 output, 2026-09-26; approved 2026-09-26 ("go with recommendations"). Build status as of 2026-09-27 (all on `main`):
+
+| Milestone | Status | Acceptance evidence |
+|---|---|---|
+| M0 scaffold | done | CI config, gate script, synthetic fixture, CLI |
+| M1 data | done | Tier 0 golden counts reproduce for MaleCNS v1.0, FlyWire v630/v783, Shiu v630; MaleCNS `--level nt-probs` |
+| M2 graph | done | W1 single run on both datasets; connectome_interpreter parity |
+| M3 uncertainty | done | W1 stability + W4 drift golden; null models with statistics |
+| M4 sim | done | Brian2 spike-for-spike parity; Shiu golden (MN9 66.5 Hz at 100 Hz); benchmarks; MaleCNS calibration protocol run (unresolved) |
+| M5 experiments + report | done | W2 from one YAML with controls and HTML report |
+| M6 compare | done | W3 with graded verdicts (6,836 matched types) |
+| M7 access | done (exploratory) | W5 on the Meissner table and NeuronBridge candidates |
+
+**What is not done** (deferred, see PROGRESS.md entries): hemibrain/MANC/BANC converters (registry entries only); MaleCNS ROI-resolved edges; sim throughput on GPU/compiled kernels and spike-time recording at scale; multi-experiment sweeps and PDF reports; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters; PyPI release. The MaleCNS simulator remains **uncalibrated** by protocol outcome.
 Inputs: `LANDSCAPE.md`, `DATA_SOURCES.md`, `GOLDEN_RESULTS.md`, ADRs 0001–0008.
 
 ## 1. Corrections to the brief (things the research showed to be wrong, different, or already done)
