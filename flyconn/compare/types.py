@@ -122,6 +122,28 @@ def type_profile(
     return prof.sort_values(ascending=False)
 
 
+SCHLEGEL_BETWEEN_BRAIN_EFFECT = 0.045
+"""Schlegel et al. 2024 (Nature 634:139) Fig. 4d: cosine effect size, across vs within brains."""
+SCHLEGEL_BETWEEN_BRAIN_SD = 0.096
+BETWEEN_BRAIN_RANGE = SCHLEGEL_BETWEEN_BRAIN_EFFECT + SCHLEGEL_BETWEEN_BRAIN_SD
+
+
+def verdict_for(p_value: float, statistic: float, alpha: float = 0.05) -> str:
+    """Grade: no evidence / detectable but within published between-brain range / beyond it."""
+    if p_value >= alpha or statistic <= 0:
+        return "no evidence of difference beyond left/right variability"
+    if statistic <= BETWEEN_BRAIN_RANGE:
+        return (
+            "detectable beyond left/right variability but within the between-brain range "
+            f"reported by Schlegel et al. 2024 ({SCHLEGEL_BETWEEN_BRAIN_EFFECT} +/- "
+            f"{SCHLEGEL_BETWEEN_BRAIN_SD}); not evidence of a sex difference on its own"
+        )
+    return (
+        "different beyond left/right variability and beyond the between-brain range of "
+        "Schlegel et al. 2024 (model of wiring; see caveats)"
+    )
+
+
 def _cosine(u: np.ndarray, v: np.ndarray) -> float:
     nu, nv = np.linalg.norm(u), np.linalg.norm(v)
     return float(u @ v / (nu * nv)) if nu > 0 and nv > 0 else 0.0
@@ -141,6 +163,8 @@ class TypeComparison:
     null: np.ndarray
     p_value: float
     partner_differences: pd.DataFrame
+    unmatched_fraction_a: float = 0.0
+    unmatched_fraction_b: float = 0.0
     caveats: list[str] = field(default_factory=list)
     provenance: dict[str, Any] = field(default_factory=dict)
 
@@ -151,9 +175,7 @@ class TypeComparison:
 
     @property
     def verdict(self) -> str:
-        if self.p_value < 0.05 and self.statistic > 0:
-            return "different beyond left/right variability (model of wiring; see caveats)"
-        return "no evidence of difference beyond left/right variability"
+        return verdict_for(self.p_value, self.statistic)
 
     def summary(self) -> dict[str, object]:
         return {
@@ -167,6 +189,8 @@ class TypeComparison:
             "statistic": round(self.statistic, 4),
             "p_value": round(self.p_value, 4),
             "z": round(self.z, 2),
+            "unmatched_fraction_a": round(self.unmatched_fraction_a, 3),
+            "unmatched_fraction_b": round(self.unmatched_fraction_b, 3),
             "verdict": self.verdict,
         }
 
@@ -227,7 +251,19 @@ def compare_type(
             )
     for f in frames.values():
         labels_union.extend(c for c in f.columns if c not in labels_union)
-    cols = sorted(labels_union)
+    cols = sorted(c for c in labels_union if c != "__unmatched__")
+    unmatched: dict[str, list[float]] = {"a": [], "b": []}
+    for k, f in frames.items():
+        if len(f) and "__unmatched__" in f.columns:
+            unmatched[k[0]].extend(f["__unmatched__"].tolist())
+        elif len(f):
+            unmatched[k[0]].extend([0.0] * len(f))
+    for k, f in list(frames.items()):
+        if len(f):
+            kept = f.reindex(columns=cols, fill_value=0.0)
+            totals = kept.sum(axis=1).to_numpy()
+            kept = kept.div(np.where(totals > 0, totals, 1.0), axis=0)
+            frames[k] = kept
     for k, f in frames.items():
         groups[k] = (
             f.reindex(columns=cols, fill_value=0.0).to_numpy()
@@ -279,6 +315,14 @@ def compare_type(
         "Left/right variability within a brain is the null (Schlegel et al. 2024); individual "
         "variability between animals is not separable from sex.",
     ]
+    unmatched_a = float(np.mean(unmatched["a"])) if unmatched["a"] else 0.0
+    unmatched_b = float(np.mean(unmatched["b"])) if unmatched["b"] else 0.0
+    if max(unmatched_a, unmatched_b) > 0.05:
+        caveats.append(
+            f"Unmatched partners excluded: {unmatched_a:.0%} of {a.ref} and {unmatched_b:.0%} of "
+            f"{b.ref} synapses of this type go to neurons without a cross-dataset match "
+            "(e.g. outside the other dataset's volume); the comparison covers the rest."
+        )
     if min(n_a, n_b) <= 2:
         caveats.append(
             "Very few neurons per type: the permutation test has little resolution; "
@@ -295,18 +339,20 @@ def compare_type(
         "matrix_b": mb.provenance,
     }
     return TypeComparison(
-        type_label,
-        type_b,
-        direction,
-        n_a,
-        n_b,
-        _cosine(mean_a, mean_b),
-        within("a"),
-        within("b"),
-        observed,
-        null,
-        p,
-        diff,
-        caveats,
-        prov,
+        type_a=type_label,
+        type_b=type_b,
+        direction=direction,
+        n_a=n_a,
+        n_b=n_b,
+        cross_similarity=_cosine(mean_a, mean_b),
+        within_similarity_a=within("a"),
+        within_similarity_b=within("b"),
+        statistic=observed,
+        null=null,
+        p_value=p,
+        partner_differences=diff,
+        unmatched_fraction_a=unmatched_a,
+        unmatched_fraction_b=unmatched_b,
+        caveats=caveats,
+        provenance=prov,
     )

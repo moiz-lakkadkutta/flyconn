@@ -52,6 +52,25 @@ def _make(tmp_path: Path, name: str, version: str, seed: int, perturb_type: str 
     edges = pd.DataFrame(e)
     if name == "malecns":  # cross-reference column as MaleCNS publishes it
         neurons["fafb_783_cell_type"] = neurons["cell_type"]
+        # a male-only partner type (e.g. a VNC neuron) with no FlyWire counterpart
+        extra = pd.DataFrame(
+            {
+                "neuron_id": [901, 902],
+                "cell_type": ["T8", "T8"],
+                "side": ["left", "right"],
+                "super_class": "ventral_nerve_cord_intrinsic",
+                "nt_pred": "acetylcholine",
+                "nt_conf": 0.9,
+                "fafb_783_cell_type": [None, None],
+            }
+        )
+        neurons = pd.concat([neurons, extra], ignore_index=True)
+        t0 = neurons[neurons["cell_type"] == "T0"]
+        more = [
+            {"pre": int(pre), "post": 901 if side == "left" else 902, "weight": 20}
+            for pre, side in zip(t0["neuron_id"], t0["side"], strict=True)
+        ]
+        edges = pd.concat([edges, pd.DataFrame(more)], ignore_index=True)
     neurons["dataset"] = edges["dataset"] = name
     neurons["version"] = edges["version"] = version
     d = tmp_path / name

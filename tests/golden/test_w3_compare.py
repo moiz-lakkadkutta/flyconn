@@ -43,4 +43,8 @@ def test_w3_compare_type_runs_with_verdict_and_caveats(stores: tuple[Store, Stor
     assert 0 <= res.p_value <= 1
     assert res.verdict
     assert res.caveats
-    assert res.cross_similarity > 0.3  # matched types should share most partners
+    if cell_type == "DNp01":
+        # giant fibre: most MaleCNS output is to VNC neurons, absent from FlyWire's volume
+        assert res.unmatched_fraction_a > 0.5
+    else:
+        assert res.cross_similarity > 0.7  # matched central types share most partners

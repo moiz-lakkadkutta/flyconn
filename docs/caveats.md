@@ -36,3 +36,10 @@ Grows with each milestone. Seeds:
 - Benjamini-Hochberg correction is applied across all readout x comparison rows of one experiment; with few rows the correction is mild.
 - Sign shuffling as a null: with roughly two thirds of neurons excitatory, permuting signs across neurons breaks excitation/inhibition balance and typically produces runaway activity (seen in the W2 run: 59M spikes vs 0.6M). Treat it as a test of whether inhibitory identities matter *where they are*, not as a matched-activity null; compare readouts under the rewired control first.
 - Perturbations are all-or-none (silencing zeroes outgoing synapses; stimulation is Poisson kicks); they do not model partial knockdown, developmental compensation or neuromodulation.
+
+## Cross-dataset comparison caveats (M6)
+
+- The null model is left/right variability *within* a brain. Schlegel et al. 2024 report that connectivity between two different female brains (FlyWire vs hemibrain) is less similar than left vs right within one brain (cosine effect size 0.045 ± 0.096). A male-vs-female difference must therefore be judged against that between-individual range, not only against the L/R permutation p-value; `compare_type` grades its verdict accordingly (no evidence / detectable but within the reported between-brain range / beyond it).
+- Partner types without a cross-dataset match (e.g. VNC neurons, which FlyWire's brain volume cannot contain, or unmatched types) are excluded from the profiles and their fraction is reported; a large unmatched fraction means the comparison covers only part of the type's output or input.
+- Datasets differ in synapse detection, confidence thresholds and proofreading completeness; use the same `min_weight` on both sides and expect residual technical differences.
+- Sex-specific types by definition have no counterpart; `match_types` cannot represent them, and dimorphism annotations should be consulted separately (MaleCNS `dimorphism`, FlyWire `dimorphism`).

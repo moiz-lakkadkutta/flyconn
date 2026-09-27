@@ -34,6 +34,11 @@ def test_compare_type_finds_no_difference_for_conserved_type(male_female: tuple[
     male, female = male_female
     res = compare_type(male, female, "T0", n_permutations=200, seed=0)
     assert isinstance(res, TypeComparison)
+    # T0 also targets the male-only type T8 (no FlyWire counterpart): those synapses are
+    # excluded from the comparison and reported, not counted as a difference.
+    assert 0.1 < res.unmatched_fraction_a < 0.2 and res.unmatched_fraction_b == 0.0
+    assert "__unmatched__" not in set(res.partner_differences["partner_type"])
+    assert any("unmatched" in c.lower() for c in res.caveats)
     assert res.cross_similarity > 0.9
     assert res.within_similarity_a > 0.9 and res.within_similarity_b > 0.9
     assert res.p_value > 0.05
@@ -47,6 +52,7 @@ def test_compare_type_flags_rewired_type(male_female: tuple[Store, Store]):
     assert res.cross_similarity < res.within_similarity_a
     assert res.p_value < 0.05
     assert res.verdict.startswith("different")
+    assert res.statistic > 0.141  # beyond Schlegel 2024's between-brain range (0.045 + 0.096)
     assert set(res.partner_differences.columns) >= {
         "partner_type",
         "fraction_a",
@@ -63,3 +69,13 @@ def test_compare_type_reports_provenance_and_direction(male_female: tuple[Store,
     assert res.provenance["direction"] == "in"
     assert res.provenance["datasets"] == ["malecns@1.0", "flywire@783"]
     assert np.isfinite(res.z)
+
+
+def test_verdict_tiers_reference_schlegel_between_brain_range():
+    from flyconn.compare.types import verdict_for
+
+    assert verdict_for(p_value=0.5, statistic=0.3).startswith("no evidence")
+    within = verdict_for(p_value=0.001, statistic=0.05)
+    assert within.startswith("detectable") and "Schlegel" in within
+    beyond = verdict_for(p_value=0.001, statistic=0.3)
+    assert beyond.startswith("different") and "beyond" in beyond
