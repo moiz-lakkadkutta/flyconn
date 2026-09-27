@@ -2,6 +2,10 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-27 — Final verification on main
+
+`FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m "golden or brian"`: 33 passed in 11 min 28 s on the M4 Pro (MaleCNS reconverted under converter version 2 incl. tbar aggregation in 43 s; Shiu 100/200/10 Hz golden 57/56/47 s; W2 277 s; W3 3 s per type; MaleCNS calibration protocol 120 s). Unit gate: 177 passed. Peak RSS reported inside that single long pytest process reached 10.9 GB because simulations and conversions share the process; the MaleCNS conversion alone peaks at 5.7 GB.
+
 ## 2026-09-27 — M7 access done (exploratory; branch m7-access, merged)
 
 - `flyconn data pull flylight_lines@meissner2025`: 4,433 lines; 2,667 adult lines with cell-type annotations; EM body ids parsed for 320 lines (323 non-empty cells; 3 contain non-numeric text, kept raw). `LineCatalog.lines_for_type("DNp01")` -> SS02299 (quality 1, specific), SS00727 (quality 2).
