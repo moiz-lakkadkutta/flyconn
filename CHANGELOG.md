@@ -4,6 +4,10 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M4 sim
+- `ShiuParams` (all constants from Shiu et al. 2024), `LIFNetwork.from_matrix`, batched event-driven `simulate` (CPU float64 reference; float32 CPU/MPS/CUDA), seeded per-trial Poisson drive, explicit input events, silencing, refractory rules of the reference code, spike events and rate tables, provenance labelled "model prediction".
+- Validation ladder: rung 1 Brian2 spike-for-spike parity (`pytest -m brian`), rung 2 Shiu golden results (`tests/golden/test_shiu_golden.py`), rung 3 `benchmarks/bench_sim.py`.
+
 ### M3 uncertainty
 - NT uncertainty models: real per-neuron probabilities where available, confidence-only model otherwise (ADR-0008); seeded sign sampling.
 - MaleCNS `--level nt-probs`: streams the 2.65 GB per-presynapse file into per-body mean probabilities and joins them into `neurons` (`nt_source = malecns_v1.0_tbar_mean`).

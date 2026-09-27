@@ -302,6 +302,16 @@ the published connection counts exactly. Ingest must therefore aggregate
 neuropil rows before applying any threshold, and must keep the unthresholded
 Shiu parquet as a separate, sim-only edge source.
 
+### 6c. Simulation golden runs reproduced by `flyconn.sim` (M4, 2026-09-27, M4 Pro, CPU float32, 30 trials x 1 s, seed 0)
+
+| Stimulus (21 sugar GRNs) | MN9 contralateral | MN9 ipsilateral | Active neurons | Published |
+|---|---|---|---|---|
+| 100 Hz | 66.5 ± 4.1 Hz | 50.6 Hz | 416 | 65.7 (ST 1A) / 67.0 (repo) Hz; 49.7 Hz; 404–410 |
+| 200 Hz | 94.5 Hz | – | 444 | 93.2 Hz; 455 |
+| 10 Hz | 0.0 Hz | – | 39 | 0 Hz; 45 |
+
+Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-neuron random nets): identical event sets. Rung 3 throughput (`benchmarks/sim_throughput.json`): CPU 2.2 s per biological second at 30 batched trials (15.0 s single trial), MPS 2.7 s; the per-tick Python loop dominates, so MPS gives no gain yet.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |
