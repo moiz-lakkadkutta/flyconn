@@ -2,6 +2,20 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-27 — M4 sim done (branch m4-sim, merged)
+
+Validation ladder (all run on this machine, M4 Pro):
+- Rung 1: float64 CPU engine == Brian2 2.10.1 spike for spike on 60- and 200-neuron random nets with fixed input trains (`pytest -m brian`, 33 s).
+- Rung 2: Shiu golden on FlyWire v630, 30 trials x 1 s, CPU float32: MN9 66.5 ± 4.1 Hz at 100 Hz sugar (published 65.7/67.0), 94.5 Hz at 200 Hz (93.2), 0 Hz at 10 Hz; active neurons 416/444/39 vs 404–410/455/45. ~70 s per 30-trial batch.
+- Rung 3: `benchmarks/sim_throughput.json`: CPU 2.2 s per biological second at 30 batched trials (15 s single trial), MPS 2.7 s (float32 spike counts identical to CPU on the full network for 100 ms). The per-tick Python loop dominates; MPS gives no gain yet.
+- MaleCNS re-calibration protocol (`calibrate_w_syn`, Shiu's 80 %-of-max rule) run with 78 LB3 GRNs -> MN9 over w_syn in {0.1, 0.2, 0.275, 0.4, 0.6} mV: readout at 100/200 Hz = 0/0.6, 31/55, 43/76, 66/103, 60/122 Hz; no grid point reaches 0.8 (best 0.4 mV at 0.63) -> **unresolved; MaleCNS simulations stay labelled uncalibrated** (`benchmarks/malecns_calibration.json`).
+
+Design notes: event-driven delivery via CSR gather + `index_add_` (single code path for CPU/MPS/CUDA); per-trial Poisson draws precomputed from `SeedSequence(seed).spawn` so batched and single runs agree; externally driven neurons get refractory 0 as in the reference code; kicks and synaptic input are dropped during refractoriness (Brian2 `unless refractory` semantics as transcribed by the MLX port).
+
+Known limits: spike-time recording is CPU-side per tick (slow for dense activity); no CUDA machine was available to run rung 3 on GPU; throughput could improve ~5–10x by moving the tick loop into TorchScript/compiled kernels (not done).
+
+Next: M5 experiments + report (YAML spec -> runner with controls by default -> Parquet + HTML report; W2).
+
 ## 2026-09-26/27 — M3 uncertainty done (branch m3-uncertainty, merged)
 
 What works (golden, real data):

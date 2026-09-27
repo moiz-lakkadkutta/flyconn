@@ -1,6 +1,6 @@
 # ADR-0004: Write our own PyTorch LIF engine (COO/edge-list, CPU-float64 oracle); Brian2 is the parity oracle; eonsystems fly-brain is not a backend
 
-Status: Accepted (2026-09-26, owner approved)
+Status: Accepted (2026-09-26, owner approved). Implemented 2026-09-27: rungs 1-3 pass (see PROGRESS.md); MaleCNS calibration unresolved.
 
 ## Context
 
