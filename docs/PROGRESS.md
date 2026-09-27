@@ -2,6 +2,16 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-27 — M5 experiments + report done (branch m5-experiments, merged)
+
+- `flyconn run examples/specs/w2_malecns_lb3_silence_gng232.yaml --out DIR` runs W2 from one YAML: MaleCNS v1.0, 78 LB3 GRNs at 100 Hz, silence GNG232, readouts MN9 / descending / motor, 20 trials x 0.5 s, controls 2 rewired + 2 sign-shuffled connectomes + unstimulated baseline; 283 s on CPU float32 (7 simulated conditions). Report is self-contained HTML with model-prediction and UNCALIBRATED banners, effect table and figures, provenance, citations.
+- Numbers (model predictions, uncalibrated): MN9 44.9 Hz stimulated vs 23.1 Hz with GNG232 silenced (difference −21.8 Hz, Cohen's d −3.9, q = 9e-8); descending group 3.36 → 2.65 Hz (d −1.2); motor 7.56 → 4.91 Hz (d −1.1). Degree-preserving rewiring abolishes the MN9 response (0.0 Hz). Sign shuffling drives the whole network into runaway firing (59M and 40M spikes, 96k / 68k active neurons vs 9,367) — with ~65 % excitatory neurons, shuffling signs breaks E/I balance, so this control mostly tests "are the inhibitory neurons where they are for a reason"; documented in caveats.
+- Unit: 165 tests offline; golden: 26.
+
+Deferred: multi-experiment sweeps (rates, seeds across YAML lists), FlyWire-side readouts by annotation (the Shiu store carries no cell types; use flywire@630 ids), report PDF export.
+
+Next: M6 compare (male vs female per cell type with L/R null).
+
 ## 2026-09-27 — M4 sim done (branch m4-sim, merged)
 
 Validation ladder (all run on this machine, M4 Pro):

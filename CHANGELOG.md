@@ -4,6 +4,13 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M5 experiments + report
+- YAML experiment spec (`flyconn.experiments.spec`): dataset, network options, background stimulation, perturbation (silence / extra stimulation), readout groups by ids or attribute globs, trials, seed, device, controls (degree-preserving rewiring and sign shuffle, on by default), report options; spec SHA-256 in provenance.
+- Runner (`run_experiment`): baseline / stimulated / perturbed conditions plus control connectomes with identical seeds; long-form `counts.parquet`, `readouts.parquet` (difference of means, bootstrap 95 % CI, Mann-Whitney p, Benjamini-Hochberg q, Cohen's d), `conditions.parquet`, `provenance.json`.
+- Self-contained HTML report (`flyconn.report.html`): model-prediction and calibration banners, design, effects vs controls with figures, top neurons, provenance, citations.
+- `flyconn run exp.yaml --out DIR`.
+- Example spec `examples/specs/w2_malecns_lb3_silence_gng232.yaml` and golden W2 run.
+
 ### M4 sim
 - `ShiuParams` (all constants from Shiu et al. 2024), `LIFNetwork.from_matrix`, batched event-driven `simulate` (CPU float64 reference; float32 CPU/MPS/CUDA), seeded per-trial Poisson drive, explicit input events, silencing, refractory rules of the reference code, spike events and rate tables, provenance labelled "model prediction".
 - Validation ladder: rung 1 Brian2 spike-for-spike parity (`pytest -m brian`), rung 2 Shiu golden results (`tests/golden/test_shiu_golden.py`), rung 3 `benchmarks/bench_sim.py`.
