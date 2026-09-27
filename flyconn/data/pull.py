@@ -36,6 +36,15 @@ def _convert_lines(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     return convert_meissner_lines(raw / XLSX, out)
 
 
+CONVERTER_VERSIONS: dict[str, str] = {
+    "malecns": "2",  # 2: nt-probs aggregation and per-neuron totals
+    "flywire": "1",
+    "shiu": "1",
+    "flylight_lines": "2",  # 2: raw EM-id text column and count
+}
+"""Bump a dataset's converter version whenever its output changes; stores are reconverted."""
+
+
 CONVERTERS: dict[str, Converter] = {
     "flylight_lines": _convert_lines,
     "malecns": _convert_malecns,
@@ -63,12 +72,14 @@ def _named_progress(
     return cb
 
 
-def _existing_level(store: Path) -> Level | None:
+def _existing(store: Path) -> tuple[Level | None, str | None]:
+    """(level, converter_version) recorded in an existing store, if any."""
     prov = store / "provenance.json"
     if not prov.exists():
-        return None
-    level = json.loads(prov.read_text()).get("level")
-    return level if level in LEVELS else None
+        return None, None
+    data = json.loads(prov.read_text())
+    level = data.get("level")
+    return (level if level in LEVELS else None), data.get("converter_version")
 
 
 def pull(
@@ -115,11 +126,13 @@ def pull(
             )
         )
 
-    stored = _existing_level(store)
+    stored, stored_version = _existing(store)
+    wanted_version = CONVERTER_VERSIONS.get(spec.name, "1")
     needs_convert = (
         force
         or stored is None
         or LEVELS.index(stored) < LEVELS.index(level)
+        or stored_version != wanted_version
         or any(not d.skipped for d in downloads)
     )
     if needs_convert:
@@ -127,6 +140,11 @@ def pull(
         converter(raw, store, spec)
         prov_path = store / "provenance.json"
         prov = json.loads(prov_path.read_text())
-        prov.update(level=level, registry_ref=spec.ref, license=spec.license)
+        prov.update(
+            level=level,
+            registry_ref=spec.ref,
+            license=spec.license,
+            converter_version=wanted_version,
+        )
         prov_path.write_text(json.dumps(prov, indent=2, sort_keys=True))
     return PullResult(spec.ref, level, raw, store, tuple(downloads), converted=needs_convert)
