@@ -36,6 +36,7 @@ sim = ["torch>=2.2"]
 neuprint = ["neuprint-python>=0.6"]
 cave = ["caveclient>=8"]
 morph = ["navis>=1.10", "flybrains>=0.6"]
+access = ["openpyxl>=3.1"]
 
 [project.scripts]
 flyconn = "flyconn.cli.main:app"
