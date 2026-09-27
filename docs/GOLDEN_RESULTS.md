@@ -302,6 +302,18 @@ the published connection counts exactly. Ingest must therefore aggregate
 neuropil rows before applying any threshold, and must keep the unthresholded
 Shiu parquet as a separate, sim-only edge source.
 
+### 6c. Simulation golden runs reproduced by `flyconn.sim` (M4, 2026-09-27, M4 Pro, CPU float32, 30 trials x 1 s, seed 0)
+
+| Stimulus (21 sugar GRNs) | MN9 contralateral | MN9 ipsilateral | Active neurons | Published |
+|---|---|---|---|---|
+| 100 Hz | 66.5 ± 4.1 Hz | 50.6 Hz | 416 | 65.7 (ST 1A) / 67.0 (repo) Hz; 49.7 Hz; 404–410 |
+| 200 Hz | 94.5 Hz | – | 444 | 93.2 Hz; 455 |
+| 10 Hz | 0.0 Hz | – | 39 | 0 Hz; 45 |
+
+Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-neuron random nets): identical event sets. Rung 3 throughput (`benchmarks/sim_throughput.json`): CPU 2.2 s per biological second at 30 batched trials (15.0 s single trial), MPS 2.7 s; the per-tick Python loop dominates, so MPS gives no gain yet.
+
+MaleCNS calibration protocol (78 LB3 GRNs -> 2 MN9, 5 trials x 0.5 s, CPU float32): MN9 rate at 100 / 200 Hz drive for w_syn 0.1, 0.2, 0.275, 0.4, 0.6 mV = 0.0/0.6, 31.4/55.2, 42.6/75.6, 65.6/103.4, 60.4/121.6 Hz. No value reaches 80 % of maximum (best 0.63 at 0.4 mV): unresolved.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |

@@ -21,3 +21,10 @@ Grows with each milestone. Seeds:
 - **Degree-preserving rewiring** keeps each neuron's out-degree, its outgoing weight multiset and every neuron's in-degree, but not in-weight or spatial structure; it is a configuration-model null, not a biological alternative wiring.
 - **Version drift by id.** `diff_versions` matches neurons by root/body id only. FlyWire root ids change with proofreading (only 106,785 of 127,978 v630 ids persist in v783), so absent ids are reported as unmatched rather than silently treated as removed neurons.
 - **Empirical p-values** use the (k+1)/(n+1) correction and are two-sided around the null mean; with 100 nulls the smallest reportable p is about 0.01.
+
+## Simulation caveats (M4)
+
+- The LIF model has one free parameter (w_syn = 0.275 mV) that Shiu et al. chose so that 100 Hz sugar-GRN drive gives about 80 % of MN9's maximal rate in FlyWire v630. Every constant was fitted to FlyWire; MaleCNS (and any other dataset) runs are **uncalibrated** and their spike counts are not comparable until the re-calibration protocol has been applied and reported.
+- Baseline firing is 0 Hz; there is no intrinsic activity, noise, neuromodulation, gap junctions, or synaptic plasticity. Outputs are model predictions of wiring-constrained excitability, not predictions of behaviour.
+- Signs come from predicted transmitters under a single-sign-per-neuron rule; histamine is inhibitory by default in flyconn but Shiu's FlyWire predictions had no histamine class.
+- Exactness: bit-identical spikes are guaranteed only for the CPU float64 path. float32 on CPU/MPS/CUDA matched the reference in every test so far, but summation order can move borderline spikes by a tick; compare distributions, not single runs.

@@ -93,4 +93,5 @@ markers = [
   "golden: uses cached real data and published golden results (slow; not run in default CI)",
   "network: touches the network (never in unit CI)",
   "benchmark: throughput benchmarks",
+  "brian: needs brian2 (Python >= 3.12); validation oracle tests",
 ]
