@@ -2,6 +2,17 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-27 — M6 compare done (branch m6-compare, merged)
+
+- `match_types(malecns@1.0, flywire@783)`: 6,836 MaleCNS types mapped via the published `fafb_783_cell_type` column (comma lists split).
+- `compare_type` (output partner-type profiles, min_weight 5, 500 permutations, ~3 s per type after the ~10 s matrix builds): PFL3 cross-similarity 0.929 vs within-brain L/R 0.988/0.981, statistic 0.056, p 0.002 -> "detectable but within Schlegel's between-brain range"; PAM08 0.931 / 0.986 / 0.986, statistic 0.055 -> same grade; EPG 0.795 / 1.000 / 0.969, statistic 0.189 -> "beyond the between-brain range" (largest partner shifts: Delta7 0.19 vs 0.06, EL 0.09 vs 0.17, ExR6 0.10 vs 0.17); DNp01 (n = 2 per dataset): 58 % of male output goes to VNC neurons without a FlyWire counterpart (excluded and reported), p 0.52.
+- Interpretation guard: verdicts are graded against Schlegel et al. 2024's 0.045 +/- 0.096 between-female-brain effect size, and small-n and unmatched-partner caveats are attached; an EPG-sized difference may still reflect type splitting/merging between datasets rather than sex.
+- Unit: 171 offline; golden: 31.
+
+Deferred: input-direction and type-pair batch reports; BANC/hemibrain converters (registry entries exist); NBLAST/morphology-based matching (would need navis, GPL extra).
+
+Next: M7 access (exploratory).
+
 ## 2026-09-27 — M5 experiments + report done (branch m5-experiments, merged)
 
 - `flyconn run examples/specs/w2_malecns_lb3_silence_gng232.yaml --out DIR` runs W2 from one YAML: MaleCNS v1.0, 78 LB3 GRNs at 100 Hz, silence GNG232, readouts MN9 / descending / motor, 20 trials x 0.5 s, controls 2 rewired + 2 sign-shuffled connectomes + unstimulated baseline; 283 s on CPU float32 (7 simulated conditions). Report is self-contained HTML with model-prediction and UNCALIBRATED banners, effect table and figures, provenance, citations.

@@ -4,6 +4,11 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M6 compare
+- `match_types`: cross-dataset type mapping from the published cross-reference columns (MaleCNS `fafb_783_cell_type` -> FlyWire `cell_type`, comma lists split); 6,836 MaleCNS types map to FlyWire v783.
+- `type_profile`: partner-type fraction vectors per type and side; `compare_type`: male-vs-female comparison whose statistic is cross-dataset cosine dissimilarity minus within-brain left/right dissimilarity, with a permutation null (dataset labels shuffled within side), partner-level differences, unmatched-partner reporting and a graded verdict referenced to Schlegel et al. 2024's between-brain effect size.
+- Golden W3 on MaleCNS v1.0 vs FlyWire v783 (PFL3, DNp01, EPG, PAM08).
+
 ### M5 experiments + report
 - YAML experiment spec (`flyconn.experiments.spec`): dataset, network options, background stimulation, perturbation (silence / extra stimulation), readout groups by ids or attribute globs, trials, seed, device, controls (degree-preserving rewiring and sign shuffle, on by default), report options; spec SHA-256 in provenance.
 - Runner (`run_experiment`): baseline / stimulated / perturbed conditions plus control connectomes with identical seeds; long-form `counts.parquet`, `readouts.parquet` (difference of means, bootstrap 95 % CI, Mann-Whitney p, Benjamini-Hochberg q, Cohen's d), `conditions.parquet`, `provenance.json`.
