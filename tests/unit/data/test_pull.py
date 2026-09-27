@@ -79,3 +79,19 @@ def test_pull_records_level_in_provenance(local_malecns: object):
     prov = json.loads((result.store_dir / "provenance.json").read_text())
     assert prov["level"] == "meta"
     assert prov["registry_ref"] == "malecns@1.0"
+
+
+def test_pull_reconverts_when_converter_version_changes(
+    local_malecns: object, monkeypatch: pytest.MonkeyPatch
+):
+    import flyconn.data.pull as pull_mod
+
+    first = pull(spec=local_malecns, level="meta")  # type: ignore[arg-type]
+    assert first.converted is True
+    prov = json.loads((first.store_dir / "provenance.json").read_text())
+    assert prov["converter_version"] == pull_mod.CONVERTER_VERSIONS["malecns"]
+    again = pull(spec=local_malecns, level="meta")  # type: ignore[arg-type]
+    assert again.converted is False
+    monkeypatch.setitem(pull_mod.CONVERTER_VERSIONS, "malecns", "999")
+    third = pull(spec=local_malecns, level="meta")  # type: ignore[arg-type]
+    assert third.converted is True
