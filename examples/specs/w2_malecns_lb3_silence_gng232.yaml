@@ -1,0 +1,27 @@
+# W2 - in-silico experiment before ordering fly lines (MaleCNS v1.0; UNCALIBRATED model).
+# Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz.
+# Perturbation: silence GNG232 (a relay on the strongest LB3 -> MN9 paths found in W1).
+# Readouts: MN9, all descending neurons, all motor neurons.
+name: w2_malecns_lb3_silence_gng232
+dataset: malecns@1.0
+network: {min_weight: 1, sign_policy: argmax}
+stimulate:
+  - select: {cell_type: "LB3*"}
+    rate_hz: 100
+perturb:
+  silence:
+    - select: {cell_type: "GNG232"}
+readouts:
+  - name: MN9
+    select: {cell_type: "MN9"}
+  - name: descending
+    select: {super_class: descending}
+  - name: motor
+    select: {super_class: motor}
+duration_ms: 500
+trials: 20
+seed: 0
+device: cpu
+dtype: float32
+controls: {degree_preserving_rewire: 2, sign_shuffle: 2, unstimulated_baseline: true}
+report: {top_neurons: 30}

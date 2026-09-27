@@ -24,6 +24,7 @@ dependencies = [
   "typer>=0.12",
   "requests>=2.31",
   "rich>=13",
+  "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]
@@ -75,6 +76,7 @@ ignore = ["PD002", "RUF012"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N802", "PD"]
+"flyconn/report/html.py" = ["E501"]  # HTML/CSS template strings
 
 [tool.pyright]
 include = ["flyconn"]
