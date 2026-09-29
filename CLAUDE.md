@@ -16,7 +16,7 @@ Raw research notes: `docs/research/`. Pinned downloads: `.cache/data/` (gitignor
 
 ## Commands
 - `scripts/check.sh` runs the full local gate (ruff, format, pyright, unit tests); use it before every commit
-- `uv sync` · `uv run pytest` (unit, offline) · `uv run pytest -m golden` (needs cached data) · `uv run ruff check` · `uv run pyright`
+- `uv sync --group dev --extra sim --extra interpret --extra access` (same as CI) · `uv run pytest` (unit, offline) · `uv run pytest -m golden` (needs cached data) · `uv run ruff check` · `uv run pyright`
 - `flyconn data list` · `flyconn data info malecns@1.0` · `flyconn data pull malecns@1.0 --level weights`
 - Golden tests on real cached data: `FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m golden`
 - Cache layout: `$FLYCONN_CACHE/raw/<name>/<version>/` (downloads), `$FLYCONN_CACHE/store/<name>/<version>/` (Parquet + provenance.json)
