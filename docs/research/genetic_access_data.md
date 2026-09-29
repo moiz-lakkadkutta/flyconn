@@ -2,7 +2,7 @@
 
 Date: 2026-09-26. Question: can flyconn answer "which published driver lines (split-GAL4 / GAL4 / LexA) target cell type X, and what else do they hit?" from openly licensed, machine-readable data, without accounts?
 
-Everything below was verified by fetching the live resource unless marked UNVERIFIED. Downloaded samples live in `/Users/moizp/google-fly/.cache/data/lines/`.
+Everything below was verified by fetching the live resource unless marked UNVERIFIED. Downloaded samples live in `.cache/data/lines/`.
 
 ## TL;DR
 

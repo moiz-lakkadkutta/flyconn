@@ -3,10 +3,10 @@
 Scope: the MaleCNS v1.0 connectome release only (Janelia FlyEM + Cambridge Drosophila Connectomics Group + MRC LMB + Google Research).
 Verified on 2026-09-26 by actually fetching pages, downloading files, and computing on them. Anything not directly
 verified is marked **UNVERIFIED**. All commands were run from the venv at
-`/private/tmp/claude-502/-Users-moizp-google-fly/bdaccf09-812b-4c61-9717-b57ad8a87724/scratchpad/research-venv`
+`<scratchpad>/research-venv`
 (pyarrow, pandas 3.0.6, numpy, requests). `gsutil`/`gcloud` are **not installed** on this machine; every download
 used the public HTTPS mirror `https://storage.googleapis.com/flyem-male-cns/...` with `curl -C -` (resumable).
-Local data directory: `/Users/moizp/google-fly/.cache/data/malecns/`.
+Local data directory: `.cache/data/malecns/`.
 
 ---
 
@@ -80,7 +80,7 @@ skeletons (µm) under `skeletons-unisex-template/`. Top-level `v1.0/` prefixes s
 ## 2–3. Downloads and checksums
 
 ```bash
-cd /Users/moizp/google-fly/.cache/data/malecns
+cd .cache/data/malecns
 B=https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome
 for f in body-annotations-male-cns-v1.0-minconf-0.5.feather \
          body-neurotransmitters-male-cns-v1.0.feather \

@@ -2,10 +2,10 @@
 
 Scope: everything except MaleCNS (see `data_malecns.md`; MaleCNS appears here only where the sjcabs/BANC harmonized files carry it).
 Verified on 2026-09-26. Rule: every number below was either computed on a file that is on disk under
-`/Users/moizp/google-fly/.cache/data/` (the previous session downloaded them; nothing was re-downloaded except two small
+`.cache/data/` (the previous session downloaded them; nothing was re-downloaded except two small
 Codex `neurons.csv.gz` files noted in §5.4/§3.5), read from a document that is on disk, or fetched live with `curl`/`requests`
 (GCS JSON listings, `HEAD` requests, tokenless neuPrint Cypher, Zenodo/Dataverse/GitHub APIs). Anything not verified is marked
-**UNVERIFIED**. Python: `/private/tmp/claude-502/-Users-moizp-google-fly/bdaccf09-812b-4c61-9717-b57ad8a87724/scratchpad/research-venv`
+**UNVERIFIED**. Python: `<scratchpad>/research-venv`
 (pandas 3.0.6, pyarrow). `gsutil` is not installed; all bucket access used `https://storage.googleapis.com/storage/v1/b/<bucket>/o?prefix=…`
 (listing) and `https://storage.googleapis.com/<bucket>/<object>` (download). Inspection script:
 `scratchpad/inspect_all.py` (outputs `scratchpad/out_{fanc,banc,sjcabs,hemibrain,manc,flywire}.txt`); listing helper `scratchpad/gcs_ls2.py`;

@@ -42,8 +42,8 @@ access = ["openpyxl>=3.1"]
 flyconn = "flyconn.cli.main:app"
 
 [project.urls]
-Documentation = "https://github.com/flyconn/flyconn"
-Repository = "https://github.com/flyconn/flyconn"
+Documentation = "https://github.com/moiz-lakkadkutta/flyconn"
+Repository = "https://github.com/moiz-lakkadkutta/flyconn"
 
 [dependency-groups]
 dev = [
