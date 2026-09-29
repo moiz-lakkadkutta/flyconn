@@ -24,3 +24,24 @@ for cell_type in ["PFL3", "EPG", "PAM08", "DNp01"]:
     print(res.partner_differences.head(5).to_string(index=False))
     for c in res.caveats:
         print("  caveat:", c)
+
+# %% [markdown]
+# ## Same question against BANC (female brain *and* nerve cord)
+#
+# The shared FlyWire-or-MANC vocabulary names nerve-cord partners on both sides, so descending
+# neurons such as DNp01 are compared on their full output.
+
+# %%
+banc = Store(pull("banc@888", level="weights").store_dir)
+for cell_type in ["DNp01", "PFL3", "EPG"]:
+    res = compare_type(
+        male,
+        banc,
+        cell_type,
+        type_b=cell_type,
+        n_permutations=500,
+        seed=0,
+        min_weight=5,
+        partner_vocabulary="fafb_or_manc",
+    )
+    print(res.summary())

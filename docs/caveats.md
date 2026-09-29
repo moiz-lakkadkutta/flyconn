@@ -49,3 +49,10 @@ Grows with each milestone. Seeds:
 - Line-to-type annotations (Meissner et al. 2025) are free text across nomenclatures (hemibrain, MANC, optic lobe, FlyWire) and carry a 1-4 quality grade; expression confidence lives in each line's source paper. EM body ids in the table have no dataset tag.
 - NeuronBridge hits are colour-depth similarity candidates ranked by score; a hit is not an expression call, scores are not comparable across libraries, and absence of a hit is weak evidence. Off-target lists are long by construction; rank and inspect.
 - Most FlyLight imagery is female and adult with specific reporters; expression can differ in males or with other effectors.
+
+## BANC caveats (M8)
+
+- The released `banc_888_edgelist_simple_v2.feather` (checksum-pinned, updated 2026-06-02) has 11,752,828 rows, not the 11,510,975 its documentation states, and contains 156,311 self-connections although the documentation says autapses were removed. flyconn drops them and reports the count.
+- BANC's `malecns_cell_type` column refers to MaleCNS v0.9; flyconn stores it as `malecns_09_cell_type` and does not treat it as a v1.0 mapping.
+- Comparing MaleCNS with BANC (both brain plus nerve cord) is the more complete male-vs-female test than MaleCNS vs FlyWire (brain only). For DNp01 the unmatched output fraction drops from 58 % (vs FlyWire) to 0 % (vs BANC). Two female datasets can also disagree: EPG was graded "beyond the between-brain range" against FlyWire (statistic 0.189) but only "within range" against BANC (0.088); when two female references disagree, the difference is not attributable to sex.
+- Both antennal nerves were damaged in the BANC sample (Bates et al. 2026); antennal inputs are under-represented.

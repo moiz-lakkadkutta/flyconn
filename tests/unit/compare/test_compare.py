@@ -79,3 +79,26 @@ def test_verdict_tiers_reference_schlegel_between_brain_range():
     assert within.startswith("detectable") and "Schlegel" in within
     beyond = verdict_for(p_value=0.001, statistic=0.3)
     assert beyond.startswith("different") and "beyond" in beyond
+
+
+def test_partner_labels_coalesce_fafb_then_manc():
+    from flyconn.compare.types import partner_labels
+
+    meta = pd.DataFrame(
+        {
+            "cell_type": ["A_m", "B_m", "C_m", "D_m"],
+            "fafb_783_cell_type": ["A", None, None, "D"],
+            "manc_121_cell_type": ["A", "B", None, None],
+        }
+    )
+    got = partner_labels(meta, "fafb_or_manc")
+    assert got.tolist() == ["A", "B", None, "D"]
+    assert partner_labels(meta, "cell_type").tolist() == ["A_m", "B_m", "C_m", "D_m"]
+
+
+def test_compare_type_records_partner_vocabulary(male_female: tuple[Store, Store]):
+    male, female = male_female
+    res = compare_type(
+        male, female, "T0", n_permutations=20, seed=0, partner_vocabulary="cell_type"
+    )
+    assert res.provenance["partner_vocabulary"] == "cell_type"

@@ -160,3 +160,80 @@ def flywire_783_raw(tmp_path: Path) -> Path:
     )
     _gz_csv(raw / "connections.csv.gz", conns)
     return raw
+
+
+@pytest.fixture
+def banc_raw(tmp_path: Path) -> Path:
+    """Six segments: 4 neurons (proofread/rough), 1 glia, 1 unproofread; string ids as released."""
+    raw = tmp_path / "raw" / "banc" / "888"
+    raw.mkdir(parents=True)
+    ids = [
+        "720575941000000001",
+        "720575941000000002",
+        "720575941000000003",
+        "720575941000000004",
+        "720575941000000005",
+        "720575941000000006",
+    ]
+    meta = pd.DataFrame(
+        {
+            "banc_888_id": ids,
+            "root_id": ids,
+            "proofread": ["TRUE", "TRUE", "FALSE", "TRUE", "TRUE", "FALSE"],
+            "roughly_proofread": ["FALSE", "FALSE", "TRUE", "FALSE", "FALSE", "FALSE"],
+            "super_class": [
+                "descending",
+                "ventral_nerve_cord_intrinsic",
+                "motor",
+                "central_brain_intrinsic",
+                "glia",
+                None,
+            ],
+            "cell_class": ["descending_neuron", None, None, None, None, None],
+            "cell_sub_class": [None] * 6,
+            "cell_type": ["DNp01", "IN06B001", "MNad07", "AOTU019", None, None],
+            "side": ["left", "right", "left", "right", "left", None],
+            "hemilineage": [None, "06B", None, "ALad1", None, None],
+            "region": [
+                "central_brain",
+                "ventral_nerve_cord",
+                "ventral_nerve_cord",
+                "central_brain",
+                None,
+                None,
+            ],
+            "flow": ["efferent", "intrinsic", "efferent", "intrinsic", None, None],
+            "neurotransmitter_predicted": [
+                "acetylcholine",
+                "gaba",
+                "glutamate",
+                "histamine",
+                None,
+                None,
+            ],
+            "neurotransmitter_score": [0.9, 0.8, 0.7, 0.6, np.nan, np.nan],
+            "fafb_cell_type": ["DNp01", None, None, "AOTU019", None, None],
+            "manc_cell_type": ["DNp01", "IN06B001", "MNad07", None, None, None],
+            "malecns_cell_type": ["DNp01", "IN06B001", None, "AOTU019", None, None],
+            "hemibrain_cell_type": [None, None, None, "auto:AOTU019", None, None],
+            "sexually_dimorphic": ["isomorphic", None, None, None, None, None],
+        }
+    )
+    pf.write_feather(
+        pa.Table.from_pandas(meta, preserve_index=False), raw / "banc_888_meta.feather"
+    )
+    edges = pd.DataFrame(
+        {
+            "pre": [ids[0], ids[0], ids[1], ids[3], ids[4], ids[0], ids[5]],
+            "post": [ids[1], ids[2], ids[2], ids[0], ids[0], ids[0], ids[1]],
+            "count": np.array([12, 7, 30, 4, 9, 2, 3], dtype=np.int32),
+            "norm": [0.1] * 7,
+            "post_count": np.array([100, 80, 80, 50, 50, 50, 100], dtype=np.int32),
+            "pre_count": np.array([20, 20, 30, 4, 9, 20, 3], dtype=np.int32),
+        }
+    )
+    pf.write_feather(
+        pa.Table.from_pandas(edges, preserve_index=False),
+        raw / "banc_888_edgelist_simple_v2.feather",
+    )
+    return raw
