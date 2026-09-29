@@ -9,6 +9,17 @@ and cross-dataset comparison.
 Status: pre-alpha; milestones M0–M7 of `docs/PLAN.md` are implemented and validated against
 published results on real data (`docs/GOLDEN_RESULTS.md`, `docs/PROGRESS.md`).
 
+## Install
+
+```bash
+pip install "flyconn[sim]"            # data, graph, uncertainty, simulator
+pip install "flyconn[sim,interpret]"  # + connectome_interpreter adapter
+```
+
+The interpret extra resolves `connectome-interpreter` 2.9.5 from PyPI; flyconn's parity tests
+run against a newer git commit of that package (see ADR-0002), so treat the PyPI combination as
+untested until upstream releases again. Documentation: https://moiz-lakkadkutta.github.io/flyconn/
+
 ## Quickstart
 
 ```bash

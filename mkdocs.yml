@@ -1,4 +1,6 @@
 site_name: flyconn
+site_url: https://moiz-lakkadkutta.github.io/flyconn/
+repo_url: https://github.com/moiz-lakkadkutta/flyconn
 theme:
   name: material
   features: [navigation.sections, content.code.copy]

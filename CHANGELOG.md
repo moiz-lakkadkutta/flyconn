@@ -4,6 +4,10 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-29
+
+First public release: milestones M0-M7 of docs/PLAN.md.
+
 ### M7 access (exploratory)
 - Registry entry `flylight_lines@meissner2025` (eLife 13:RP98405 Figure 1-source data 1, CC BY 4.0, SHA-256 pinned) and converter to `lines.parquet` (token lists for cell types and EM body ids, raw text kept).
 - `LineCatalog`: `lines_for_type` (glob, quality filter, specificity flag), `types_for_line`, `lines_for_body`, citation.

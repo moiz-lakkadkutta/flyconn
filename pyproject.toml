@@ -1,6 +1,6 @@
 [project]
 name = "flyconn"
-version = "0.0.1"
+version = "0.1.0"
 description = "Research-grade toolkit over public Drosophila connectomes: harmonized data, signed graphs, uncertainty, validated LIF simulation, declarative experiments."
 readme = "README.md"
 license = "Apache-2.0"
@@ -28,10 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-interpret = [
-  "torch>=2.2",
-  "connectome-interpreter @ git+https://github.com/YijieYin/connectome_interpreter.git@d212f86ef32318657dc27fa65e7e8ff604bffac9",
-]
+interpret = ["torch>=2.2", "connectome-interpreter>=2.9.5"]
 sim = ["torch>=2.2"]
 neuprint = ["neuprint-python>=0.6"]
 cave = ["caveclient>=8"]
@@ -61,8 +58,13 @@ brian = ["brian2>=2.10; python_version >= '3.12'"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.metadata]
-allow-direct-references = true
+[tool.uv.sources]
+# Development pins the tested git commit (PyPI lags the repo, ADR-0002); published metadata
+# declares the PyPI release so `pip install flyconn[interpret]` works.
+connectome-interpreter = { git = "https://github.com/YijieYin/connectome_interpreter.git", rev = "d212f86ef32318657dc27fa65e7e8ff604bffac9" }
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/.cache", "/docs/research", "/tests/fixtures/neuronbridge", "/benchmarks/*.json"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["flyconn"]
