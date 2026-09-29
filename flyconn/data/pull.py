@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from flyconn.data.cache import raw_dir, store_dir
+from flyconn.data.convert.banc import convert_banc
 from flyconn.data.convert.flywire import convert_flywire
 from flyconn.data.convert.malecns import convert_malecns
 from flyconn.data.convert.shiu import convert_shiu
@@ -30,6 +31,10 @@ def _convert_shiu(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     return convert_shiu(raw, out)
 
 
+def _convert_banc(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
+    return convert_banc(raw, out)
+
+
 def _convert_lines(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     from flyconn.access.lines import XLSX, convert_meissner_lines
 
@@ -41,12 +46,14 @@ CONVERTER_VERSIONS: dict[str, str] = {
     "flywire": "1",
     "shiu": "1",
     "flylight_lines": "2",  # 2: raw EM-id text column and count
+    "banc": "1",
 }
 """Bump a dataset's converter version whenever its output changes; stores are reconverted."""
 
 
 CONVERTERS: dict[str, Converter] = {
     "flylight_lines": _convert_lines,
+    "banc": _convert_banc,
     "malecns": _convert_malecns,
     "flywire": _convert_flywire,
     "shiu": _convert_shiu,

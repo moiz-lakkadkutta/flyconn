@@ -20,6 +20,33 @@ from flyconn.data.store import Store
 from flyconn.graph.matrix import ConnectivityMatrix
 
 Direction = Literal["in", "out"]
+PartnerVocabulary = Literal["auto", "cell_type", "fafb_or_manc"]
+
+
+def partner_labels(meta: pd.DataFrame, vocabulary: str) -> pd.Series:
+    """Partner label per neuron under a vocabulary.
+
+    ``cell_type``: the dataset's own names. ``fafb_or_manc``: the FlyWire (FAFB v783) name
+    where a neuron has one, else its MANC v1.2.1 name. MaleCNS and BANC both publish these
+    cross-references, so brain partners get FlyWire names and nerve-cord partners MANC names on
+    both sides. A cross-reference column that is entirely empty (e.g. FlyWire, whose own names
+    are already FAFB names) is replaced by ``cell_type``.
+    """
+    if vocabulary == "cell_type":
+        return cast("pd.Series", meta["cell_type"]).astype(object)
+    if vocabulary != "fafb_or_manc":
+        msg = f"unknown partner vocabulary {vocabulary!r}"
+        raise ValueError(msg)
+    out = pd.Series([None] * len(meta), index=meta.index, dtype=object)
+    used = False
+    for col in ("fafb_783_cell_type", "manc_121_cell_type"):
+        if col in meta.columns and bool(meta[col].notna().any()):
+            used = True
+            vals = cast("pd.Series", meta[col]).astype(object)
+            out = out.where(out.notna(), vals)
+    if not used:
+        return cast("pd.Series", meta["cell_type"]).astype(object)
+    return out.where(out.notna(), None)
 
 
 def _xref_column(a: Store, b: Store) -> str | None:
@@ -218,6 +245,7 @@ def compare_type(
     n_permutations: int = 1000,
     seed: int = 0,
     min_weight: int = 1,
+    partner_vocabulary: PartnerVocabulary = "auto",
 ) -> TypeComparison:
     """Compare ``type_label`` (in ``a``'s vocabulary) between datasets ``a`` and ``b``.
 
@@ -237,11 +265,16 @@ def compare_type(
         type_b = str(hits.iloc[0]["type_b"])
     ma = ConnectivityMatrix.from_store(a, min_weight=min_weight)
     mb = ConnectivityMatrix.from_store(b, min_weight=min_weight)
-    by_a = xref or "cell_type"
+    if partner_vocabulary == "auto":
+        by_a, by_b = xref or "cell_type", "cell_type"
+    else:
+        for m in (ma, mb):
+            m.meta["_partner_label"] = partner_labels(m.meta, partner_vocabulary).to_numpy()
+        by_a = by_b = "_partner_label"
     groups: dict[tuple[str, str], np.ndarray] = {}
     labels_union: list[str] = []
     frames: dict[tuple[str, str], pd.DataFrame] = {}
-    for key, m, tlabel, by in (("a", ma, type_label, by_a), ("b", mb, type_b, "cell_type")):
+    for key, m, tlabel, by in (("a", ma, type_label, by_a), ("b", mb, type_b, by_b)):
         meta = m.meta
         for side in ("left", "right"):
             mask = (meta["cell_type"].astype(object) == tlabel) & (meta["side"] == side)
@@ -334,7 +367,9 @@ def compare_type(
         "min_weight": min_weight,
         "n_permutations": n_permutations,
         "seed": seed,
+        "partner_vocabulary": partner_vocabulary,
         "partner_vocabulary_a": by_a,
+        "partner_vocabulary_b": by_b,
         "matrix_a": ma.provenance,
         "matrix_b": mb.provenance,
     }
