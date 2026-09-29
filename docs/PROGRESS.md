@@ -2,6 +2,12 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-09-29 — Published; M8 BANC done
+
+- GitHub: https://github.com/moiz-lakkadkutta/flyconn (public; CI green on Linux/macOS x Python 3.11/3.12). Docs: https://moiz-lakkadkutta.github.io/flyconn/. Release v0.1.0 created with wheel and sdist attached; `release.yml` publishes to PyPI by trusted publishing. **PyPI upload pending**: the owner must register the pending publisher on pypi.org (project `flyconn`, owner `moiz-lakkadkutta`, repo `flyconn`, workflow `release.yml`, environment `pypi`), then re-run the failed `publish-pypi` job of the v0.1.0 release run.
+- M8: BANC v888 converter and shared FlyWire-or-MANC partner vocabulary; golden `tests/golden/test_banc.py` (counts; W3 MaleCNS vs BANC for DNp01, PFL3, EPG). Results in GOLDEN_RESULTS 6d. Key finding: EPG's "beyond range" verdict against FlyWire drops to "within range" against BANC, so it is not a sex effect.
+- Local note: `scripts/check.sh` uses `uv run`, which re-syncs the default environment and drops the `brian` group, so the Brian2 parity test is skipped locally unless run with `uv run --group brian pytest -m brian`; the heavy CI workflow runs it.
+
 ## 2026-09-27 — Final verification on main
 
 `FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m "golden or brian"`: 33 passed in 11 min 28 s on the M4 Pro (MaleCNS reconverted under converter version 2 incl. tbar aggregation in 43 s; Shiu 100/200/10 Hz golden 57/56/47 s; W2 277 s; W3 3 s per type; MaleCNS calibration protocol 120 s). Unit gate: 177 passed. Peak RSS reported inside that single long pytest process reached 10.9 GB because simulations and conversions share the process; the MaleCNS conversion alone peaks at 5.7 GB.

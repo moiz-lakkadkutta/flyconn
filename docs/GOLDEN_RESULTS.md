@@ -314,6 +314,22 @@ Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-ne
 
 MaleCNS calibration protocol (78 LB3 GRNs -> 2 MN9, 5 trials x 0.5 s, CPU float32): MN9 rate at 100 / 200 Hz drive for w_syn 0.1, 0.2, 0.275, 0.4, 0.6 mV = 0.0/0.6, 31.4/55.2, 42.6/75.6, 65.6/103.4, 60.4/121.6 Hz. No value reaches 80 % of maximum (best 0.63 at 0.4 mV): unresolved.
 
+### 6d. BANC v888 through the flyconn converter (M8, 2026-09-29)
+
+| Quantity | flyconn | Published |
+|---|---|---|
+| Neurons (proofread or rough, excluding glia/trachea/non-neurons) | 155,858 | 155,916 proofread + roughly proofread (Bates 2026) |
+| Descending / ascending | 1,316 / 1,849 | 1,316 / 1,849 |
+| Edge-list rows / autapses dropped / neuron-neuron edges kept | 11,752,828 / 156,311 / 11,401,953 | doc: 11,510,975 rows, "autapses removed" |
+
+W3 male (MaleCNS v1.0) vs female, output partners, min_weight 5, 500 permutations:
+
+| Type | vs FlyWire v783 (statistic, verdict) | vs BANC v888, FlyWire-or-MANC vocabulary |
+|---|---|---|
+| PFL3 | 0.056, within between-brain range | 0.082, within range |
+| EPG | 0.189, beyond range | 0.088, within range |
+| DNp01 | p 0.52; 58 % of male output unmatched | p 1.0; 0 % unmatched |
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |
