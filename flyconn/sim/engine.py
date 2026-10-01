@@ -236,7 +236,7 @@ def _chunk_kicks(
     lo, hi = np.searchsorted(kicks.keys, [c0 * per_tick, (c0 + length) * per_tick])
     cnt = np.bincount(kicks.keys[lo:hi] - c0 * per_tick, minlength=length * per_tick)
     cnt = cnt.reshape(length, n_trials, len(kicks.targets))
-    has = cnt.reshape(length, -1).any(axis=1)
+    has: np.ndarray = np.asarray(cnt.reshape(length, -1).any(axis=1), dtype=bool)
     if not has.any():
         return torch.zeros(0, dtype=tdt), has
     return torch.as_tensor(kicks.table[cnt], device=dev), has

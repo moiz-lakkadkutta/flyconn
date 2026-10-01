@@ -110,7 +110,7 @@ def _annotate(neurons: pd.DataFrame, raw: Path, counts: dict[str, int], inputs: 
         neurons["nt_p_neither"] = nt["neither"].to_numpy(dtype=np.float32)
         neurons["nt_pred"] = nt["predicted_nt"].map(normalize_nt).to_numpy(dtype=object)
         neurons["nt_conf"] = nt[list(_NT_ALL)].max(axis=1).to_numpy(dtype=float)
-        neurons["nt_source"] = np.where(has, NT_SOURCE, None)
+        neurons["nt_source"] = [NT_SOURCE if h else None for h in np.asarray(has, dtype=bool)]
         counts["with_nt"] = int(has.sum())
         inputs.append(nt_path)
 
