@@ -37,6 +37,15 @@ Grows with each milestone. Seeds:
 - Sign shuffling as a null: with roughly two thirds of neurons excitatory, permuting signs across neurons breaks excitation/inhibition balance and typically produces runaway activity (seen in the W2 run: 59M spikes vs 0.6M). Treat it as a test of whether inhibitory identities matter *where they are*, not as a matched-activity null; compare readouts under the rewired control first.
 - Perturbations are all-or-none (silencing zeroes outgoing synapses; stimulation is Poisson kicks); they do not model partial knockdown, developmental compensation or neuromodulation.
 
+## Sweep caveats
+
+- A sweep (`sweep: {silence_each: ...}` or `sweep: {rate_hz: [...]}`) runs the shared conditions (baseline, stimulated, controls) once and one simulation per variant. Every variant reuses the spec's seeds, so variant and reference trials share Poisson input; the Mann-Whitney test treats them as unpaired, which is conservative.
+- n is the number of trials per variant. Benjamini-Hochberg runs across *all* variant x readout rows of the sweep (`sweep.parquet`); the shared stimulated-vs-baseline/control comparisons in `readouts.parquet` form a separate family.
+- `silence_each` simulates only the `max_items` candidate groups with the highest summed firing rate in the stimulated condition (in the spirit of Shiu et al. 2024's screen of the most active neurons). Groups that never fire are listed as skipped: silencing zeroes outgoing synapses, so they cannot change that run. A type that is silent under this stimulation may still matter under another one. Ranking by summed rate favours types with many neurons.
+- A screen ranks effects within one model and one stimulation; it is a list of candidates for experiments, not evidence that a type is necessary in the fly. With an uncalibrated dataset (MaleCNS) the magnitudes are not comparable to FlyWire runs.
+- To bound file size, `counts.parquet` stores all non-zero counts for the shared runs but only the readout neurons' counts for variant runs; per-variant totals are in `conditions.parquet` and `variants.parquet`.
+- In a `rate_hz` sweep every `stimulate` entry is set to the same rate; the reference is the unstimulated baseline (or the stimulated condition when the baseline is disabled).
+
 ## Cross-dataset comparison caveats (M6)
 
 - The null model is left/right variability *within* a brain. Schlegel et al. 2024 report that connectivity between two different female brains (FlyWire vs hemibrain) is less similar than left vs right within one brain (cosine effect size 0.045 ± 0.096). A male-vs-female difference must therefore be judged against that between-individual range, not only against the L/R permutation p-value; `compare_type` grades its verdict accordingly (no evidence / detectable but within the reported between-brain range / beyond it).

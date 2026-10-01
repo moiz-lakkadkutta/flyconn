@@ -199,7 +199,10 @@ def _silence_figure(sweep: pd.DataFrame) -> str:
         ax.invert_yaxis()
         ax.set_title(str(name), fontsize=9)
         ax.set_xlabel("silenced - stimulated (Hz)", fontsize=8)
-    fig.suptitle("Effect of silencing each variant (red: q < alpha); bootstrap 95% CI", fontsize=9)
+    fig.suptitle(
+        "Effect of silencing each variant (red: q < alpha); bootstrap 95% CI", fontsize=9, y=1.0
+    )
+    fig.tight_layout()
     return _fig_to_img(fig)
 
 
@@ -221,7 +224,10 @@ def _rate_figure(sweep: pd.DataFrame) -> str:
         ax.set_xlabel("stimulation rate (Hz)", fontsize=8)
         ax.set_ylabel("mean readout rate (Hz)", fontsize=8)
         ax.legend(fontsize=7)
-    fig.suptitle("Readout vs stimulation rate (band: bootstrap 95% CI of the mean)", fontsize=9)
+    fig.suptitle(
+        "Readout vs stimulation rate (band: bootstrap 95% CI of the mean)", fontsize=9, y=1.0
+    )
+    fig.tight_layout()
     return _fig_to_img(fig)
 
 
