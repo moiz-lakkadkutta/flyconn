@@ -11,7 +11,9 @@ from typing import Any
 from flyconn.data.cache import raw_dir, store_dir
 from flyconn.data.convert.banc import convert_banc
 from flyconn.data.convert.flywire import convert_flywire
+from flyconn.data.convert.hemibrain import convert_hemibrain
 from flyconn.data.convert.malecns import convert_malecns
+from flyconn.data.convert.manc import convert_manc
 from flyconn.data.convert.shiu import convert_shiu
 from flyconn.data.download import DownloadResult, download
 from flyconn.data.registry import LEVELS, DatasetSpec, Level, get_dataset
@@ -35,6 +37,14 @@ def _convert_banc(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     return convert_banc(raw, out)
 
 
+def _convert_hemibrain(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
+    return convert_hemibrain(raw, out)
+
+
+def _convert_manc(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
+    return convert_manc(raw, out)
+
+
 def _convert_lines(raw: Path, out: Path, spec: DatasetSpec) -> dict[str, Any]:
     from flyconn.access.lines import XLSX, convert_meissner_lines
 
@@ -47,6 +57,8 @@ CONVERTER_VERSIONS: dict[str, str] = {
     "shiu": "1",
     "flylight_lines": "2",  # 2: raw EM-id text column and count
     "banc": "1",
+    "hemibrain": "1",
+    "manc": "1",
 }
 """Bump a dataset's converter version whenever its output changes; stores are reconverted."""
 
@@ -54,7 +66,9 @@ CONVERTER_VERSIONS: dict[str, str] = {
 CONVERTERS: dict[str, Converter] = {
     "flylight_lines": _convert_lines,
     "banc": _convert_banc,
+    "hemibrain": _convert_hemibrain,
     "malecns": _convert_malecns,
+    "manc": _convert_manc,
     "flywire": _convert_flywire,
     "shiu": _convert_shiu,
 }

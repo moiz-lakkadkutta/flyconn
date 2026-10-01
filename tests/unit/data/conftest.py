@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import gzip
+import io
+import tarfile
 from pathlib import Path
 
 import numpy as np
@@ -236,4 +238,197 @@ def banc_raw(tmp_path: Path) -> Path:
         pa.Table.from_pandas(edges, preserve_index=False),
         raw / "banc_888_edgelist_simple_v2.feather",
     )
+    return raw
+
+
+@pytest.fixture
+def hemibrain_raw(tmp_path: Path) -> Path:
+    """Four traced bodies in the v1.2 export tarball; Supp. 5, sjcabs meta and NT feather."""
+    raw = tmp_path / "raw" / "hemibrain" / "1.2.1"
+    raw.mkdir(parents=True)
+    traced = pd.DataFrame(
+        {
+            "bodyId": [1001, 1002, 1003, 1004],
+            "type": ["PFL3", "PFL3", "EPG", None],
+            "instance": ["PFL3_L*", "PFL3_R", "EPG(PB08)_L7", None],
+        }
+    )
+    total = pd.DataFrame(
+        {
+            "bodyId_pre": [1001, 1001, 1002, 1003, 1004],
+            "bodyId_post": [1002, 1003, 1003, 1001, 1001],
+            "weight": [12, 3, 40, 7, 1],
+        }
+    )
+    roi = pd.DataFrame(
+        {
+            "bodyId_pre": [1001, 1001],
+            "bodyId_post": [1002, 1002],
+            "roi": ["LAL(R)", "NotPrimary"],
+            "weight": [10, 2],
+        }
+    )
+    with tarfile.open(raw / "exported-traced-adjacencies-v1.2.tar.gz", "w:gz") as tar:
+        for name, df in [
+            ("traced-neurons.csv", traced),
+            ("traced-total-connections.csv", total),
+            ("traced-roi-connections.csv", roi),
+        ]:
+            data = df.to_csv(index=False).encode()
+            info = tarfile.TarInfo(f"exported-traced-adjacencies-v1.2/{name}")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+    supp5 = pd.DataFrame(
+        {
+            "bodyId": [1001, 1002, 1003, 9999],
+            "instance": ["PFL3_L*", "PFL3_R", "EPG(PB08)_L7", "x"],
+            "type": ["PFL3", "PFL3", "EPG", "x"],
+            "morphology_type": ["PFL3", "PFL3", "EPG", "x"],
+            "cell_class": ["CX", "CX", "CX", None],
+            "ito_lee_hemilineage": ["DM1_CX_d2", "DM1_CX_d2", "LALv1_dorsal", None],
+            "morphology_group": [None] * 4,
+            "notes": [None] * 4,
+            "cellBodyFiber": ["PDM14", "PDM14", None, None],
+            "side": ["left", "right", "na", "right"],
+            "somaLocation": [None] * 4,
+            "pre": [100.0, 120.0, 80.0, 1.0],
+            "post": [400.0, 410.0, 300.0, 1.0],
+            "pre_con2": [500.0, 600.0, 400.0, 1.0],
+            "cropped": [False, False, False, True],
+            "fbbt_id": ["FBbt_1", "FBbt_1", None, None],
+        }
+    )
+    supp5.to_csv(raw / "Supplemental_file5_hemibrain_meta.csv", index=False)
+    sj = pd.DataFrame(
+        {
+            "hemibrain_121_id": ["1001", "1002", "1003", "1004"],
+            "instance": ["PFL3_L*", "PFL3_R", "EPG(PB08)_L7", None],
+            "cell_type": ["PFL3", "PFL3", "EPG", None],
+            "region": ["central_brain", "central_brain", "central_brain", None],
+            "hemilineage": ["DM1_CX_d2", "DM1_CX_d2", "LALv1_dorsal", None],
+            "nerve": [None] * 4,
+            "flow": ["intrinsic", "intrinsic", "intrinsic", None],
+            "super_class": ["central_brain_intrinsic"] * 3 + [None],
+            "cell_class": ["central_complex_output_neuron"] * 2 + [None, None],
+            "cell_sub_class": [None] * 4,
+            "neurotransmitter_predicted": ["acetylcholine"] * 3 + [None],
+            "neurotransmitter_score": ["0.9", "0.8", "0.7", None],
+            "status": ["Traced"] * 4,
+            "cropped": [False] * 4,
+        }
+    )
+    pf.write_feather(
+        pa.Table.from_pandas(sj, preserve_index=False), raw / "hemibrain_121_meta.feather"
+    )
+    nt = pd.DataFrame(
+        {
+            "body": [1001, 1002, 1003, 5555],
+            "type": ["PFL3", "PFL3", "EPG", None],
+            "instance": ["PFL3_L*", "PFL3_R", "EPG(PB08)_L7", None],
+            "statusLabel": ["Traced", "Traced", "Traced", None],
+            "gaba": [0.05, 0.1, 0.1, 0.0],
+            "acetylcholine": [0.8, 0.1, 0.2, 0.0],
+            "glutamate": [0.05, 0.1, 0.1, 0.0],
+            "serotonin": [0.02, 0.1, 0.1, 0.0],
+            "octopamine": [0.02, 0.1, 0.1, 0.0],
+            "dopamine": [0.03, 0.1, 0.1, 0.0],
+            "neither": [0.03, 0.4, 0.3, 1.0],
+            "predicted_nt": ["acetylcholine", "neither", "neither", "neither"],
+        }
+    ).set_index("body")  # the release stores 'body' as the pandas index
+    pf.write_feather(
+        pa.Table.from_pandas(nt), raw / "hemibrain-v1.2-body-mean-neurotransmitters.feather"
+    )
+    return raw
+
+
+@pytest.fixture
+def manc_raw(tmp_path: Path) -> Path:
+    """Four neurons + one glia (Codex only); sjcabs meta and edgelist with string ids."""
+    raw = tmp_path / "raw" / "manc" / "1.2.1"
+    raw.mkdir(parents=True)
+    vnc = "ventral_nerve_cord"
+    meta = pd.DataFrame(
+        {
+            "manc_121_id": ["10000", "10001", "10002", "10003"],
+            "region": ["neck_connective", vnc, vnc, vnc],
+            "side": ["right", "left", "right", None],
+            "hemilineage": [None, "20A.22A", "TBD", None],
+            "nerve": [None, None, None, "left_prothoracic_leg_nerve"],
+            "flow": ["efferent", "intrinsic", "intrinsic", "afferent"],
+            "super_class": [
+                "descending",
+                "ventral_nerve_cord_intrinsic",
+                "ventral_nerve_cord_intrinsic",
+                "sensory",
+            ],
+            "cell_class": [None, None, None, "chordotonal_organ_neuron"],
+            "cell_sub_class": [None, "ventral_nerve_cord_ipsilateral_restricted", None, None],
+            "cell_type": ["DNp01", "IN20A.22A067", "Ti flexor MN", "SNpp50"],
+            "neurotransmitter_predicted": ["acetylcholine", "gaba", "unclear", "glutamate"],
+            "cell_function": [None] * 4,
+            "cell_function_detailed": [None] * 4,
+            "body_part_sensory": [None] * 4,
+            "body_part_effector": [None] * 4,
+        }
+    )
+    pf.write_feather(
+        pa.Table.from_pandas(meta, preserve_index=False), raw / "manc_121_meta.feather"
+    )
+    # 14223 is a glia body: traced in neuPrint/Codex, absent from the sjcabs neuron meta.
+    pre = ["10000", "10001", "10002", "14223", "10003", "10001"]
+    post = ["10001", "10002", "10001", "10001", "10001", "10001"]
+    count = np.array([12, 7, 30, 4, 2, 5], dtype=np.int32)
+    total_input = {"10001": 53, "10002": 7}
+    edges = pd.DataFrame(
+        {
+            "pre": pre,
+            "post": post,
+            "count": count,
+            "norm": [int(c) / total_input[p] for c, p in zip(count, post, strict=True)],
+            "total_input": np.array([total_input[p] for p in post], dtype=np.int32),
+        }
+    )
+    pf.write_feather(
+        pa.Table.from_pandas(edges, preserve_index=False),
+        raw / "manc_121_simple_edgelist.feather",
+    )
+    codex = pd.DataFrame(
+        {
+            "Root ID": [10000, 10001, 10002, 10003, 14223],
+            "Top in/out region": ["LTCT"] * 5,
+            "Community labels": [
+                "description::Giant fiber,group::10000,instance::DNp01_R,vfbId::VFB_jrchk00s",
+                "instance::IN20A.22A067_L",
+                "",
+                "vfbId::VFB_x",
+                "",
+            ],
+            "Predicted NT type": ["ACH", "GABA", "GLUT", "ACH", ""],
+            "Predicted NT confidence": [0.51, 0.9, 0.4, 0.7, np.nan],
+            "Verified NT type": [None] * 5,
+            "Verified Neuropeptide": [None] * 5,
+            "Body Part": [None] * 5,
+            "Function": [None] * 5,
+            "Flow": ["efferent", "intrinsic", "intrinsic", "afferent", None],
+            "Super Class": [
+                "descending",
+                "intrinsic_neuron",
+                "intrinsic_neuron",
+                "sensory",
+                "glia",
+            ],
+            "Class": [None] * 5,
+            "Sub Class": [None] * 5,
+            "Hemilineage": [None] * 5,
+            "Nerve": [None] * 5,
+            "Soma side": ["right", "left", "right", None, None],
+            "Primary Cell Type": ["DNp01", "IN20A.22A067", "tibia_flexor", "SNpp50", None],
+            "Alternative Cell Type(s)": [None] * 5,
+            "Cable length (nm)": [None] * 5,
+            "Surface area (nm^2)": [None] * 5,
+            "Volume (nm^3)": [None] * 5,
+        }
+    )
+    _gz_csv(raw / "neurons.csv.gz", codex)
     return raw

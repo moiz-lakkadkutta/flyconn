@@ -95,3 +95,37 @@ def test_pull_reconverts_when_converter_version_changes(
     monkeypatch.setitem(pull_mod.CONVERTER_VERSIONS, "malecns", "999")
     third = pull(spec=local_malecns, level="meta")  # type: ignore[arg-type]
     assert third.converted is True
+
+
+@pytest.mark.parametrize(
+    ("ref", "meta_files", "weights_only"),
+    [
+        (
+            "hemibrain@1.2.1",
+            {
+                "exported-traced-adjacencies-v1.2.tar.gz",
+                "hemibrain-v1.2-body-mean-neurotransmitters.feather",
+                "Supplemental_file5_hemibrain_meta.csv",
+                "hemibrain_121_meta.feather",
+            },
+            set[str](),
+        ),
+        (
+            "manc@1.2.1",
+            {"neurons.csv.gz", "manc_121_meta.feather"},
+            {"manc_121_simple_edgelist.feather"},
+        ),
+    ],
+)
+def test_hemibrain_and_manc_have_converters_and_pinned_files(
+    ref: str, meta_files: set[str], weights_only: set[str]
+):
+    from flyconn.data.pull import CONVERTER_VERSIONS, CONVERTERS
+
+    spec = get_dataset(ref)
+    assert spec.name in CONVERTERS and spec.name in CONVERTER_VERSIONS
+    meta = {f.name for f in spec.files_for_level("meta")}
+    weights = {f.name for f in spec.files_for_level("weights")}
+    assert meta == meta_files
+    assert weights - meta == weights_only
+    assert all(f.sha256 and f.bytes for f in spec.files)

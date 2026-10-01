@@ -29,6 +29,25 @@ files:
     level: meta
     role: neurons
     note: "Codex export of the 23,665 traced v1.2.1 neurons (21 columns)."
+  - name: manc_121_meta.feather
+    url: https://storage.googleapis.com/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121/manc_121_meta.feather
+    bytes: 1446722
+    sha256: 067c88e687ade67bd1e69b88765b4b21596280618cefde0fa43117d4af4a9439
+    md5_b64: Yx8P7LnG+9+pqBcRJPc+NA==
+    level: meta
+    role: annotations
+    note: "sjcabs compiled meta (23,650 x 15 = 23,665 traced minus 15 glia); string ids; BANC vocabulary."
+  - name: manc_121_simple_edgelist.feather
+    url: https://storage.googleapis.com/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/manc_121/manc_121_simple_edgelist.feather
+    bytes: 87386906
+    sha256: c3f9ca6dc9d100e72299b41136d373ffcd60b328624cbfd6ac145f071e0b28ac
+    md5_b64: 7ko0TfSZiZ1EGPF2O8OaMA==
+    level: weights
+    role: edgelist
+    note: "sjcabs compiled edgelist: 5,305,354 traced-to-traced rows (pre, post, count, norm, total_input), sum count 30,943,884, no pair threshold."
 notes: >
   No v1.2.x flat edge export exists in a public bucket (only v1.0 under gs://flyem-manc-exports/);
-  edges come from neuPrint or the sjcabs manc_121_simple_edgelist. Converter lands with M6.
+  edges come from the sjcabs compiled data (flyconnectome/bancpipeline; data CC BY by the dataset
+  creators; cite the MANC papers and Eckstein et al. 2024). Its row count and synapse sum differ
+  slightly from neuPrint manc:v1.2.1 Traced->Traced (5,305,638 / 30,934,610).
+  Converter: flyconn.data.convert.manc.
