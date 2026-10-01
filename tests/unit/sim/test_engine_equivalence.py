@@ -13,8 +13,9 @@ from typing import Any
 import numpy as np
 import pytest
 import scipy.sparse as sp
+import torch
 
-from flyconn.sim import LIFNetwork, ShiuParams, simulate
+from flyconn.sim import LIFNetwork, ShiuParams, engine, simulate
 from flyconn.sim.engine import DType
 
 from ._reference_loop import simulate_reference
@@ -101,3 +102,70 @@ def test_short_runs_and_chunk_boundaries(n_steps: int):
         stimulate=STIM, input_events=EVENTS[:3], n_steps=n_steps, n_trials=2, device="cpu"
     )
     _assert_same(simulate(NET, **kw), simulate_reference(NET, **kw))
+
+
+@pytest.mark.parametrize("n_trials", [1, 3])
+def test_odd_sizes_and_partial_last_chunk(n_trials: int):
+    odd = _recurrent_net(397, 0.03, seed=8, scale=3.0)  # trials x neurons not a multiple of 8
+    kw: dict[str, Any] = dict(
+        stimulate={
+            int(i): (3000.0 if k < 10 else 300.0) for k, i in enumerate(odd.neuron_ids[:30])
+        },
+        n_steps=18 * 7 + 5,
+        n_trials=n_trials,
+        seed=2,
+        device="cpu",
+    )
+    ours, ref = simulate(odd, **kw), simulate_reference(odd, **kw)
+    _assert_same(ours, ref)
+    assert ref.events is not None and (ref.events[:, 1] >= 18 * 7).sum() > 0
+
+
+@pytest.mark.parametrize("buf_dtype", [torch.bool, torch.uint8])
+@pytest.mark.parametrize(("length", "n_trials", "n"), [(18, 3, 397), (5, 1, 397), (1, 2, 3)])
+def test_word_wise_spike_search_equals_nonzero_and_ignores_stale_bytes(
+    buf_dtype: torch.dtype, length: int, n_trials: int, n: int
+):
+    chunk = 18
+    size = chunk * n_trials * n
+    buf = torch.zeros(-(-size // 8) * 8, dtype=buf_dtype)
+    gen = torch.Generator().manual_seed(0)
+    buf[:size] = (torch.rand(size, generator=gen) < 0.05).to(buf_dtype)
+    buf[length * n_trials * n : size] = True  # stale spikes beyond the current chunk length
+    got = engine._Spikes.of(buf, length, n_trials, n)
+    want = torch.nonzero(buf[:size].view(chunk, n_trials, n)[:length])
+    assert torch.equal(got.dev, want)
+    np.testing.assert_array_equal(np.column_stack([got.tick_h, got.trial_h, got.neuron_h]), want)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "float32"])
+def test_compiled_tick_kernel_matches_reference(dtype: DType):
+    kw: dict[str, Any] = dict(
+        stimulate=STIM, input_events=EVENTS, n_steps=700, n_trials=3, seed=11, dtype=dtype
+    )
+    ours = simulate(NET, device="cpu", compile=True, **kw)
+    _assert_same(ours, simulate_reference(NET, device="cpu", **kw))
+    assert ours.provenance["tick_kernel"] in {"torch.compile", "eager"}
+
+
+def test_compile_off_uses_eager_kernel():
+    res = simulate(NET, stimulate=STIM, n_steps=50, device="cpu", compile=False)
+    assert res.provenance["tick_kernel"] == "eager"
+
+
+def test_small_runs_default_to_eager_kernel():
+    res = simulate(NET, stimulate=STIM, n_steps=50, device="cpu")
+    assert res.provenance["tick_kernel"] == "eager"
+
+
+def test_compile_failure_falls_back_to_eager(monkeypatch: pytest.MonkeyPatch):
+    def broken(*_a: Any, **_k: Any) -> Any:
+        raise RuntimeError("no compiler here")
+
+    monkeypatch.setattr(torch, "compile", broken)
+    monkeypatch.setattr(engine, "_COMPILED", {})  # forget kernels compiled by earlier tests
+    kw: dict[str, Any] = dict(stimulate=STIM, n_steps=300, n_trials=2, seed=4, device="cpu")
+    with pytest.warns(RuntimeWarning, match=r"torch\.compile"):
+        ours = simulate(NET, compile=True, **kw)
+    assert ours.provenance["tick_kernel"] == "eager"
+    _assert_same(ours, simulate_reference(NET, **kw))

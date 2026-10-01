@@ -18,7 +18,8 @@ Every output is a **model prediction** from wiring plus predicted transmitters.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import warnings
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -251,8 +252,21 @@ class _Spikes:
     neuron_h: np.ndarray
 
     @classmethod
-    def of(cls, spk: torch.Tensor) -> _Spikes:
-        nz = torch.nonzero(spk)
+    def of(cls, buf: torch.Tensor, length: int, n_trials: int, n: int) -> _Spikes:
+        """Find spikes in the first ``length`` ticks of a flat, 8-byte padded chunk buffer.
+
+        Spikes are sparse, so non-zero 8-byte words are located first and only those are
+        expanded; the result is in (tick, trial, neuron) order like ``torch.nonzero``.
+        """
+        size = length * n_trials * n
+        raw = buf.view(torch.uint8)
+        words = raw.view(torch.int64)[: -(-size // 8)]
+        w = torch.nonzero(words).squeeze(1)
+        hit = torch.nonzero(raw.view(-1, 8)[w])
+        flat = w[hit[:, 0]] * 8 + hit[:, 1]
+        flat = flat[flat < size]  # stale bytes of a longer previous chunk in the last word
+        per_tick = n_trials * n
+        nz = torch.stack([flat // per_tick, (flat % per_tick) // n, flat % n], dim=1)
         h = nz.cpu().numpy()
         return cls(nz, h[:, 0], h[:, 1], h[:, 2])
 
@@ -292,17 +306,8 @@ def _deliver(
     return keys, has
 
 
-@dataclass
-class _State:
-    """Per (trial, neuron) dynamics state plus scratch buffers reused every tick."""
-
-    v: torch.Tensor
-    g: torch.Tensor
-    rfc: torch.Tensor
-    reload: torch.Tensor
-    not_ref: torch.Tensor
-    t1: torch.Tensor
-    t2: torch.Tensor
+@dataclass(frozen=True)
+class _Consts:
     a_v: float
     b_g: float
     c_gv: float
@@ -311,27 +316,8 @@ class _State:
     v_reset: float
 
     @classmethod
-    def initial(
-        cls,
-        n_trials: int,
-        n: int,
-        p: ShiuParams,
-        tdt: torch.dtype,
-        dev: torch.device,
-        norefr: np.ndarray,
-    ) -> _State:
-        v = torch.full((n_trials, n), p.v_rest_mv, dtype=tdt, device=dev)
-        reload = torch.full((n,), p.refractory_steps, dtype=torch.int32, device=dev)
-        if len(norefr):
-            reload[torch.as_tensor(norefr, device=dev)] = 0
+    def of(cls, p: ShiuParams) -> _Consts:
         return cls(
-            v=v,
-            g=torch.zeros_like(v),
-            rfc=torch.zeros((n_trials, n), dtype=torch.int32, device=dev),
-            reload=reload.expand(n_trials, n),
-            not_ref=torch.zeros((n_trials, n), dtype=torch.bool, device=dev),
-            t1=torch.empty_like(v),
-            t2=torch.empty_like(v),
             a_v=p.decay_v,
             b_g=p.decay_g,
             c_gv=p.g_to_v,
@@ -341,39 +327,164 @@ class _State:
         )
 
 
-def _tick(
-    s: _State,
-    spike: torch.Tensor,
-    syn: torch.Tensor | None,
-    kick: torch.Tensor | None,
-    kick_targets: torch.Tensor,
-) -> None:
-    """One tick in place; ``spike`` receives the spike mask.
+StepFn = Callable[..., None]  # (v, g, rfc, syn, reload, v_out, g_out, rfc_out, spike_out)
 
-    Same arithmetic, in the same order, as the plain loop: ``v0_term + g*c + v*a`` for
-    non-refractory neurons, ``g*b`` plus delayed input, then kicks, then resets.
+
+def _fused_step(k: _Consts) -> StepFn:
+    """Tick update as one expression graph for ``torch.compile`` (constants baked in).
+
+    Same arithmetic, in the same order, as ``_Stepper._eager``; inductor's CPU code is
+    built with ``-ffp-contract=off`` and without unsafe math, so it rounds identically.
+    Writing to separate output buffers (ping-pong) lets inductor emit a single pass.
     """
-    v, g, rfc, nr, t1, t2 = s.v, s.g, s.rfc, s.not_ref, s.t1, s.t2
-    rfc.sub_(1).clamp_(min=0)
-    torch.eq(rfc, 0, out=nr)
-    torch.mul(g, s.c_gv, out=t1)
-    t1.add_(s.v0_term)
-    torch.mul(v, s.a_v, out=t2)
-    t1.add_(t2)
-    torch.where(nr, t1, v, out=v)
-    torch.mul(g, s.b_g, out=t2)
-    if syn is not None:
-        t2.add_(syn)
-    torch.where(nr, t2, g, out=g)
-    torch.gt(v, s.v_th, out=spike)
-    spike.logical_and_(nr)
-    if kick is not None:
-        vs = v.index_select(1, kick_targets)
-        add = torch.where(nr.index_select(1, kick_targets), kick, 0.0)
-        v.index_copy_(1, kick_targets, vs + add)
-    v.masked_fill_(spike, s.v_reset)
-    g.masked_fill_(spike, 0.0)
-    torch.where(spike, s.reload, rfc, out=rfc)
+
+    def step(
+        v: torch.Tensor,
+        g: torch.Tensor,
+        rfc: torch.Tensor,
+        syn: torch.Tensor,
+        reload: torch.Tensor,
+        v_out: torch.Tensor,
+        g_out: torch.Tensor,
+        rfc_out: torch.Tensor,
+        spike: torch.Tensor,
+    ) -> None:
+        r = torch.clamp(rfc - 1, min=0)
+        nr = r == 0
+        vn = torch.where(nr, k.v0_term + g * k.c_gv + v * k.a_v, v)
+        gn = torch.where(nr, g * k.b_g + syn, g)
+        sp = nr & (vn > k.v_th)
+        v_out.copy_(torch.where(sp, k.v_reset, vn))
+        g_out.copy_(torch.where(sp, 0.0, gn))
+        rfc_out.copy_(torch.where(sp, reload, r))
+        spike.copy_(sp)
+
+    return step
+
+
+_COMPILED: dict[_Consts, StepFn] = {}
+# Below this many neuron-ticks (trials x neurons x steps) compilation costs more than it saves.
+_AUTO_COMPILE_MIN_WORK = 1_000_000_000
+
+
+class _Stepper:
+    """Per (trial, neuron) dynamics state and the tick update (eager or ``torch.compile``)."""
+
+    def __init__(
+        self,
+        n_trials: int,
+        n: int,
+        p: ShiuParams,
+        tdt: torch.dtype,
+        dev: torch.device,
+        norefr: np.ndarray,
+        use_compile: bool,
+        warn_on_fallback: bool,
+    ) -> None:
+        self.k = _Consts.of(p)
+        self.v = torch.full((n_trials, n), p.v_rest_mv, dtype=tdt, device=dev)
+        self.g = torch.zeros_like(self.v)
+        self.rfc = torch.zeros((n_trials, n), dtype=torch.int32, device=dev)
+        reload = torch.full((n,), p.refractory_steps, dtype=torch.int32, device=dev)
+        if len(norefr):
+            reload[torch.as_tensor(norefr, device=dev)] = 0
+        self.reload = reload.expand(n_trials, n)
+        self.zeros = torch.zeros_like(self.v)
+        self.compiled: StepFn | None = None
+        if use_compile:
+            self.compiled = self._try_compile(warn_on_fallback)
+        # Spike masks: uint8 for the compiled kernel (bool stores vectorise poorly), bool eager.
+        self.spike_dtype = torch.uint8 if self.compiled is not None else torch.bool
+        if self.compiled is not None:
+            self.alt = (
+                torch.empty_like(self.v),
+                torch.empty_like(self.g),
+                torch.empty_like(self.rfc),
+            )
+        else:
+            self.not_ref = torch.zeros((n_trials, n), dtype=torch.bool, device=dev)
+            self.t1 = torch.empty_like(self.v)
+            self.t2 = torch.empty_like(self.v)
+
+    @property
+    def kernel(self) -> str:
+        return "torch.compile" if self.compiled is not None else "eager"
+
+    def _try_compile(self, warn_on_fallback: bool) -> StepFn | None:
+        try:
+            fn = _COMPILED.get(self.k)
+            if fn is None:
+                fn = torch.compile(_fused_step(self.k), dynamic=True)
+            # Compile now, on scratch buffers, so a failure cannot leave the state half-updated.
+            fn(
+                self.v,
+                self.g,
+                self.rfc,
+                self.zeros,
+                self.reload,
+                torch.empty_like(self.v),
+                torch.empty_like(self.g),
+                torch.empty_like(self.rfc),
+                torch.zeros(self.v.shape, dtype=torch.uint8, device=self.v.device),
+            )
+        except Exception as exc:  # any backend/compiler failure: fall back to eager
+            if warn_on_fallback:
+                warnings.warn(
+                    f"torch.compile unavailable ({type(exc).__name__}: {exc}); "
+                    "using the eager tick kernel (same results, slower)",
+                    RuntimeWarning,
+                    stacklevel=4,
+                )
+            return None
+        _COMPILED[self.k] = fn
+        return fn
+
+    def tick(
+        self,
+        spike: torch.Tensor,
+        syn: torch.Tensor | None,
+        kick: torch.Tensor | None,
+        kick_targets: torch.Tensor,
+    ) -> None:
+        """Advance one tick in place; ``spike`` receives the spike mask.
+
+        Kicks are added after the update to targets that are neither refractory nor
+        spiking, which equals adding them before the reset as the plain loop does
+        (a reset overwrites ``v`` anyway).
+        """
+        if self.compiled is not None:
+            v2, g2, r2 = self.alt
+            syn_in = self.zeros if syn is None else syn
+            self.compiled(self.v, self.g, self.rfc, syn_in, self.reload, v2, g2, r2, spike)
+            self.alt = (self.v, self.g, self.rfc)
+            self.v, self.g, self.rfc = v2, g2, r2
+        else:
+            self._eager(spike, syn)
+        if kick is not None:
+            ok = (self.rfc.index_select(1, kick_targets) == 0) & (
+                spike.index_select(1, kick_targets) == 0
+            )
+            vs = self.v.index_select(1, kick_targets)
+            self.v.index_copy_(1, kick_targets, vs + torch.where(ok, kick, 0.0))
+
+    def _eager(self, spike: torch.Tensor, syn: torch.Tensor | None) -> None:
+        k, v, g, rfc, nr, t1, t2 = self.k, self.v, self.g, self.rfc, self.not_ref, self.t1, self.t2
+        rfc.sub_(1).clamp_(min=0)
+        torch.eq(rfc, 0, out=nr)
+        torch.mul(g, k.c_gv, out=t1)
+        t1.add_(k.v0_term)
+        torch.mul(v, k.a_v, out=t2)
+        t1.add_(t2)
+        torch.where(nr, t1, v, out=v)
+        torch.mul(g, k.b_g, out=t2)
+        if syn is not None:
+            t2.add_(syn)
+        torch.where(nr, t2, g, out=g)
+        torch.gt(v, k.v_th, out=spike)
+        spike.logical_and_(nr)
+        v.masked_fill_(spike, k.v_reset)
+        g.masked_fill_(spike, 0.0)
+        torch.where(spike, self.reload, rfc, out=rfc)
 
 
 def simulate(
@@ -391,6 +502,7 @@ def simulate(
     no_refractory: Sequence[int] | None = None,
     record: bool = True,
     max_events: int = 50_000_000,
+    compile: bool | None = None,
 ) -> SimResult:
     """Run ``n_trials`` batched trials of ``n_steps`` ticks.
 
@@ -404,6 +516,9 @@ def simulate(
         no_refractory: neuron ids with refractory period 0; defaults to the stimulated and
             explicitly kicked neurons (the reference code's rule for Poisson targets).
         record: keep spike events (trial, step, neuron index) up to ``max_events``.
+        compile: fuse the per-tick update with ``torch.compile`` (same results; falls back to
+            eager with a warning if compilation fails). ``None`` compiles only large runs
+            (at least 1e9 neuron-ticks), where it pays for its few seconds of compile time.
     """
     p = net.params
     dev = _resolve_device(device)
@@ -450,8 +565,13 @@ def simulate(
         msg = "delay_steps must be at least 1"
         raise ValueError(msg)
     chunk = _chunk_length(d, n_trials * n * data.element_size())
-    st = _State.initial(n_trials, n, p, tdt, dev, norefr)
-    spk = torch.zeros((chunk, n_trials, n), dtype=torch.bool, device=dev)
+    use_compile = (
+        compile if compile is not None else n_trials * n * n_steps >= _AUTO_COMPILE_MIN_WORK
+    )
+    st = _Stepper(n_trials, n, p, tdt, dev, norefr, use_compile, warn_on_fallback=bool(compile))
+    # Spike masks of one chunk in a flat buffer padded to whole 8-byte words (see _Spikes.of).
+    spk_buf = torch.zeros(-(-chunk * n_trials * n // 8) * 8, dtype=st.spike_dtype, device=dev)
+    spk = spk_buf[: chunk * n_trials * n].view(chunk, n_trials, n)
     contrib = torch.zeros(chunk * n_trials * n, dtype=tdt, device=dev)
     contrib_ticks = contrib.view(chunk, n_trials, n)
     counts = np.zeros((n_trials, n), dtype=np.int64)
@@ -472,8 +592,7 @@ def simulate(
             )
         kv, has_kick = _chunk_kicks(kicks, c0, length, n_trials, dev, tdt)
         for ell in range(length):
-            _tick(
-                st,
+            st.tick(
                 spk[ell],
                 contrib_ticks[ell] if has_syn[ell] else None,
                 kv[ell] if has_kick[ell] else None,
@@ -481,7 +600,7 @@ def simulate(
             )
         if keys is not None:
             contrib.index_fill_(0, keys, 0.0)
-        spikes = _Spikes.of(spk[:length])
+        spikes = _Spikes.of(spk_buf, length, n_trials, n)
         np.add.at(counts, (spikes.trial_h, spikes.neuron_h), 1)
         if record and n_recorded < max_events and len(spikes.tick_h):
             per_tick = np.bincount(spikes.tick_h, minlength=length)
@@ -519,5 +638,6 @@ def simulate(
         "no_refractory_count": len(norefr),
         "network": net.provenance,
         "events_truncated": record and n_recorded >= max_events,
+        "tick_kernel": st.kernel,
     }
     return SimResult(net.neuron_ids, counts, n_steps, p.dt_ms, events, prov)
