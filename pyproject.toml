@@ -1,6 +1,6 @@
 [project]
 name = "flyconn"
-version = "0.1.0"
+version = "0.2.0"
 description = "Research-grade toolkit over public Drosophila connectomes: harmonized data, signed graphs, uncertainty, validated LIF simulation, declarative experiments."
 readme = "README.md"
 license = "Apache-2.0"

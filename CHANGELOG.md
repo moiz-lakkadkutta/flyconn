@@ -4,6 +4,8 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
 ### M8 BANC
 - `flyconn data pull banc@888 --level weights`: BANC v888 converter (meta feather + edgelist v2, both SHA-256 pinned). Neuron universe proofread or roughly proofread excluding glia, trachea and non-neurons (155,858); 156,311 autapses in the released edge list are dropped and counted; per-neuron totals from the release's `post_count`/`pre_count`; BANC's automatic hemibrain matches (`auto:` prefix) flagged in `hemibrain_121_match_auto`; MaleCNS matches kept as `malecns_09_cell_type` (they refer to v0.9).
 - `compare_type(..., partner_vocabulary="fafb_or_manc")` and `partner_labels`: shared FlyWire-or-MANC partner names so MaleCNS and BANC comparisons include nerve-cord partners.
