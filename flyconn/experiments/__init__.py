@@ -2,7 +2,9 @@
 
 from flyconn.experiments.spec import (
     ExperimentSpec,
+    RateSweep,
     Selection,
+    SilenceEachSweep,
     load_spec,
     resolve_selection,
     spec_from_dict,
@@ -11,7 +13,9 @@ from flyconn.experiments.stats import benjamini_hochberg, cohens_d, compare_grou
 
 __all__ = [
     "ExperimentSpec",
+    "RateSweep",
     "Selection",
+    "SilenceEachSweep",
     "benjamini_hochberg",
     "cohens_d",
     "compare_groups",

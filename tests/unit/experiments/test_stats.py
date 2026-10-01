@@ -2,7 +2,12 @@
 
 import numpy as np
 
-from flyconn.experiments.stats import benjamini_hochberg, cohens_d, compare_groups
+from flyconn.experiments.stats import (
+    benjamini_hochberg,
+    bootstrap_mean_ci,
+    cohens_d,
+    compare_groups,
+)
 
 
 def test_cohens_d_and_sign():
@@ -39,3 +44,12 @@ def test_benjamini_hochberg_monotone_and_bounded():
     assert (q >= p).all() and (q <= 1).all()
     assert (np.diff(q[np.argsort(p)]) >= 0).all()
     np.testing.assert_allclose(q, [0.005, 0.025, 0.03333333, 0.375, 0.9], rtol=1e-6)
+
+
+def test_bootstrap_mean_ci_brackets_mean_and_is_degenerate_for_constants():
+    rng = np.random.default_rng(1)
+    x = rng.normal(10, 1, size=40)
+    lo, hi = bootstrap_mean_ci(x, seed=0)
+    assert lo < x.mean() < hi
+    assert hi - lo < 1.5
+    assert bootstrap_mean_ci(np.full(5, 3.0)) == (3.0, 3.0)

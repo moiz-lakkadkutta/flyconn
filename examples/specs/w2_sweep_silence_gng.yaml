@@ -1,0 +1,31 @@
+# W2 sweep - silencing screen over GNG cell types (MaleCNS v1.0; UNCALIBRATED model).
+# Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz, as in the W2 example.
+# Sweep: silence each GNG* cell type one at a time. Candidate types are ranked by their summed
+#   firing rate in the shared stimulated condition and the 10 most active are simulated
+#   (types that never fire cannot change the run when silenced). Each variant is compared with
+#   the stimulated condition; BH correction runs across all variant x readout rows.
+# Shared conditions (baseline, stimulated, controls) run once: 4 + 10 simulations in total.
+name: w2_sweep_silence_gng
+dataset: malecns@1.0
+network: {min_weight: 1, sign_policy: argmax}
+stimulate:
+  - select: {cell_type: "LB3*"}
+    rate_hz: 100
+sweep:
+  silence_each:
+    select: {cell_type: "GNG*"}
+    group_by: cell_type
+    max_items: 10
+readouts:
+  - name: MN9
+    select: {cell_type: "MN9"}
+  - name: descending
+    select: {super_class: descending}
+  - name: motor
+    select: {super_class: motor}
+duration_ms: 300
+trials: 10
+seed: 0
+device: cpu
+dtype: float32
+controls: {degree_preserving_rewire: 1, sign_shuffle: 1, unstimulated_baseline: true}

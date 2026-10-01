@@ -84,6 +84,36 @@ class ReportOptions:
 
 
 @dataclass(frozen=True)
+class SilenceEachSweep:
+    """Silence each candidate group one at a time (a silencing screen).
+
+    Candidates are the neurons matched by ``select``, grouped by ``group_by`` (a neuron
+    column such as ``cell_type``, or ``"neuron"`` for one neuron per variant). Groups are
+    ranked by their summed firing rate in the shared *stimulated* condition and the
+    ``max_items`` most active are simulated; groups that never fire cannot change the
+    simulation when silenced, so they are reported but not simulated.
+    """
+
+    select: Selection
+    group_by: str = "cell_type"
+    max_items: int = 50
+
+    kind: str = "silence_each"
+
+
+@dataclass(frozen=True)
+class RateSweep:
+    """Re-run the stimulated condition with every ``stimulate`` entry set to each rate."""
+
+    rates_hz: list[float]
+
+    kind: str = "rate_hz"
+
+
+Sweep = SilenceEachSweep | RateSweep
+
+
+@dataclass(frozen=True)
 class ExperimentSpec:
     name: str
     dataset: str
@@ -99,6 +129,7 @@ class ExperimentSpec:
     dt_ms: float = 0.1
     controls: Controls = field(default_factory=Controls)
     report: ReportOptions = field(default_factory=ReportOptions)
+    sweep: Sweep | None = None
     source_path: str | None = None
     source_sha256: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
@@ -130,6 +161,49 @@ def _stims(items: Any) -> list[Stimulation]:
     return out
 
 
+_SWEEP_KINDS = ("silence_each", "rate_hz")
+
+
+def _sweep(d: Any) -> Sweep | None:
+    if d is None:
+        return None
+    if not isinstance(d, dict) or not d:
+        msg = f"sweep must be a mapping with exactly one of {_SWEEP_KINDS}, got {d!r}"
+        raise ValueError(msg)
+    dd = cast("dict[str, Any]", d)
+    unknown = [k for k in dd if k not in _SWEEP_KINDS]
+    if unknown:
+        msg = f"unknown sweep kind(s) {unknown}; expected one of {_SWEEP_KINDS}"
+        raise ValueError(msg)
+    if len(dd) != 1:
+        msg = f"sweep needs exactly one of {_SWEEP_KINDS}, got {sorted(dd)}"
+        raise ValueError(msg)
+    if "rate_hz" in dd:
+        rates_raw = dd["rate_hz"]
+        if not isinstance(rates_raw, list) or not rates_raw:
+            msg = "sweep rate_hz must be a non-empty list of rates"
+            raise ValueError(msg)
+        rates = [float(r) for r in cast("list[Any]", rates_raw)]
+        if any(r <= 0 for r in rates) or len(set(rates)) != len(rates):
+            msg = f"sweep rate_hz values must be positive and distinct, got {rates}"
+            raise ValueError(msg)
+        return RateSweep(rates_hz=rates)
+    se = dd["silence_each"]
+    if not isinstance(se, dict) or "select" not in se:
+        msg = "sweep silence_each needs a 'select' mapping"
+        raise ValueError(msg)
+    sed = cast("dict[str, Any]", se)
+    max_items = int(sed.get("max_items", 50))
+    if max_items < 1:
+        msg = "sweep silence_each max_items must be >= 1"
+        raise ValueError(msg)
+    return SilenceEachSweep(
+        select=_selection(sed["select"]),
+        group_by=str(sed.get("group_by", "cell_type")),
+        max_items=max_items,
+    )
+
+
 def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     """Build and validate an :class:`ExperimentSpec` from a parsed YAML mapping."""
     for key in ("name", "dataset"):
@@ -147,6 +221,14 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
             silence=[Silencing(_selection(s["select"])) for s in perturb_d.get("silence") or []],
             stimulate=_stims(perturb_d.get("stimulate")),
         )
+    sweep = _sweep(d.get("sweep"))
+    stimulate = _stims(d.get("stimulate"))
+    if sweep is not None and perturb is not None:
+        msg = "a sweep spec cannot also have 'perturb'; the sweep defines the perturbations"
+        raise ValueError(msg)
+    if isinstance(sweep, RateSweep) and not stimulate:
+        msg = "a rate_hz sweep needs at least one 'stimulate' entry whose rate it varies"
+        raise ValueError(msg)
     net = d.get("network") or {}
     ctl = d.get("controls") or {}
     rep = d.get("report") or {}
@@ -157,7 +239,7 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     return ExperimentSpec(
         name=str(d["name"]),
         dataset=str(d["dataset"]),
-        stimulate=_stims(d.get("stimulate")),
+        stimulate=stimulate,
         readouts=readouts,
         perturb=perturb,
         network=NetworkOptions(
@@ -174,6 +256,7 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
             bool(ctl.get("unstimulated_baseline", True)),
         ),
         report=ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05))),
+        sweep=sweep,
         raw=d,
     )
 
