@@ -4,6 +4,9 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M9 hemibrain + MANC
+- `flyconn data pull hemibrain@1.2.1` (21,739 traced neurons, 3,550,403 edges; side and hemilineage from Schlegel 2024 Supplemental file 5; transmitter file labelled UNVERIFIED provenance) and `manc@1.2.1` (23,650 neurons from the sjcabs compiled meta, 5,303,770 neuron edges; `manc_121_cell_type` set so the FlyWire-or-MANC vocabulary works). Checksums pinned; discrepancies vs neuPrint documented in GOLDEN_RESULTS and caveats.
+
 ## [0.2.0] - 2026-10-01
 
 ### M8 BANC

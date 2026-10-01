@@ -2,6 +2,12 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-01 — v0.2.0 on PyPI; M9 hemibrain + MANC merged; sim speed and sweeps in progress
+
+- v0.2.0 (BANC) published to PyPI and GitHub by the tag workflow.
+- M9 (parallel agent, branch m9-hemibrain-manc, merged): hemibrain v1.2.1 and MANC v1.2.1 converters; golden `tests/golden/test_hemibrain_manc.py`. Notable: hemibrain's own left/right similarity for PFL3 is 0.31 (volume-edge truncation), so compare_type verdicts on truncated hemibrain types are unreliable; all 1,927 hemibrain Kenyon cells are predicted dopaminergic (known classifier error, Eckstein 2024).
+- In progress in parallel worktrees: simulator speed-up (flyconn/sim/engine.py) and experiment sweeps (flyconn/experiments).
+
 ## 2026-09-29 — Published; M8 BANC done
 
 - GitHub: https://github.com/moiz-lakkadkutta/flyconn (public; CI green on Linux/macOS x Python 3.11/3.12). Docs: https://moiz-lakkadkutta.github.io/flyconn/. Release v0.1.0 created with wheel and sdist attached; `release.yml` publishes to PyPI by trusted publishing. **PyPI upload pending**: the owner must register the pending publisher on pypi.org (project `flyconn`, owner `moiz-lakkadkutta`, repo `flyconn`, workflow `release.yml`, environment `pypi`), then re-run the failed `publish-pypi` job of the v0.1.0 release run.
