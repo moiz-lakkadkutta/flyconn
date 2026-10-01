@@ -330,6 +330,32 @@ W3 male (MaleCNS v1.0) vs female, output partners, min_weight 5, 500 permutation
 | EPG | 0.189, beyond range | 0.088, within range |
 | DNp01 | p 0.52; 58 % of male output unmatched | p 1.0; 0 % unmatched |
 
+### 6e. Hemibrain v1.2.1 and MANC v1.2.1 through the flyconn converters (2026-10-01)
+
+`tests/golden/test_hemibrain_manc.py`; conversion takes about 2 s (hemibrain) and 1 s (MANC).
+
+| Quantity | flyconn | Reference |
+|---|---|---|
+| Hemibrain neurons (v1.2 export `traced-neurons.csv`) | 21,739 | export README: all non-cropped Traced neurons; neuPrint v1.2.1 Traced and not cropped: 21,739 |
+| Hemibrain edges / summed weight / edges with weight >= 5 | 3,550,403 / 14,329,229 / 662,578 | same file (research note section 2.3) |
+| Hemibrain traced bodies with Supp. 5 side/hemilineage / with NT feather row | 21,328 / 21,709 | Supp. 5 lists 25,397 bodies (incl. cropped) |
+| Hemibrain NT argmax among traced (ACh / Glu / DA / GABA / 5-HT / OA / neither or none) | 9,577 / 5,342 / 3,183 / 3,009 / 282 / 191 / 155 | NT feather, provenance UNVERIFIED |
+| MANC traced bodies (Codex) / neurons kept (sjcabs meta) / glia excluded | 23,665 / 23,650 / 15 | neuPrint manc:v1.2.1 Traced 23,665 |
+| MANC edge-list rows / summed count / neuron-neuron edges kept | 5,305,354 / 30,943,884 / 5,303,770 | neuPrint Traced->Traced 5,305,638 / 30,934,610 |
+| MANC NT (ACh / Glu / GABA / unknown or unclear) | 11,518 / 6,274 / 5,733 / 125 | neuPrint Traced predictedNt ACh 11,518, Glu 6,283, GABA 5,738 (incl. glia) |
+| MANC super_class: descending / ascending / motor / sensory / sensory_ascending | 1,322 / 1,862 / 721 / 5,925 / 535 | Cheong 2025 (v1.2.3): DN 1,328, AN 1,862, MN 733, SN 5,927, SA 535 |
+
+`compare_type` with MaleCNS v1.0, output partners, min_weight 5, 200 permutations, seed 0:
+
+| Pair | Type | n (a / b) | Cross / within a / within b | Statistic, p | Unmatched a / b |
+|---|---|---|---|---|---|
+| MaleCNS vs hemibrain | EPG | 46 / 46 | 0.976 / 1.000 / 0.970 | 0.009, p 0.005 (within between-brain range) | 0.001 / 0.0 |
+| MaleCNS vs hemibrain | PFL3 | 24 / 24 | 0.832 / 0.990 / 0.307 | -0.184, p 0.995 | 0.055 / 0.011 |
+| MaleCNS vs MANC | DNa02 | 2 / 2 | 0.915 / 0.970 / 0.972 | 0.056, p 0.54 | 0.202 / 0.0 |
+| MaleCNS vs MANC | DNp01 | 2 / 2 | 0.726 / 0.715 / 0.904 | 0.083, p 0.54 | 0.15 / 0.0 |
+
+The hemibrain PFL3 within-dataset similarity (0.307) shows the hemibrain left/right null is unreliable for types whose left-side arbors leave the volume (see caveats); EPG and DNa02 are pinned in the golden test, PFL3 and DNp01 were run once (scratch script) and are not tests.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |
@@ -343,6 +369,9 @@ W3 male (MaleCNS v1.0) vs female, output partners, min_weight 5, 500 permutation
 | Shiu JON count | 147 (paper) vs 146 IDs (notebook) | use the 146 IDs; note it |
 | JO-CE / JO-F → aBN1 synapses | 103 / 78 (Shiu24 Fig. 5g text) vs **77 / 69** computed from the repo notebook ID lists on the repo's own v630 parquet (all 146 JONs → aBN1: 148) | not reproduced; the computed values are pinned in `tests/golden/test_w1_paths.py`; the paper likely used a different JON list or export (UNVERIFIED) |
 | Shiu sugar/water overlap | 250 (paper) vs 280 (naive recount) | documented only |
+| Hemibrain traced neurons | 21,663 (v1.1 release blog, §1.4) vs 21,739 (v1.2 export `traced-neurons.csv`, = neuPrint v1.2.1 Traced and not cropped) | test 21,739 against the v1.2 file |
+| MANC edges | sjcabs `manc_121_simple_edgelist` 5,305,354 rows / 30,943,884 synapses vs neuPrint manc:v1.2.1 Traced->Traced 5,305,638 / 30,934,610 | test the pinned sjcabs file; the build's confidence threshold is undocumented |
+| MANC class counts | sjcabs v1.2.1 vocabulary (DN 1,322, MN 721, SN 5,925, plus 111 visceral_circulatory) vs Cheong 2025 v1.2.3 (DN 1,328, MN 733, SN 5,927) | not a test; different annotation release and vocabulary |
 | Codex "connections" header counts (e.g. 3,732,460 for v783) | unstated definition | never used as a test |
 
 ## 8. Not found (so not tests)

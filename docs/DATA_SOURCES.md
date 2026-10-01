@@ -107,6 +107,7 @@ Columns: `Presynaptic_ID, Postsynaptic_ID, Presynaptic_Index, Postsynaptic_Index
 - v1.2 export vs v1.2.1 DB: 342 edges / 4,077 synapses differ ("minor fixes").
 - Side/hemilineage are not in neuPrint; use Schlegel Supp. 5 or sjcabs `hemibrain_121_meta`.
 - Licence CC-BY (Janelia page; version UNVERIFIED). Cite Scheffer et al. 2020, eLife 9:e57443 (10.7554/eLife.57443).
+- Converter `flyconn.data.convert.hemibrain` (`flyconn data pull hemibrain@1.2.1`): universe and edges from the export tarball; `Supplemental_file5_hemibrain_meta.csv` pinned at `https://raw.githubusercontent.com/flyconnectome/flywire_annotations/v3.1.0/supplemental_files/Supplemental_file5_hemibrain_meta.csv` (2,634,367 B, SHA-256 `c9ca8421a5b6a5382348e06a7f62ef452bc78562983deff9ff479e30be2bd2a2`; same bytes on `main`); sjcabs `hemibrain_121_meta.feather` (2,023,858 B, SHA-256 `a2775c31450d3a060875bd5690adcb9800d3c9a580a9a919e10829984c79a1d1`, MD5 matches the bucket listing). The tarball is registered at level `meta` because it carries the neuron list. Results in GOLDEN_RESULTS 6e.
 
 ## 5. MANC v1.0 / v1.2.1
 
@@ -114,6 +115,7 @@ Columns: `Presynaptic_ID, Postsynaptic_ID, Presynaptic_Index, Postsynaptic_Index
 - Flat export only for v1.0: `gs://flyem-manc-exports/v1.0/` (`manc-v1.0-neuron-properties.feather` 17,188,218 B, SHA-256 `0c4476528906bb0a20e05e1f01e83fc2e5a582761536171ede5463669ca0b891`, 102,369 bodies × 56 cols incl. `ntGabaProb, ntAcetylcholineProb, ntGlutamateProb, ntUnknownProb, predictedNt, predictedNtProb`; `traced-neurons.csv` 23,188; `traced-connections.csv`; neuPrint CSV/Feather dumps). v1.2 synapse partners: `gs://manc-seg-v1p2/manc-v1.2-synapse-partners-minconf-0.0.feather` (1.94 GB). Codex `gs://flywire-data/codex/data/manc/1.2.1/neurons.csv.gz` (23,665 rows, SHA-256 `ddeea1ff2859941d60a8f24933eb963d1f65d28d2399768c589a74bb90ac4a80`).
 - NT classifier is **3-class** (ACh/GABA/Glu) + unknown/unclear; no monoamines. Sides `RHS/LHS`; hemilineages Truman `0A…27X`.
 - Licence CC-BY. Cite Takemura et al. 2024 eLife 13:RP97769; Marin et al. 2024 eLife 13:RP97766; Cheong et al. 2025 eLife 13:RP96084.
+- Converter `flyconn.data.convert.manc` (`flyconn data pull manc@1.2.1`) reads the sjcabs compiled files: `compiled_data/manc_121/manc_121_meta.feather` (1,446,722 B, SHA-256 `067c88e687ade67bd1e69b88765b4b21596280618cefde0fa43117d4af4a9439`; 23,650 rows = 23,665 Traced minus 15 glia) and `manc_121_simple_edgelist.feather` (87,386,906 B, SHA-256 `c3f9ca6dc9d100e72299b41136d373ffcd60b328624cbfd6ac145f071e0b28ac`, MD5 `7ko0TfSZiZ1EGPF2O8OaMA==` as listed; 5,305,354 rows `pre, post, count, norm, total_input`, string ids, Σ count 30,943,884; `total_input` = Σ count per post over traced partners), plus Codex `neurons.csv.gz` for NT confidence and `vfbId`. sjcabs data are CC BY by the dataset creators; cite the MANC papers. Results in GOLDEN_RESULTS 6e.
 
 ## 6. BANC v888
 
