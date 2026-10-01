@@ -310,7 +310,7 @@ Shiu parquet as a separate, sim-only edge source.
 | 200 Hz | 94.5 Hz | – | 444 | 93.2 Hz; 455 |
 | 10 Hz | 0.0 Hz | – | 39 | 0 Hz; 45 |
 
-Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-neuron random nets): identical event sets. Rung 3 throughput (`benchmarks/sim_throughput.json`): CPU 2.2 s per biological second at 30 batched trials (15.0 s single trial), MPS 2.7 s; the per-tick Python loop dominates, so MPS gives no gain yet.
+Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-neuron random nets): identical event sets. Rung 3 throughput (`benchmarks/sim_throughput.json`): CPU 2.2 s per biological second at 30 batched trials (15.0 s single trial), MPS 2.7 s; the per-tick Python loop dominates, so MPS gives no gain yet. After the chunked engine with the `torch.compile` tick kernel (2026-10-01), the three golden 30 x 1 s runs above give the same numbers (MN9 66.5 ± 4.1 / 94.5 / 0.0 Hz; 416 / 444 / 39 active neurons; 290,693 spikes at 100 Hz) in 13 / 11 / 11 s instead of 57 / 56 / 47 s. Current throughput rows (eager and compiled, CPU and MPS) are in `benchmarks/sim_throughput.json`; the machine was shared with other jobs, so treat them as indicative.
 
 MaleCNS calibration protocol (78 LB3 GRNs -> 2 MN9, 5 trials x 0.5 s, CPU float32): MN9 rate at 100 / 200 Hz drive for w_syn 0.1, 0.2, 0.275, 0.4, 0.6 mV = 0.0/0.6, 31.4/55.2, 42.6/75.6, 65.6/103.4, 60.4/121.6 Hz. No value reaches 80 % of maximum (best 0.63 at 0.4 mV): unresolved.
 

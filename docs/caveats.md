@@ -28,6 +28,7 @@ Grows with each milestone. Seeds:
 - Baseline firing is 0 Hz; there is no intrinsic activity, noise, neuromodulation, gap junctions, or synaptic plasticity. Outputs are model predictions of wiring-constrained excitability, not predictions of behaviour.
 - Signs come from predicted transmitters under a single-sign-per-neuron rule; histamine is inhibitory by default in flyconn but Shiu's FlyWire predictions had no histamine class.
 - Exactness: bit-identical spikes are guaranteed only for the CPU float64 path. float32 on CPU/MPS/CUDA matched the reference in every test so far, but summation order can move borderline spikes by a tick; compare distributions, not single runs.
+- Tick kernel: large runs (and any run with `compile=True`) fuse the per-tick update with `torch.compile`; provenance records `tick_kernel` (`torch.compile` or `eager`). On CPU, inductor builds without FP contraction or unsafe math, and the compiled kernel reproduces the eager kernel and the v0.2.0 per-tick loop spike for spike (unit tests, plus the full v630 network in float32 and float64). MPS matched on the same full-network check but is not guaranteed; on CUDA, Triton may fuse multiply-adds, so compiled float32 can differ from eager at rounding level (the same class of difference as summation order). If compilation fails, the engine falls back to eager with a warning; `compile=False` forces eager.
 
 ## Experiment and report caveats (M5)
 

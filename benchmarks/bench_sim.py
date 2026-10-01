@@ -1,12 +1,14 @@
 """Validation rung 3: throughput of the LIF engine on the full Shiu v630 network per device.
 
 Run: FLYCONN_CACHE=... uv run python benchmarks/bench_sim.py
-Writes benchmarks/sim_throughput.json (device, dtype, trials, seconds per biological second).
+Writes benchmarks/sim_throughput.json (device, dtype, tick kernel eager/torch.compile, trials,
+seconds per biological second; compile time is measured once per device and reported apart).
 """
 
 from __future__ import annotations
 
 import json
+import os
 import platform
 import time
 from pathlib import Path
@@ -37,38 +39,49 @@ def main() -> None:
         + (["cuda"] if torch.cuda.is_available() else [])
     )
     rows = []
+    compile_seconds: dict[str, float] = {}
     for dev in devices:
+        # One-off torch.compile cost (kernel build or on-disk cache hit), kept out of the rows.
+        t0 = time.time()
+        warm = simulate(net, stimulate=stim, n_steps=20, device=dev, record=False, compile=True)
+        compile_seconds[dev] = round(time.time() - t0, 2)
+        print(dev, "compile/warm-up", compile_seconds[dev], warm.provenance["tick_kernel"])
         for n_trials in (1, 8, 30):
-            n_steps = 2000
-            t0 = time.time()
-            simulate(
-                net,
-                stimulate=stim,
-                n_steps=n_steps,
-                n_trials=n_trials,
-                seed=0,
-                dtype="float32",
-                device=dev,
-                record=False,
-            )
-            el = time.time() - t0
-            bio = n_steps * 1e-4 * n_trials
-            rows.append(
-                {
-                    "device": dev,
-                    "dtype": "float32",
-                    "n_trials": n_trials,
-                    "n_steps": n_steps,
-                    "seconds": round(el, 2),
-                    "seconds_per_bio_second": round(el / bio, 2),
-                }
-            )
-            print(rows[-1])
+            for use_compile in (False, True):
+                n_steps = 2000
+                t0 = time.time()
+                res = simulate(
+                    net,
+                    stimulate=stim,
+                    n_steps=n_steps,
+                    n_trials=n_trials,
+                    seed=0,
+                    dtype="float32",
+                    device=dev,
+                    record=False,
+                    compile=use_compile,
+                )
+                el = time.time() - t0
+                bio = n_steps * 1e-4 * n_trials
+                rows.append(
+                    {
+                        "device": dev,
+                        "dtype": "float32",
+                        "kernel": res.provenance["tick_kernel"],
+                        "n_trials": n_trials,
+                        "n_steps": n_steps,
+                        "seconds": round(el, 2),
+                        "seconds_per_bio_second": round(el / bio, 2),
+                    }
+                )
+                print(rows[-1])
     out = {
         "machine": platform.platform(),
         "cpu": platform.processor(),
         "torch": torch.__version__,
+        "load_average_1min": round(os.getloadavg()[0], 1),
         "network": {"neurons": net.n, "edges": int(net.weights_mv.nnz)},
+        "compile_seconds": compile_seconds,
         "rows": rows,
     }
     Path(__file__).with_name("sim_throughput.json").write_text(json.dumps(out, indent=1))
