@@ -364,7 +364,7 @@ def _fused_step(k: _Consts) -> StepFn:
 
 _COMPILED: dict[_Consts, StepFn] = {}
 # Below this many neuron-ticks (trials x neurons x steps) compilation costs more than it saves.
-_AUTO_COMPILE_MIN_WORK = 1_000_000_000
+_AUTO_COMPILE_MIN_WORK = 500_000_000
 
 
 class _Stepper:
@@ -384,8 +384,14 @@ class _Stepper:
         self.k = _Consts.of(p)
         self.v = torch.full((n_trials, n), p.v_rest_mv, dtype=tdt, device=dev)
         self.g = torch.zeros_like(self.v)
-        self.rfc = torch.zeros((n_trials, n), dtype=torch.int32, device=dev)
-        reload = torch.full((n,), p.refractory_steps, dtype=torch.int32, device=dev)
+        # Narrowest counter type that holds the refractory period (less memory traffic).
+        rdt = next(
+            t
+            for t in (torch.int8, torch.int16, torch.int32)
+            if p.refractory_steps <= torch.iinfo(t).max
+        )
+        self.rfc = torch.zeros((n_trials, n), dtype=rdt, device=dev)
+        reload = torch.full((n,), p.refractory_steps, dtype=rdt, device=dev)
         if len(norefr):
             reload[torch.as_tensor(norefr, device=dev)] = 0
         self.reload = reload.expand(n_trials, n)
@@ -518,7 +524,9 @@ def simulate(
         record: keep spike events (trial, step, neuron index) up to ``max_events``.
         compile: fuse the per-tick update with ``torch.compile`` (same results; falls back to
             eager with a warning if compilation fails). ``None`` compiles only large runs
-            (at least 1e9 neuron-ticks), where it pays for its few seconds of compile time.
+            (at least 5e8 trial x neuron x step updates, e.g. 4 whole-brain trials of
+            0.1 s), where it pays for its one-off compile time (seconds; inductor caches
+            compiled kernels on disk).
     """
     p = net.params
     dev = _resolve_device(device)

@@ -169,3 +169,16 @@ def test_compile_failure_falls_back_to_eager(monkeypatch: pytest.MonkeyPatch):
         ours = simulate(NET, compile=True, **kw)
     assert ours.provenance["tick_kernel"] == "eager"
     _assert_same(ours, simulate_reference(NET, **kw))
+
+
+def test_long_refractory_period_beyond_int8_matches_reference():
+    from dataclasses import replace
+
+    long_ref = LIFNetwork(NET.neuron_ids, NET.weights_mv, replace(P, t_refractory_ms=30.0))
+    assert long_ref.params.refractory_steps > 127
+    kw: dict[str, Any] = dict(
+        stimulate=STIM, n_steps=900, n_trials=2, seed=6, device="cpu", no_refractory=[]
+    )
+    ours, ref = simulate(long_ref, **kw), simulate_reference(long_ref, **kw)
+    _assert_same(ours, ref)
+    assert ref.counts.sum() > 100
