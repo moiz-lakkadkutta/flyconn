@@ -4,6 +4,9 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M9 experiment sweeps
+- `sweep:` section in experiment YAML: `silence_each` (rank candidate groups by activity in the shared stimulated run, silence the N most active one at a time) and `rate_hz` (readout vs stimulation rate). Shared conditions and controls run once; one `sweep.parquet` with effects, CIs, BH q across the whole sweep; one HTML report with ranked table and bar chart or rate curves. `flyconn run` dispatches sweeps automatically. Example `examples/specs/w2_sweep_silence_gng.yaml`.
+
 ### M9 hemibrain + MANC
 - `flyconn data pull hemibrain@1.2.1` (21,739 traced neurons, 3,550,403 edges; side and hemilineage from Schlegel 2024 Supplemental file 5; transmitter file labelled UNVERIFIED provenance) and `manc@1.2.1` (23,650 neurons from the sjcabs compiled meta, 5,303,770 neuron edges; `manc_121_cell_type` set so the FlyWire-or-MANC vocabulary works). Checksums pinned; discrepancies vs neuPrint documented in GOLDEN_RESULTS and caveats.
 

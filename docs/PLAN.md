@@ -12,10 +12,11 @@ Status: Phase 0 output, 2026-09-26; approved 2026-09-26 ("go with recommendation
 | M5 experiments + report | done | W2 from one YAML with controls and HTML report |
 | M6 compare | done | W3 with graded verdicts (6,836 matched types) |
 | M7 access | done (exploratory) | W5 on the Meissner table and NeuronBridge candidates |
+| M9 sweeps | done | silencing screen over 10 GNG types on MaleCNS in 286 s, ranked report |
 | M9 hemibrain + MANC | done | 21,739 / 23,650 neurons; counts match exports; compare_type runs vs MaleCNS |
 | M8 BANC | done | 155,858 neurons, DN/AN counts match the paper; W3 MaleCNS vs BANC with nerve-cord partners |
 
-**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; sim throughput on GPU/compiled kernels and spike-time recording at scale; multi-experiment sweeps and PDF reports; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters; PyPI release. The MaleCNS simulator remains **uncalibrated** by protocol outcome.
+**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; sim throughput on GPU/compiled kernels and spike-time recording at scale; PDF reports and sweeps over seeds or multiple YAML files; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters; PyPI release. The MaleCNS simulator remains **uncalibrated** by protocol outcome.
 Inputs: `LANDSCAPE.md`, `DATA_SOURCES.md`, `GOLDEN_RESULTS.md`, ADRs 0001–0008.
 
 ## 1. Corrections to the brief (things the research showed to be wrong, different, or already done)
