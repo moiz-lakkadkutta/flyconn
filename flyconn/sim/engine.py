@@ -273,37 +273,41 @@ class _Spikes:
 
 def _deliver(
     src: _Spikes,
-    contrib: torch.Tensor,
+    contrib: list[torch.Tensor],
     indptr: torch.Tensor,
     indices: torch.Tensor,
     data: torch.Tensor,
     out_deg: torch.Tensor,
     out_deg_np: np.ndarray,
     n: int,
-    n_trials: int,
-    chunk: int,
-) -> tuple[torch.Tensor | None, np.ndarray]:
-    """Add the signed weights of ``src`` spikes to the dense (chunk, trial, neuron) buffer.
+) -> list[tuple[int, torch.Tensor]]:
+    """Add the signed weights of ``src`` spikes to the per-tick (trial x neuron) buffers.
 
     Per target, weights are summed in presynaptic order from zero, exactly as one
-    index_add per tick would; returns the touched flat keys and which ticks got input.
+    index_add per tick would; returns the touched (tick, flat keys) for cleanup.
     """
     deg_h = out_deg_np[src.neuron_h]
-    has = np.bincount(src.tick_h[deg_h > 0], minlength=chunk)[:chunk] > 0
     total = int(deg_h.sum())
     if total == 0:
-        return None, has
-    tick, trial, pre = src.dev[:, 0], src.dev[:, 1], src.dev[:, 2]
+        return []
+    trial, pre = src.dev[:, 1], src.dev[:, 2]
     deg = out_deg[pre]
     cum = torch.cumsum(deg, 0) - deg
-    within = torch.arange(total, device=contrib.device) - torch.repeat_interleave(
+    within = torch.arange(total, device=data.device) - torch.repeat_interleave(
         cum, deg, output_size=total
     )
     e = torch.repeat_interleave(indptr[pre], deg, output_size=total) + within
-    row = torch.repeat_interleave(tick * n_trials + trial, deg, output_size=total)
-    keys = row * n + indices[e]
-    contrib.index_add_(0, keys, data[e])
-    return keys, has
+    keys = torch.repeat_interleave(trial, deg, output_size=total) * n + indices[e]
+    vals = data[e]
+    # Entries are grouped by tick (spikes come in tick order); split them per tick.
+    per_tick = np.bincount(src.tick_h, weights=deg_h, minlength=len(contrib)).astype(np.int64)
+    bounds = np.concatenate([[0], np.cumsum(per_tick)])
+    touched: list[tuple[int, torch.Tensor]] = []
+    for ell in np.flatnonzero(per_tick):
+        lo, hi = int(bounds[ell]), int(bounds[ell + 1])
+        contrib[ell].index_add_(0, keys[lo:hi], vals[lo:hi])
+        touched.append((int(ell), keys[lo:hi]))
+    return touched
 
 
 @dataclass(frozen=True)
@@ -382,20 +386,26 @@ class _Stepper:
         warn_on_fallback: bool,
     ) -> None:
         self.k = _Consts.of(p)
-        self.v = torch.full((n_trials, n), p.v_rest_mv, dtype=tdt, device=dev)
-        self.g = torch.zeros_like(self.v)
+        self.shape = (n_trials, n)
+        # State lives in flat base tensors (the compiled kernel gets no views: views add
+        # dynamo guards on bases/offsets and recompiles); (trial, neuron) views on demand.
+        self.vf = torch.full((n_trials * n,), p.v_rest_mv, dtype=tdt, device=dev)
+        self.gf = torch.zeros_like(self.vf)
         # Narrowest counter type that holds the refractory period (less memory traffic).
         rdt = next(
             t
             for t in (torch.int8, torch.int16, torch.int32)
             if p.refractory_steps <= torch.iinfo(t).max
         )
-        self.rfc = torch.zeros((n_trials, n), dtype=rdt, device=dev)
+        self.rf = torch.zeros((n_trials * n,), dtype=rdt, device=dev)
         reload = torch.full((n,), p.refractory_steps, dtype=rdt, device=dev)
         if len(norefr):
             reload[torch.as_tensor(norefr, device=dev)] = 0
         self.reload = reload.expand(n_trials, n)
-        self.zeros = torch.zeros_like(self.v)
+        # Flat, contiguous kernel inputs only: with broadcast (B, n) inputs inductor's
+        # dynamic-shape kernel was ~3x slower when first built for B > 1.
+        self.reload_flat = reload.repeat(n_trials)
+        self.zeros = torch.zeros_like(self.vf)
         self.compiled: StepFn | None = None
         if use_compile:
             self.compiled = self._try_compile(warn_on_fallback)
@@ -403,14 +413,27 @@ class _Stepper:
         self.spike_dtype = torch.uint8 if self.compiled is not None else torch.bool
         if self.compiled is not None:
             self.alt = (
-                torch.empty_like(self.v),
-                torch.empty_like(self.g),
-                torch.empty_like(self.rfc),
+                torch.empty_like(self.vf),
+                torch.empty_like(self.gf),
+                torch.empty_like(self.rf),
             )
+            self.spike_out = torch.zeros(n_trials * n, dtype=torch.uint8, device=dev)
         else:
-            self.not_ref = torch.zeros((n_trials, n), dtype=torch.bool, device=dev)
-            self.t1 = torch.empty_like(self.v)
-            self.t2 = torch.empty_like(self.v)
+            self.not_ref = torch.zeros(self.shape, dtype=torch.bool, device=dev)
+            self.t1 = torch.empty(self.shape, dtype=tdt, device=dev)
+            self.t2 = torch.empty(self.shape, dtype=tdt, device=dev)
+
+    @property
+    def v(self) -> torch.Tensor:
+        return self.vf.view(self.shape)
+
+    @property
+    def g(self) -> torch.Tensor:
+        return self.gf.view(self.shape)
+
+    @property
+    def rfc(self) -> torch.Tensor:
+        return self.rf.view(self.shape)
 
     @property
     def kernel(self) -> str:
@@ -423,15 +446,15 @@ class _Stepper:
                 fn = torch.compile(_fused_step(self.k), dynamic=True)
             # Compile now, on scratch buffers, so a failure cannot leave the state half-updated.
             fn(
-                self.v,
-                self.g,
-                self.rfc,
+                self.vf,
+                self.gf,
+                self.rf,
                 self.zeros,
-                self.reload,
-                torch.empty_like(self.v),
-                torch.empty_like(self.g),
-                torch.empty_like(self.rfc),
-                torch.zeros(self.v.shape, dtype=torch.uint8, device=self.v.device),
+                self.reload_flat,
+                torch.empty_like(self.vf),
+                torch.empty_like(self.gf),
+                torch.empty_like(self.rf),
+                torch.zeros(self.vf.shape, dtype=torch.uint8, device=self.vf.device),
             )
         except Exception as exc:  # any backend/compiler failure: fall back to eager
             if warn_on_fallback:
@@ -452,7 +475,7 @@ class _Stepper:
         kick: torch.Tensor | None,
         kick_targets: torch.Tensor,
     ) -> None:
-        """Advance one tick in place; ``spike`` receives the spike mask.
+        """Advance one tick in place; ``spike`` receives the spike mask, ``syn`` is flat.
 
         Kicks are added after the update to targets that are neither refractory nor
         spiking, which equals adding them before the reset as the plain loop does
@@ -461,9 +484,12 @@ class _Stepper:
         if self.compiled is not None:
             v2, g2, r2 = self.alt
             syn_in = self.zeros if syn is None else syn
-            self.compiled(self.v, self.g, self.rfc, syn_in, self.reload, v2, g2, r2, spike)
-            self.alt = (self.v, self.g, self.rfc)
-            self.v, self.g, self.rfc = v2, g2, r2
+            self.compiled(
+                self.vf, self.gf, self.rf, syn_in, self.reload_flat, v2, g2, r2, self.spike_out
+            )
+            self.alt = (self.vf, self.gf, self.rf)
+            self.vf, self.gf, self.rf = v2, g2, r2
+            spike.copy_(self.spike_out.view(self.shape))
         else:
             self._eager(spike, syn)
         if kick is not None:
@@ -484,7 +510,7 @@ class _Stepper:
         torch.where(nr, t1, v, out=v)
         torch.mul(g, k.b_g, out=t2)
         if syn is not None:
-            t2.add_(syn)
+            t2.add_(syn.view(self.shape))
         torch.where(nr, t2, g, out=g)
         torch.gt(v, k.v_th, out=spike)
         spike.logical_and_(nr)
@@ -580,8 +606,8 @@ def simulate(
     # Spike masks of one chunk in a flat buffer padded to whole 8-byte words (see _Spikes.of).
     spk_buf = torch.zeros(-(-chunk * n_trials * n // 8) * 8, dtype=st.spike_dtype, device=dev)
     spk = spk_buf[: chunk * n_trials * n].view(chunk, n_trials, n)
-    contrib = torch.zeros(chunk * n_trials * n, dtype=tdt, device=dev)
-    contrib_ticks = contrib.view(chunk, n_trials, n)
+    # Separate (not sliced) per-tick input buffers: views would add dynamo guards on offsets.
+    contrib = [torch.zeros(n_trials * n, dtype=tdt, device=dev) for _ in range(chunk)]
     counts = np.zeros((n_trials, n), dtype=np.int64)
     pending: dict[int, _Spikes] = {}
     recorded: list[np.ndarray] = []
@@ -592,22 +618,23 @@ def simulate(
         # Spikes of the chunk delay_steps ago arrive now (chunk divides delay_steps, so no
         # spike emitted inside this chunk can be delivered inside it).
         src = pending.pop(k - d // chunk, None)
-        keys = None
+        touched = (
+            _deliver(src, contrib, indptr, indices, data, out_deg, out_deg_np, n)
+            if src is not None
+            else []
+        )
         has_syn = np.zeros(chunk, dtype=bool)
-        if src is not None:
-            keys, has_syn = _deliver(
-                src, contrib, indptr, indices, data, out_deg, out_deg_np, n, n_trials, chunk
-            )
+        has_syn[[ell for ell, _ in touched]] = True
         kv, has_kick = _chunk_kicks(kicks, c0, length, n_trials, dev, tdt)
         for ell in range(length):
             st.tick(
                 spk[ell],
-                contrib_ticks[ell] if has_syn[ell] else None,
+                contrib[ell] if has_syn[ell] else None,
                 kv[ell] if has_kick[ell] else None,
                 kick_targets,
             )
-        if keys is not None:
-            contrib.index_fill_(0, keys, 0.0)
+        for ell, keys in touched:
+            contrib[ell].index_fill_(0, keys, 0.0)
         spikes = _Spikes.of(spk_buf, length, n_trials, n)
         np.add.at(counts, (spikes.trial_h, spikes.neuron_h), 1)
         if record and n_recorded < max_events and len(spikes.tick_h):
