@@ -55,6 +55,17 @@ def compare_groups(
     }
 
 
+def bootstrap_mean_ci(
+    x: np.ndarray, *, seed: int = 0, n_boot: int = 2000, level: float = 0.95
+) -> tuple[float, float]:
+    """Percentile bootstrap CI of the mean of ``x`` (degenerate for constant ``x``)."""
+    x = np.asarray(x, dtype=float)
+    rng = np.random.default_rng(seed)
+    means = rng.choice(x, size=(n_boot, len(x)), replace=True).mean(axis=1)
+    tail = (1 - level) / 2 * 100
+    return float(np.percentile(means, tail)), float(np.percentile(means, 100 - tail))
+
+
 def benjamini_hochberg(p: np.ndarray) -> np.ndarray:
     """BH-adjusted q-values (monotone, capped at 1)."""
     p = np.asarray(p, dtype=float)

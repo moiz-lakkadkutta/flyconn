@@ -26,14 +26,27 @@ def run_cmd(
     spec_path: str = typer.Argument(..., help="YAML experiment spec"),
     out: str = typer.Option(..., "--out", help="output directory (must not exist or be empty)"),
 ) -> None:
-    """Run a YAML experiment (controls on by default) and write Parquet results + HTML report."""
+    """Run a YAML experiment or sweep (controls on by default); write Parquet + HTML report."""
     from flyconn.experiments.runner import run_experiment
     from flyconn.experiments.spec import load_spec
+    from flyconn.experiments.sweep import run_sweep
 
     spec = load_spec(spec_path)
+    kind = f" ({spec.sweep.kind} sweep)" if spec.sweep is not None else ""
     typer.echo(
-        f"running {spec.name} on {spec.dataset}: {spec.trials} trials x {spec.duration_ms:g} ms"
+        f"running {spec.name}{kind} on {spec.dataset}: "
+        f"{spec.trials} trials x {spec.duration_ms:g} ms"
     )
+    if spec.sweep is not None:
+        sweep = run_sweep(spec, out_dir=out)
+        n_var = int(sweep.variants["simulated"].sum())
+        n_sig = int(sweep.sweep["significant"].sum()) if "significant" in sweep.sweep else 0
+        typer.echo(
+            f"{n_var} variants x {len(spec.readouts)} readouts, {n_sig} rows significant at "
+            f"q<{spec.report.alpha} (BH across the whole sweep)"
+        )
+        typer.echo(f"model prediction; report: {sweep.out_dir / 'report.html'}")
+        return
     result = run_experiment(spec, out_dir=out)
     n_sig = int(result.readouts["significant"].sum()) if "significant" in result.readouts else 0
     typer.echo(f"{len(result.readouts)} comparisons, {n_sig} significant at q<{spec.report.alpha}")
