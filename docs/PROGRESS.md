@@ -7,7 +7,7 @@ Running log so a later session can resume. Newest entry first.
 - v0.2.0 (BANC) published to PyPI and GitHub by the tag workflow.
 - M9 (parallel agent, branch m9-hemibrain-manc, merged): hemibrain v1.2.1 and MANC v1.2.1 converters; golden `tests/golden/test_hemibrain_manc.py`. Notable: hemibrain's own left/right similarity for PFL3 is 0.31 (volume-edge truncation), so compare_type verdicts on truncated hemibrain types are unreliable; all 1,927 hemibrain Kenyon cells are predicted dopaminergic (known classifier error, Eckstein 2024).
 - M9 sweeps (parallel agent, branch m9-sweep, merged): golden `tests/golden/test_w2_sweep.py` on MaleCNS (LB3* at 100 Hz, 10 most active GNG* types, 10 trials x 300 ms, 286 s): silencing GNG452 raises MN9 41.3 -> 57.5 Hz (+16.2, CI 11.5-20.7, q 0.005), GNG038 +15.5 (q 0.005), GNG019, GNG175, GNG479 smaller; all MN9 effects positive (disinhibition in the model; uncalibrated). Limits: unpaired test although seeds are shared (conservative); candidates come from select + activity ranking, not path strength.
-- In progress in a parallel worktree: simulator speed-up (flyconn/sim/engine.py).
+- Simulator speed-up (parallel agent, merged): verified on merged main: gate 251 passed, Brian2 parity 2 passed, Shiu golden identical (MN9 66.5 +/- 4.1 Hz) with 30 x 1 s runs in ~20 s instead of ~57 s. Open: CUDA untested (compiled float32 may differ at rounding level there); dynamo recompile limit of 8 per process silently falls back to eager.
 
 ## 2026-09-29 — Published; M8 BANC done
 

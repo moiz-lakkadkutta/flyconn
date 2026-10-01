@@ -4,6 +4,9 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M9 simulator speed-up
+- Engine processes ticks in chunks of the 18-tick synaptic delay (one spike search and delivery per chunk), precomputes kicks per chunk from the unchanged RNG stream, and optionally fuses the per-tick update with `torch.compile` (`simulate(..., compile=None|True|False)`; auto above 5e8 neuron-updates; falls back to eager). Results identical to the previous engine spike for spike (new equivalence tests against the old loop; Brian2 parity and Shiu golden unchanged). Benchmark: 6-6.4x faster on CPU, 8-11x on MPS.
+
 ### M9 experiment sweeps
 - `sweep:` section in experiment YAML: `silence_each` (rank candidate groups by activity in the shared stimulated run, silence the N most active one at a time) and `rate_hz` (readout vs stimulation rate). Shared conditions and controls run once; one `sweep.parquet` with effects, CIs, BH q across the whole sweep; one HTML report with ranked table and bar chart or rate curves. `flyconn run` dispatches sweeps automatically. Example `examples/specs/w2_sweep_silence_gng.yaml`.
 
