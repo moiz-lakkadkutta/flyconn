@@ -330,3 +330,128 @@ def test_sweep_refuses_to_overwrite(small_store: Store, tmp_path: Path):
     run_sweep(spec, out_dir=tmp_path / "out", store=small_store)
     with pytest.raises(FileExistsError):
         run_sweep(spec, out_dir=tmp_path / "out", store=small_store)
+
+
+# --- pathway-ranked silencing screens -----------------------------------------------------
+
+
+@pytest.fixture
+def relay_store(tmp_path: Path) -> Store:
+    """Stimulated S1,S2 -> relay A (strong) -> R; S1 -> relay B (weak) -> R; S -> C (no route to R).
+
+    Path strengths (product of input fractions): via A 0.5*0.6 per source = 0.6 total;
+    via B 1.0*0.1 = 0.1; C is very active but has no path to the readout R.
+    """
+    import numpy as np
+
+    from flyconn.data.convert.common import write_parquet, write_provenance
+    from flyconn.data.schema import conform_edges, conform_neurons
+
+    neurons = pd.DataFrame(
+        {
+            "dataset": "malecns",
+            "version": "1.0",
+            "neuron_id": [1, 2, 3, 4, 5, 6],
+            "cell_type": ["S", "S", "RelayA", "RelayB", "SinkC", "R"],
+            "super_class": "central_brain_intrinsic",
+            "nt_pred": "acetylcholine",
+            "nt_conf": 1.0,
+            "input_synapses_total": [1.0, 1.0, 100.0, 10.0, 160.0, 100.0],
+        }
+    )
+    edges = pd.DataFrame(
+        {
+            "dataset": "malecns",
+            "version": "1.0",
+            "pre": [1, 2, 3, 1, 4, 1, 2],
+            "post": [3, 3, 6, 4, 6, 5, 5],
+            "weight": np.array([50, 50, 60, 10, 10, 80, 80], dtype=np.int32),
+        }
+    )
+    d = tmp_path / "relay_store"
+    d.mkdir()
+    write_parquet(conform_neurons(neurons), d / "neurons.parquet")
+    write_parquet(conform_edges(edges), d / "edges.parquet")
+    write_provenance(d, dataset="malecns", version="1.0", converter="t", inputs=[], counts={})
+    return Store(d)
+
+
+def _relay_spec(store: Store, silence_each: dict[str, object]) -> dict[str, object]:
+    return {
+        "name": "relay_screen",
+        "dataset": store.ref,
+        "stimulate": [{"select": {"cell_type": "S"}, "rate_hz": 200}],
+        "readouts": [{"name": "R", "select": {"cell_type": "R"}}],
+        "sweep": {"silence_each": silence_each},
+        "duration_ms": 40,
+        "trials": 2,
+        "seed": 0,
+        "device": "cpu",
+        "dtype": "float64",
+        "controls": {"degree_preserving_rewire": 0, "sign_shuffle": 0},
+    }
+
+
+def test_parse_pathway_ranking_with_optional_select(relay_store: Store):
+    spec = spec_from_dict(
+        _relay_spec(
+            relay_store,
+            {"rank_by": "pathway", "pathway": {"readout": "R", "max_hops": 2}, "max_items": 5},
+        )
+    )
+    assert isinstance(spec.sweep, SilenceEachSweep)
+    assert spec.sweep.rank_by == "pathway"
+    assert spec.sweep.pathway is not None
+    assert spec.sweep.pathway.readout == "R" and spec.sweep.pathway.max_hops == 2
+    assert spec.sweep.select.ids is None and spec.sweep.select.cell_type is None
+
+
+@pytest.mark.parametrize(
+    ("silence_each", "match"),
+    [
+        ({"rank_by": "pathway"}, "pathway"),
+        ({"rank_by": "pathway", "pathway": {"readout": "nope"}}, "readout"),
+        ({"rank_by": "magic", "select": {"cell_type": "*"}}, "rank_by"),
+        ({"rank_by": "pathway", "pathway": {"readout": "R", "max_hops": 0}}, "max_hops"),
+    ],
+)
+def test_pathway_ranking_validation(
+    relay_store: Store, silence_each: dict[str, object], match: str
+):
+    with pytest.raises(ValueError, match=match):
+        spec_from_dict(_relay_spec(relay_store, silence_each))
+
+
+def test_pathway_ranking_orders_relays_by_path_strength_and_skips_off_path(
+    relay_store: Store, tmp_path: Path
+):
+    spec = spec_from_dict(
+        _relay_spec(
+            relay_store,
+            {
+                "rank_by": "pathway",
+                "pathway": {"readout": "R", "max_hops": 2, "min_weight": 1},
+                "max_items": 5,
+            },
+        )
+    )
+    res = run_sweep(spec, out_dir=tmp_path / "out", store=relay_store)
+    v = res.variants.set_index("variant")
+    assert list(res.variants.loc[res.variants["simulated"], "variant"]) == ["RelayA", "RelayB"]
+    assert v.loc["RelayA", "path_strength"] == pytest.approx(0.6)
+    assert v.loc["RelayB", "path_strength"] == pytest.approx(0.1)
+    assert v.loc["RelayA", "n_paths"] == 2 and v.loc["RelayB", "n_paths"] == 1
+    # stimulated sources and readout targets are never candidates
+    assert "S" not in v.index and "R" not in v.index
+    # SinkC fires (it receives 80+80 synapses) but lies on no route to the readout
+    assert not v.loc["SinkC", "simulated"]
+    assert v.loc["SinkC", "reason"] == "not on a path to the readout"
+    assert "pathway" in res.provenance["sweep"]["ranked_by"]
+
+
+def test_activity_ranking_still_default_and_picks_the_busy_sink(relay_store: Store, tmp_path: Path):
+    spec = spec_from_dict(_relay_spec(relay_store, {"select": {"cell_type": "*"}, "max_items": 1}))
+    assert spec.sweep is not None and spec.sweep.rank_by == "activity"  # type: ignore[union-attr]
+    res = run_sweep(spec, out_dir=tmp_path / "out", store=relay_store)
+    chosen = res.variants.loc[res.variants["simulated"], "variant"].tolist()
+    assert len(chosen) == 1 and chosen[0] in {"SinkC", "S", "R"}
