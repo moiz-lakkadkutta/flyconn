@@ -4,6 +4,11 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-04
+
+### Pathway-ranked silencing screens
+- `silence_each` sweeps accept `rank_by: pathway` with `pathway: {readout, max_hops, min_weight, min_edge_fraction}`: candidates are scored by the summed strength of connectome paths from the stimulated neurons to the readout that run through them (`path_strength`, `signed_path_strength`, `n_paths` in `variants.parquet`); `select` becomes optional. Example `examples/specs/w2_sweep_pathway_mn9.yaml`.
+
 ### M9 simulator speed-up
 - Engine processes ticks in chunks of the 18-tick synaptic delay (one spike search and delivery per chunk), precomputes kicks per chunk from the unchanged RNG stream, and optionally fuses the per-tick update with `torch.compile` (`simulate(..., compile=None|True|False)`; auto above 5e8 neuron-updates; falls back to eager). Results identical to the previous engine spike for spike (new equivalence tests against the old loop; Brian2 parity and Shiu golden unchanged). Benchmark: 6-6.4x faster on CPU, 8-11x on MPS.
 

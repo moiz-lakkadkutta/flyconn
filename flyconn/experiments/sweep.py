@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -49,6 +49,7 @@ from flyconn.experiments.spec import (
     resolve_selection,
 )
 from flyconn.experiments.stats import benjamini_hochberg, bootstrap_mean_ci, compare_groups
+from flyconn.graph.paths import find_paths
 
 
 @dataclass
@@ -79,35 +80,106 @@ class _Variant:
     info: dict[str, Any]
 
 
+def _group_labels(ctx: Context, sweep: SilenceEachSweep, ids: np.ndarray) -> pd.Series:
+    """Group label per candidate neuron id (index = neuron_id); unlabelled neurons dropped."""
+    if sweep.group_by == "neuron":
+        return pd.Series(ids.astype(str), index=ids)
+    if sweep.group_by not in ctx.neurons.columns:
+        msg = f"sweep group_by: dataset has no column {sweep.group_by!r}"
+        raise KeyError(msg)
+    col = cast("pd.Series", ctx.neurons.set_index("neuron_id")[sweep.group_by])
+    labels = col.reindex(ids)
+    labels = cast("pd.Series", labels[labels.notna()])
+    return labels.astype(str)
+
+
+def _pathway_scores(ctx: Context, sweep: SilenceEachSweep) -> pd.DataFrame:
+    """Per intermediate neuron: summed strength and count of paths stimulated -> readout."""
+    pw = sweep.pathway
+    if pw is None:  # pragma: no cover - guarded by spec validation
+        msg = "rank_by pathway needs a pathway section"
+        raise ValueError(msg)
+    sources = sorted(ctx.background)
+    targets = ctx.readout_ids[pw.readout].tolist()
+    paths = find_paths(
+        ctx.matrix,
+        sources,
+        targets,
+        max_hops=pw.max_hops,
+        min_weight=pw.min_weight,
+        min_edge_fraction=pw.min_edge_fraction,
+    )
+    excluded = set(sources) | set(targets)
+    strength: dict[int, float] = {}
+    signed: dict[int, float] = {}
+    n_paths: dict[int, int] = {}
+    for path, st, sign in zip(paths["path"], paths["strength"], paths["path_sign"], strict=True):
+        for nid in set(path[1:-1]) - excluded:
+            strength[nid] = strength.get(nid, 0.0) + float(st)
+            signed[nid] = signed.get(nid, 0.0) + float(st) * float(sign)
+            n_paths[nid] = n_paths.get(nid, 0) + 1
+    ids = sorted(strength)
+    return pd.DataFrame(
+        {
+            "neuron_id": np.asarray(ids, dtype=np.int64),
+            "path_strength": [strength[i] for i in ids],
+            "signed_path_strength": [signed[i] for i in ids],
+            "n_paths": [n_paths[i] for i in ids],
+        }
+    )
+
+
 def _silence_candidates(
     ctx: Context, sweep: SilenceEachSweep, stim_counts: np.ndarray
 ) -> tuple[pd.DataFrame, list[_Variant]]:
     ids = resolve_selection(sweep.select, ctx.neurons)
+    if sweep.rank_by == "pathway":
+        excluded = set(ctx.background) | set(ctx.readout_ids[sweep.pathway.readout].tolist())  # type: ignore[union-attr]
+        ids = np.asarray([i for i in ids.tolist() if i not in excluded], dtype=np.int64)
     rate = stim_counts.mean(axis=0) / ctx.seconds
-    per_neuron = pd.DataFrame({"neuron_id": ids, "rate": rate[ctx.net.index_of(ids.tolist())]})
-    if sweep.group_by == "neuron":
-        per_neuron["group"] = per_neuron["neuron_id"].astype(str)
+    labels = _group_labels(ctx, sweep, ids)
+    per_neuron = pd.DataFrame(
+        {
+            "neuron_id": labels.index.to_numpy(dtype=np.int64),
+            "group": labels.to_numpy(),
+            "rate": rate[ctx.net.index_of(labels.index.tolist())],
+        }
+    )
+    agg: dict[str, tuple[str, str]] = {
+        "n_neurons": ("neuron_id", "size"),
+        "stimulated_rate_hz": ("rate", "sum"),
+    }
+    if sweep.rank_by == "pathway":
+        scores = _pathway_scores(ctx, sweep).set_index("neuron_id")
+        for col in ("path_strength", "signed_path_strength", "n_paths"):
+            per_neuron[col] = scores[col].reindex(per_neuron["neuron_id"]).fillna(0).to_numpy()
+            agg[col] = (col, "sum")
+        sort_cols, eligible_col, skip_reason = (
+            ["path_strength", "group"],
+            "path_strength",
+            "not on a path to the readout",
+        )
     else:
-        if sweep.group_by not in ctx.neurons.columns:
-            msg = f"sweep group_by: dataset has no column {sweep.group_by!r}"
-            raise KeyError(msg)
-        labels = ctx.neurons.set_index("neuron_id")[sweep.group_by]
-        per_neuron["group"] = labels.reindex(ids).to_numpy()
-        per_neuron = per_neuron[per_neuron["group"].notna()]
-        per_neuron["group"] = per_neuron["group"].astype(str)
+        sort_cols, eligible_col, skip_reason = (
+            ["stimulated_rate_hz", "group"],
+            "stimulated_rate_hz",
+            "inactive when stimulated",
+        )
     groups = (
         per_neuron.groupby("group", sort=True)
-        .agg(n_neurons=("neuron_id", "size"), stimulated_rate_hz=("rate", "sum"))
+        .agg(**agg)  # type: ignore[call-overload]
         .reset_index()
-        .rename(columns={"group": "variant"})
-        .sort_values(["stimulated_rate_hz", "variant"], ascending=[False, True], kind="stable")
+        .sort_values(sort_cols, ascending=[False, True], kind="stable")
         .reset_index(drop=True)
+        .rename(columns={"group": "variant"})
     )
-    active = groups["stimulated_rate_hz"] > 0
-    within = np.arange(len(groups)) < sweep.max_items
-    groups["simulated"] = active & within
+    if "n_paths" in groups.columns:
+        groups["n_paths"] = groups["n_paths"].astype(int)
+    eligible = groups[eligible_col] > 0
+    within = np.cumsum(eligible.to_numpy()) <= sweep.max_items
+    groups["simulated"] = eligible & within
     groups["reason"] = np.where(
-        groups["simulated"], "", np.where(active, "beyond max_items", "inactive when stimulated")
+        groups["simulated"], "", np.where(eligible, "beyond max_items", skip_reason)
     )
     members = per_neuron.groupby("group")["neuron_id"].apply(list).to_dict()
     variants = [
@@ -275,7 +347,13 @@ def run_sweep(
             "max_items": sweep.max_items,
             "candidates": len(variants_df),
             "simulated": int(variants_df["simulated"].sum()),
-            "ranked_by": "summed firing rate in the stimulated condition",
+            "ranked_by": (
+                "summed strength of connectome paths from the stimulated neurons to readout "
+                f"{sweep.pathway.readout!r} through each candidate (pathway, max_hops "
+                f"{sweep.pathway.max_hops}, min_weight {sweep.pathway.min_weight})"
+                if sweep.rank_by == "pathway" and sweep.pathway is not None
+                else "summed firing rate in the stimulated condition"
+            ),
         }
     else:
         sweep_prov |= {"rates_hz": sweep.rates_hz}

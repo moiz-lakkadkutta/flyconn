@@ -77,3 +77,8 @@ Grows with each milestone. Seeds:
 - MANC transmitter predictions are 3-class (acetylcholine, GABA, glutamate); a MANC neuron is never predicted monoaminergic. `nt_conf` is the Codex confidence and is filled only where Codex's label agrees with the sjcabs label (23,410 of 23,650).
 - MANC cell types are neuPrint `type` names (e.g. `Ti flexor MN`); Codex's primary types differ for 420 neurons. `manc_121_cell_type` equals `cell_type`, so MANC partners share the FlyWire-or-MANC vocabulary with MaleCNS and BANC.
 
+
+## Pathway-ranked screens
+
+- Path strength is a product of per-hop input fractions under the chosen thresholds; it ranks *candidates for silencing*, it is not a prediction of the silencing effect. The simulation decides the effect, and its sign can disagree with the path sign when routes interact.
+- Thresholds matter: with `min_edge_fraction: 0.01` only six types lie on LB3 -> MN9 routes in MaleCNS; looser thresholds admit many weak relays and stricter ones may admit none.

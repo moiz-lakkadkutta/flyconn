@@ -84,19 +84,43 @@ class ReportOptions:
 
 
 @dataclass(frozen=True)
+class PathwayRanking:
+    """Rank silencing candidates by connectome paths from the stimulated neurons to a readout.
+
+    A candidate's score is the summed strength (product of per-hop input fractions) of all
+    simple paths of up to ``max_hops`` synapses from any stimulated neuron to any neuron of
+    the readout group ``readout`` that pass *through* it. Stimulated neurons and readout
+    neurons themselves are never candidates.
+    """
+
+    readout: str
+    max_hops: int = 3
+    min_weight: int = 5
+    min_edge_fraction: float = 0.0
+
+
+@dataclass(frozen=True)
 class SilenceEachSweep:
     """Silence each candidate group one at a time (a silencing screen).
 
-    Candidates are the neurons matched by ``select``, grouped by ``group_by`` (a neuron
-    column such as ``cell_type``, or ``"neuron"`` for one neuron per variant). Groups are
-    ranked by their summed firing rate in the shared *stimulated* condition and the
-    ``max_items`` most active are simulated; groups that never fire cannot change the
-    simulation when silenced, so they are reported but not simulated.
+    Candidates are the neurons matched by ``select`` (all neurons when omitted), grouped by
+    ``group_by`` (a neuron column such as ``cell_type``, or ``"neuron"`` for one neuron per
+    variant). ``rank_by``:
+
+    * ``activity`` (default): groups are ranked by their summed firing rate in the shared
+      *stimulated* condition; groups that never fire are reported but not simulated.
+    * ``pathway``: groups are ranked by the summed strength of connectome paths from the
+      stimulated neurons to the ``pathway.readout`` group running through them (see
+      :class:`PathwayRanking`); groups on no such path are reported but not simulated.
+
+    The ``max_items`` top-ranked groups are simulated.
     """
 
-    select: Selection
+    select: Selection = field(default_factory=Selection)
     group_by: str = "cell_type"
     max_items: int = 50
+    rank_by: str = "activity"
+    pathway: PathwayRanking | None = None
 
     kind: str = "silence_each"
 
@@ -162,6 +186,7 @@ def _stims(items: Any) -> list[Stimulation]:
 
 
 _SWEEP_KINDS = ("silence_each", "rate_hz")
+_RANK_BY = ("activity", "pathway")
 
 
 def _sweep(d: Any) -> Sweep | None:
@@ -189,18 +214,44 @@ def _sweep(d: Any) -> Sweep | None:
             raise ValueError(msg)
         return RateSweep(rates_hz=rates)
     se = dd["silence_each"]
-    if not isinstance(se, dict) or "select" not in se:
-        msg = "sweep silence_each needs a 'select' mapping"
+    if not isinstance(se, dict):
+        msg = "sweep silence_each must be a mapping"
         raise ValueError(msg)
     sed = cast("dict[str, Any]", se)
+    rank_by = str(sed.get("rank_by", "activity"))
+    if rank_by not in _RANK_BY:
+        msg = f"sweep silence_each rank_by must be one of {_RANK_BY}, got {rank_by!r}"
+        raise ValueError(msg)
+    if rank_by == "activity" and "select" not in sed:
+        msg = "sweep silence_each needs a 'select' mapping (optional only with rank_by: pathway)"
+        raise ValueError(msg)
     max_items = int(sed.get("max_items", 50))
     if max_items < 1:
         msg = "sweep silence_each max_items must be >= 1"
         raise ValueError(msg)
+    pathway: PathwayRanking | None = None
+    if rank_by == "pathway":
+        pd_raw = sed.get("pathway")
+        if not isinstance(pd_raw, dict) or "readout" not in pd_raw:
+            msg = "rank_by: pathway needs a 'pathway' mapping with a 'readout' group name"
+            raise ValueError(msg)
+        pw = cast("dict[str, Any]", pd_raw)
+        max_hops = int(pw.get("max_hops", 3))
+        if not 2 <= max_hops <= 4:
+            msg = f"pathway max_hops must be 2..4 (a relay needs at least 2 hops), got {max_hops}"
+            raise ValueError(msg)
+        pathway = PathwayRanking(
+            readout=str(pw["readout"]),
+            max_hops=max_hops,
+            min_weight=int(pw.get("min_weight", 5)),
+            min_edge_fraction=float(pw.get("min_edge_fraction", 0.0)),
+        )
     return SilenceEachSweep(
-        select=_selection(sed["select"]),
+        select=_selection(sed["select"]) if "select" in sed else Selection(),
         group_by=str(sed.get("group_by", "cell_type")),
         max_items=max_items,
+        rank_by=rank_by,
+        pathway=pathway,
     )
 
 
@@ -222,6 +273,11 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
             stimulate=_stims(perturb_d.get("stimulate")),
         )
     sweep = _sweep(d.get("sweep"))
+    if isinstance(sweep, SilenceEachSweep) and sweep.pathway is not None:
+        names = [r.name for r in readouts]
+        if sweep.pathway.readout not in names:
+            msg = f"pathway readout {sweep.pathway.readout!r} is not a readout group; have {names}"
+            raise ValueError(msg)
     stimulate = _stims(d.get("stimulate"))
     if sweep is not None and perturb is not None:
         msg = "a sweep spec cannot also have 'perturb'; the sweep defines the perturbations"

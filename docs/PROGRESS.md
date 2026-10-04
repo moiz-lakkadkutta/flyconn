@@ -2,6 +2,11 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-04 — Pathway-ranked screens; v0.3.0
+
+- `rank_by: pathway` for silencing screens (branch m10-pathway-sweep, merged). Real-data result in GOLDEN_RESULTS 6f: the six LB3 -> MN9 relay types from W1 are selected; silencing the two on excitatory routes lowers MN9 (GNG232 -11.7 Hz, DNge080 -9.2 Hz, q 0.008), the four on inhibitory routes raise it (not significant at 10 trials).
+- v0.3.0 released: BANC already in 0.2.0; this adds hemibrain/MANC converters, sweeps, the 6-11x simulator speed-up and pathway-ranked screens.
+
 ## 2026-10-01 — v0.2.0 on PyPI; M9 hemibrain + MANC merged; sim speed and sweeps in progress
 
 - v0.2.0 (BANC) published to PyPI and GitHub by the tag workflow.
