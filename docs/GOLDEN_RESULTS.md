@@ -356,6 +356,21 @@ W3 male (MaleCNS v1.0) vs female, output partners, min_weight 5, 500 permutation
 
 The hemibrain PFL3 within-dataset similarity (0.307) shows the hemibrain left/right null is unreliable for types whose left-side arbors leave the volume (see caveats); EPG and DNa02 are pinned in the golden test, PFL3 and DNp01 were run once (scratch script) and are not tests.
 
+### 6f. Pathway-ranked silencing screen (MaleCNS v1.0, uncalibrated; 2026-10-04)
+
+`examples/specs/w2_sweep_pathway_mn9.yaml`: LB3* GRNs at 100 Hz; candidates on LB3* -> MN9 paths of <= 3 hops (>= 5 synapses and >= 1 % input per hop), grouped by cell type. Exactly six types qualify, the relays found in W1. MN9 in the stimulated condition 41.3 Hz; 10 trials x 300 ms:
+
+| Silenced | Net route sign (wiring) | MN9 (Hz) | Difference (95 % CI) | q |
+|---|---|---|---|---|
+| GNG232 | + | 29.7 | -11.7 (-15.5, -7.8) | 0.008 |
+| DNge080 | + | 32.2 | -9.2 (-13.0, -5.2) | 0.008 |
+| GNG130 | - | 50.8 | +9.5 (1.5, 17.5) | 0.23 |
+| DNge051 | - | 47.5 | +6.2 (1.0, 11.7) | 0.13 |
+| GNG132 | - | 47.0 | +5.7 (0.7, 9.8) | 0.10 |
+| GNG215 | - | 42.8 | +1.5 (-3.5, 6.5) | 0.62 |
+
+Every effect has the direction its route sign predicts; only the two excitatory relays survive BH correction at 10 trials.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |

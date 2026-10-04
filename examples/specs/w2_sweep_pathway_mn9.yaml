@@ -1,0 +1,28 @@
+# W2 sweep - pathway-ranked silencing screen (MaleCNS v1.0; UNCALIBRATED model).
+# Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz.
+# Candidates: every neuron on a connectome path LB3* -> MN9 of up to 3 synapses (each hop at
+#   least 5 synapses and 1 % of the target's input), grouped by cell type and ranked by the
+#   summed path strength through them. The 10 strongest relays are silenced one at a time.
+name: w2_sweep_pathway_mn9
+dataset: malecns@1.0
+network: {min_weight: 1, sign_policy: argmax}
+stimulate:
+  - select: {cell_type: "LB3*"}
+    rate_hz: 100
+sweep:
+  silence_each:
+    rank_by: pathway
+    pathway: {readout: MN9, max_hops: 3, min_weight: 5, min_edge_fraction: 0.01}
+    group_by: cell_type
+    max_items: 10
+readouts:
+  - name: MN9
+    select: {cell_type: "MN9"}
+  - name: descending
+    select: {super_class: descending}
+duration_ms: 300
+trials: 10
+seed: 0
+device: cpu
+dtype: float32
+controls: {degree_preserving_rewire: 1, sign_shuffle: 1, unstimulated_baseline: true}

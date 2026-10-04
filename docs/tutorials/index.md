@@ -20,3 +20,5 @@ One runnable script per anchor workflow (jupytext percent format; open as a note
     Shared conditions run once; BH correction spans the whole sweep; see the sweep caveats.
 - W3 male vs female per cell type: `examples/w3_male_vs_female.py`
 - W5 genetic access (exploratory): `examples/w5_driver_lines.py`
+
+- Pathway-ranked silencing screen (relays on routes from the stimulated neurons to a readout): `flyconn run examples/specs/w2_sweep_pathway_mn9.yaml --out runs/screen`
