@@ -1,92 +1,1116 @@
 {
- "curve": [
-  {
-   "w_syn_mv": 0.1,
-   "rate_hz": 100.0,
-   "readout_rate_hz": 0.0
-  },
-  {
-   "w_syn_mv": 0.1,
-   "rate_hz": 200.0,
-   "readout_rate_hz": 0.6
-  },
-  {
-   "w_syn_mv": 0.2,
-   "rate_hz": 100.0,
-   "readout_rate_hz": 31.4
-  },
-  {
-   "w_syn_mv": 0.2,
-   "rate_hz": 200.0,
-   "readout_rate_hz": 55.2
-  },
-  {
-   "w_syn_mv": 0.275,
-   "rate_hz": 100.0,
-   "readout_rate_hz": 42.6
-  },
-  {
-   "w_syn_mv": 0.275,
-   "rate_hz": 200.0,
-   "readout_rate_hz": 75.6
-  },
-  {
-   "w_syn_mv": 0.4,
-   "rate_hz": 100.0,
-   "readout_rate_hz": 65.6
-  },
-  {
-   "w_syn_mv": 0.4,
-   "rate_hz": 200.0,
-   "readout_rate_hz": 103.4
-  },
-  {
-   "w_syn_mv": 0.6,
-   "rate_hz": 100.0,
-   "readout_rate_hz": 60.4
-  },
-  {
-   "w_syn_mv": 0.6,
-   "rate_hz": 200.0,
-   "readout_rate_hz": 121.6
-  }
- ],
- "protocol": "Shiu et al. 2024: w_syn such that the reference-rate readout is ~80% of max",
- "target_fraction": 0.8,
- "reference_rate_hz": 100.0,
- "max_rate_hz": 200.0,
  "grid_mv": [
   0.1,
+  0.125,
+  0.15,
+  0.175,
   0.2,
+  0.225,
+  0.25,
   0.275,
-  0.4,
-  0.6
+  0.3,
+  0.325,
+  0.35,
+  0.375,
+  0.4
  ],
- "fractions": [
-  [
-   0.1,
-   0.0
+ "v630_fraction": {
+  "50": 0.20504731861198738,
+  "100": 0.6887486855941115
+ },
+ "sugar_LB3cd": {
+  "n_sources": 49,
+  "curve": [
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 0.2,
+    "readout_sd_hz": 0.34960294939005054,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 0.1,
+    "readout_sd_hz": 0.21081851067789195,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 17.3,
+    "readout_sd_hz": 1.1595018087284057,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.45,
+    "readout_sd_hz": 0.15811388300841897,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 11.8,
+    "readout_sd_hz": 2.250925735484551,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 33.2,
+    "readout_sd_hz": 1.0055402085998904,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 4.5,
+    "readout_sd_hz": 1.4907119849998598,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 29.1,
+    "readout_sd_hz": 2.105548226313834,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 42.8,
+    "readout_sd_hz": 2.136976056643282,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 14.65,
+    "readout_sd_hz": 3.3997548931258756,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 40.6,
+    "readout_sd_hz": 2.0923139768633616,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 49.05,
+    "readout_sd_hz": 2.3857214143035788,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 26.15,
+    "readout_sd_hz": 2.4500566886865656,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 41.4,
+    "readout_sd_hz": 8.415593991051507,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 55.25,
+    "readout_sd_hz": 2.4181030214244847,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 15.6,
+    "readout_sd_hz": 3.51820661385567,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 37.0,
+    "readout_sd_hz": 6.847546194724712,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 60.95,
+    "readout_sd_hz": 2.9102309950319145,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 17.4,
+    "readout_sd_hz": 4.817791102892602,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 40.85,
+    "readout_sd_hz": 3.4805012410411376,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 65.45,
+    "readout_sd_hz": 2.033743128104212,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 23.15,
+    "readout_sd_hz": 5.061016586506005,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 54.45,
+    "readout_sd_hz": 8.213978600193968,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 71.25,
+    "readout_sd_hz": 4.131518418746846,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 23.75,
+    "readout_sd_hz": 6.676035084123243,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 63.25,
+    "readout_sd_hz": 11.909963149490524,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 75.6,
+    "readout_sd_hz": 3.9426443466846517,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 26.0,
+    "readout_sd_hz": 5.92546294487706,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 73.35,
+    "readout_sd_hz": 8.605715155251962,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 83.1,
+    "readout_sd_hz": 2.865503640044994,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 36.1,
+    "readout_sd_hz": 13.114453434622767,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 81.1,
+    "readout_sd_hz": 13.127155907591796,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 85.6,
+    "readout_sd_hz": 4.046946722873652,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 41.4,
+    "readout_sd_hz": 20.52478176903878,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 92.95,
+    "readout_sd_hz": 7.0017854865741205,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 88.6,
+    "readout_sd_hz": 3.446415206816756,
+    "n_trials": 10
+   }
   ],
-  [
-   0.2,
-   0.5688405797101449
+  "transfer_50": {
+   "protocol": "Shiu et al. 2024: w_syn such that the reference-rate readout is ~80% of max",
+   "target_fraction": 0.20504731861198738,
+   "reference_rate_hz": 50.0,
+   "max_rate_hz": 200.0,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.013554216867469878,
+     "ci_low": 0.01044776119402985,
+     "ci_high": 0.015267175572519083
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.10514018691588786,
+     "ci_low": 0.08624457614562388,
+     "ci_high": 0.12787112200524578
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.29867482161060144,
+     "ci_low": 0.2577520365804176,
+     "ci_high": 0.33881552968268086
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.47330316742081446,
+     "ci_low": 0.44444195092758826,
+     "ci_high": 0.5014203600117132
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.2559474979491386,
+     "ci_low": 0.2219384810183181,
+     "ci_high": 0.2926249743839336
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.26585179526355995,
+     "ci_low": 0.2201894708675248,
+     "ci_high": 0.3087613716866921
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.3249122807017544,
+     "ci_low": 0.28412656129619684,
+     "ci_high": 0.36871295609158833
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.3141534391534392,
+     "ci_low": 0.26615813443387976,
+     "ci_high": 0.3711000865035482
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.31287605294825516,
+     "ci_low": 0.2716322229649436,
+     "ci_high": 0.3500969311896122
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.4217289719626169,
+     "ci_low": 0.3319373586026069,
+     "ci_high": 0.5085483345287336
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 0.4672686230248307,
+     "ci_low": 0.34426173543820027,
+     "ci_high": 0.5982352829264348
+    }
+   ],
+   "crossing_mv": 0.18790558817207262,
+   "crossing_ci_mv": [
+    0.18514956962885462,
+    0.19155031277559947
+   ],
+   "crossing_support": 0.994,
+   "n_boot": 1000,
+   "n_steps": 10000,
+   "n_trials": 10,
+   "seed": 1,
+   "status": "calibrated",
+   "label": "protocol outcome; dataset remains uncalibrated until validated"
+  },
+  "transfer_100": {
+   "status": "ambiguous",
+   "crossing_mv": null,
+   "crossing_ci_mv": null,
+   "support": 0.0,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.005780346820809248,
+     "ci_low": 0.0,
+     "ci_high": 0.014165311936646923
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.35542168674698793,
+     "ci_low": 0.31490938166311305,
+     "ci_high": 0.3960553709527031
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.6799065420560748,
+     "ci_low": 0.6422681796342877,
+     "ci_high": 0.7131094122200841
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.8277268093781857,
+     "ci_low": 0.791146021210591,
+     "ci_high": 0.8628925739498542
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.7493212669683258,
+     "ci_low": 0.6546860986547085,
+     "ci_high": 0.8384819372069849
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.6070549630844955,
+     "ci_low": 0.5412493423255368,
+     "ci_high": 0.6795106292714944
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.6241405653170359,
+     "ci_low": 0.5921329188169017,
+     "ci_high": 0.6572185916244332
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.7642105263157896,
+     "ci_low": 0.6976027987773162,
+     "ci_high": 0.8422564911392018
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.8366402116402117,
+     "ci_low": 0.7353301379369438,
+     "ci_high": 0.9287309796009864
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.8826714801444043,
+     "ci_low": 0.822284812326228,
+     "ci_high": 0.9443674730372565
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.947429906542056,
+     "ci_low": 0.8367030098280098,
+     "ci_high": 1.028443593556726
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 1.049097065462754,
+     "ci_low": 0.9865628076688938,
+     "ci_high": 1.0937536002304147
+    }
+   ]
+  },
+  "literal_100": {
+   "status": "ambiguous",
+   "crossing_mv": null,
+   "crossing_ci_mv": null,
+   "support": 0.05,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.005780346820809248,
+     "ci_low": 0.0,
+     "ci_high": 0.014165311936646923
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.35542168674698793,
+     "ci_low": 0.31490938166311305,
+     "ci_high": 0.3960553709527031
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.6799065420560748,
+     "ci_low": 0.6422681796342877,
+     "ci_high": 0.7131094122200841
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.8277268093781857,
+     "ci_low": 0.791146021210591,
+     "ci_high": 0.8628925739498542
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.7493212669683258,
+     "ci_low": 0.6546860986547085,
+     "ci_high": 0.8384819372069849
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.6070549630844955,
+     "ci_low": 0.5412493423255368,
+     "ci_high": 0.6795106292714944
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.6241405653170359,
+     "ci_low": 0.5921329188169017,
+     "ci_high": 0.6572185916244332
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.7642105263157896,
+     "ci_low": 0.6976027987773162,
+     "ci_high": 0.8422564911392018
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.8366402116402117,
+     "ci_low": 0.7353301379369438,
+     "ci_high": 0.9287309796009864
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.8826714801444043,
+     "ci_low": 0.822284812326228,
+     "ci_high": 0.9443674730372565
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.947429906542056,
+     "ci_low": 0.8367030098280098,
+     "ci_high": 1.028443593556726
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 1.049097065462754,
+     "ci_low": 0.9865628076688938,
+     "ci_high": 1.0937536002304147
+    }
+   ]
+  },
+  "seconds": 636.9631009101868
+ },
+ "all_LB3": {
+  "n_sources": 78,
+  "curve": [
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.1,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 0.75,
+    "readout_sd_hz": 0.3535533905932738,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 0.45,
+    "readout_sd_hz": 0.3689323936863109,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 19.2,
+    "readout_sd_hz": 2.0165977949672227,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.35,
+    "readout_sd_hz": 0.4116363011742823,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 10.9,
+    "readout_sd_hz": 1.2649110640673515,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 36.8,
+    "readout_sd_hz": 2.7304863221696536,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 2.6,
+    "readout_sd_hz": 1.429840705968481,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 26.1,
+    "readout_sd_hz": 2.979559997344873,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 46.55,
+    "readout_sd_hz": 2.6504716561397137,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 6.0,
+    "readout_sd_hz": 1.810463415200036,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 32.35,
+    "readout_sd_hz": 4.183632127443542,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 55.6,
+    "readout_sd_hz": 1.983263304085802,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 11.3,
+    "readout_sd_hz": 3.029484738000471,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 37.8,
+    "readout_sd_hz": 4.124452825661983,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 64.05,
+    "readout_sd_hz": 2.4994443827023303,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 9.05,
+    "readout_sd_hz": 2.5760650440373416,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 38.0,
+    "readout_sd_hz": 4.927248499698161,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 69.85,
+    "readout_sd_hz": 2.7492423198643907,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 9.7,
+    "readout_sd_hz": 3.5213633723318014,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 41.6,
+    "readout_sd_hz": 2.8067379246694517,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.275,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 74.75,
+    "readout_sd_hz": 1.9895560643855537,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 15.1,
+    "readout_sd_hz": 5.905741086246313,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 46.65,
+    "readout_sd_hz": 4.661008474568567,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.3,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 80.9,
+    "readout_sd_hz": 3.6347092196090642,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 16.65,
+    "readout_sd_hz": 6.245220394652039,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 50.35,
+    "readout_sd_hz": 5.512863744612837,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.325,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 89.0,
+    "readout_sd_hz": 1.4142135623730956,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 21.0,
+    "readout_sd_hz": 6.948221195225277,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 57.65,
+    "readout_sd_hz": 7.597697019492156,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.35,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 94.15,
+    "readout_sd_hz": 2.9064105391740895,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 19.8,
+    "readout_sd_hz": 3.0568684048294332,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 65.05,
+    "readout_sd_hz": 5.654152849405863,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.375,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 97.95,
+    "readout_sd_hz": 1.7070116838759148,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 17.95,
+    "readout_sd_hz": 5.73221888393433,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 100.0,
+    "readout_rate_hz": 64.35,
+    "readout_sd_hz": 6.608286044387338,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.4,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 102.05,
+    "readout_sd_hz": 4.481133289197674,
+    "n_trials": 10
+   }
   ],
-  [
-   0.275,
-   0.5634920634920636
-  ],
-  [
-   0.4,
-   0.6344294003868471
-  ],
-  [
-   0.6,
-   0.4967105263157895
-  ]
- ],
- "n_steps": 5000,
- "n_trials": 5,
- "seed": 0,
- "status": "unresolved",
- "label": "protocol outcome; dataset remains uncalibrated until validated"
+  "transfer_50": {
+   "protocol": "Shiu et al. 2024: w_syn such that the reference-rate readout is ~80% of max",
+   "target_fraction": 0.20504731861198738,
+   "reference_rate_hz": 50.0,
+   "max_rate_hz": 200.0,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.009510869565217392,
+     "ci_low": 0.0027471585341955714,
+     "ci_high": 0.01662165281625115
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.055853920515574654,
+     "ci_low": 0.037871667805878334,
+     "ci_high": 0.07424642850085952
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.1079136690647482,
+     "ci_low": 0.08878526321705722,
+     "ci_high": 0.1273460159330874
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.17642466822794695,
+     "ci_low": 0.149330780906161,
+     "ci_high": 0.20582870436440412
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.129563350035791,
+     "ci_low": 0.10943982153333126,
+     "ci_high": 0.1514595075531931
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.12976588628762542,
+     "ci_low": 0.10298491103924143,
+     "ci_high": 0.1567071949695016
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.18665018541409145,
+     "ci_low": 0.14674428845948542,
+     "ci_high": 0.22885998665582066
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.18707865168539325,
+     "ci_low": 0.1472383389574894,
+     "ci_high": 0.2297931189763172
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.22304832713754646,
+     "ci_low": 0.17954784909580115,
+     "ci_high": 0.2655774078554237
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.20214395099540583,
+     "ci_low": 0.18349222752505726,
+     "ci_high": 0.21908899541036148
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 0.17589416952474277,
+     "ci_low": 0.14498114601368936,
+     "ci_high": 0.20968836396520557
+    }
+   ],
+   "crossing_mv": null,
+   "crossing_ci_mv": null,
+   "crossing_support": 0.014,
+   "n_boot": 1000,
+   "n_steps": 10000,
+   "n_trials": 10,
+   "seed": 1,
+   "status": "ambiguous",
+   "label": "protocol outcome; dataset remains uncalibrated until validated"
+  },
+  "transfer_100": {
+   "status": "unresolved",
+   "crossing_mv": null,
+   "crossing_ci_mv": null,
+   "support": 0.002,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.0234375,
+     "ci_low": 0.012690355329949238,
+     "ci_high": 0.034915911031047714
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.2961956521739131,
+     "ci_low": 0.27165028419460807,
+     "ci_high": 0.3211906256436411
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.560687432867884,
+     "ci_low": 0.5131803989839894,
+     "ci_high": 0.6002334713097174
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.5818345323741008,
+     "ci_low": 0.5345613608632654,
+     "ci_high": 0.6250084841628959
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.5901639344262295,
+     "ci_low": 0.5493811072499926,
+     "ci_high": 0.6309817929825167
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.5440229062276307,
+     "ci_low": 0.5031664510764797,
+     "ci_high": 0.5874776744722724
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.5565217391304348,
+     "ci_low": 0.5325278327879291,
+     "ci_high": 0.5794145646411728
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.57663782447466,
+     "ci_low": 0.5414029741078723,
+     "ci_high": 0.6126724556716056
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.5657303370786517,
+     "ci_low": 0.526252549685578,
+     "ci_high": 0.6014916081803511
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.6123207647371216,
+     "ci_low": 0.5651539382071367,
+     "ci_high": 0.6585203299675442
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.6641143440530882,
+     "ci_low": 0.6303534138085302,
+     "ci_high": 0.6963673080289198
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 0.6305732484076433,
+     "ci_low": 0.5904149161904708,
+     "ci_high": 0.6708720609220311
+    }
+   ]
+  },
+  "literal_100": {
+   "status": "unresolved",
+   "crossing_mv": null,
+   "crossing_ci_mv": null,
+   "support": 0.0,
+   "fractions": [
+    {
+     "w_syn_mv": 0.1,
+     "fraction": 0.0,
+     "ci_low": 0.0,
+     "ci_high": 0.0
+    },
+    {
+     "w_syn_mv": 0.125,
+     "fraction": 0.0234375,
+     "ci_low": 0.012690355329949238,
+     "ci_high": 0.034915911031047714
+    },
+    {
+     "w_syn_mv": 0.15,
+     "fraction": 0.2961956521739131,
+     "ci_low": 0.27165028419460807,
+     "ci_high": 0.3211906256436411
+    },
+    {
+     "w_syn_mv": 0.175,
+     "fraction": 0.560687432867884,
+     "ci_low": 0.5131803989839894,
+     "ci_high": 0.6002334713097174
+    },
+    {
+     "w_syn_mv": 0.2,
+     "fraction": 0.5818345323741008,
+     "ci_low": 0.5345613608632654,
+     "ci_high": 0.6250084841628959
+    },
+    {
+     "w_syn_mv": 0.225,
+     "fraction": 0.5901639344262295,
+     "ci_low": 0.5493811072499926,
+     "ci_high": 0.6309817929825167
+    },
+    {
+     "w_syn_mv": 0.25,
+     "fraction": 0.5440229062276307,
+     "ci_low": 0.5031664510764797,
+     "ci_high": 0.5874776744722724
+    },
+    {
+     "w_syn_mv": 0.275,
+     "fraction": 0.5565217391304348,
+     "ci_low": 0.5325278327879291,
+     "ci_high": 0.5794145646411728
+    },
+    {
+     "w_syn_mv": 0.3,
+     "fraction": 0.57663782447466,
+     "ci_low": 0.5414029741078723,
+     "ci_high": 0.6126724556716056
+    },
+    {
+     "w_syn_mv": 0.325,
+     "fraction": 0.5657303370786517,
+     "ci_low": 0.526252549685578,
+     "ci_high": 0.6014916081803511
+    },
+    {
+     "w_syn_mv": 0.35,
+     "fraction": 0.6123207647371216,
+     "ci_low": 0.5651539382071367,
+     "ci_high": 0.6585203299675442
+    },
+    {
+     "w_syn_mv": 0.375,
+     "fraction": 0.6641143440530882,
+     "ci_low": 0.6303534138085302,
+     "ci_high": 0.6963673080289198
+    },
+    {
+     "w_syn_mv": 0.4,
+     "fraction": 0.6305732484076433,
+     "ci_low": 0.5904149161904708,
+     "ci_high": 0.6708720609220311
+    }
+   ]
+  },
+  "seconds": 644.8426811695099
+ }
 }

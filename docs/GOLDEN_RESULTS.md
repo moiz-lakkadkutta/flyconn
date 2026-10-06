@@ -312,7 +312,7 @@ Shiu parquet as a separate, sim-only edge source.
 
 Rung 1 (Brian2 2.10.1 spike-for-spike parity, fixed input trains, 60- and 200-neuron random nets): identical event sets. Rung 3 throughput (`benchmarks/sim_throughput.json`): CPU 2.2 s per biological second at 30 batched trials (15.0 s single trial), MPS 2.7 s; the per-tick Python loop dominates, so MPS gives no gain yet. After the chunked engine with the `torch.compile` tick kernel (2026-10-01), the three golden 30 x 1 s runs above give the same numbers (MN9 66.5 ± 4.1 / 94.5 / 0.0 Hz; 416 / 444 / 39 active neurons; 290,693 spikes at 100 Hz) in 13 / 11 / 11 s instead of 57 / 56 / 47 s. Current throughput rows (eager and compiled, CPU and MPS) are in `benchmarks/sim_throughput.json`; the machine was shared with other jobs, so treat them as indicative.
 
-MaleCNS calibration protocol (78 LB3 GRNs -> 2 MN9, 5 trials x 0.5 s, CPU float32): MN9 rate at 100 / 200 Hz drive for w_syn 0.1, 0.2, 0.275, 0.4, 0.6 mV = 0.0/0.6, 31.4/55.2, 42.6/75.6, 65.6/103.4, 60.4/121.6 Hz. No value reaches 80 % of maximum (best 0.63 at 0.4 mV): unresolved.
+MaleCNS calibration protocol (78 LB3 GRNs -> 2 MN9, 5 trials x 0.5 s, CPU float32): MN9 rate at 100 / 200 Hz drive for w_syn 0.1, 0.2, 0.275, 0.4, 0.6 mV = 0.0/0.6, 31.4/55.2, 42.6/75.6, 65.6/103.4, 60.4/121.6 Hz. No value reaches 80 % of maximum (best 0.63 at 0.4 mV): unresolved. Superseded by §6g (2026-10-06): the literal rule also fails on v630 itself.
 
 ### 6d. BANC v888 through the flyconn converter (M8, 2026-09-29)
 
@@ -370,6 +370,36 @@ The hemibrain PFL3 within-dataset similarity (0.307) shows the hemibrain left/ri
 | GNG215 | - | 42.8 | +1.5 (-3.5, 6.5) | 0.62 |
 
 Every effect has the direction its route sign predicts; only the two excitatory relays survive BH correction at 10 trials.
+
+### 6g. w_syn re-calibration: positive control on v630 and MaleCNS (ADR-0009; 2026-10-06)
+
+`tests/golden/test_shiu_calibration.py` (520 s) and `tests/golden/test_malecns_calibration.py` (1,289 s); 10 trials x 1 s per condition, CPU float32; bootstrap 1,000 replicates. Ratio = MN9 at the reference rate / MN9 at 200 Hz drive.
+
+Shiu v630 (21 sugar GRNs -> contralateral MN9), seed 1:
+
+| w_syn (mV) | 0.2 | 0.225 | 0.25 | 0.275 | 0.3 | 0.325 | 0.35 | 0.375 | 0.4 |
+|---|---|---|---|---|---|---|---|---|---|
+| MN9 at 50 / 100 / 200 Hz (Hz) | 0 / 8 / 69 | 1 / 42 / 82 | 4 / 63 / 88 | 20 / 67 / 95 | 38 / 77 / 98 | 44 / 76 / 99 | 50 / 81 / 103 | 57 / 81 / 106 | 52 / 77 / 99 |
+| 100 / 200 ratio | 0.12 | 0.51 | 0.71 | 0.70 | 0.78 | 0.77 | 0.79 | 0.76 | 0.78 |
+
+| Rule (target from v630 at 0.275 mV, seed 0) | v630 outcome |
+|---|---|
+| onset ratio 50 / 200, target 0.205 | calibrated, 0.273 mV (95 % CI 0.268-0.279), support 1.00 |
+| 100 / 200 transfer, target 0.689 | ambiguous, crossing 0.247 (0.244-0.267), support 0.81 |
+| literal 100 / 200 = 0.8 | unresolved (support 0.23) |
+
+LB3 sugar/water assignment (output partners with >= 5 synapses, MaleCNS partners named by `fafb_783_cell_type`, cosine to FlyWire v783 profiles of Shiu's sugar and water GRN ids, 20/21 and 18/18 found in v783): LB3a 0.44 / 0.87, LB3b 0.65 / 0.49, LB3c 0.92 / 0.62, LB3d 0.86 / 0.55 (sugar / water). Per neuron, closer to sugar: LB3a 0/17, LB3b 8/11, LB3c 17/23, LB3d 24/26.
+
+MaleCNS v1.0 -> MN9 (2 neurons), seed 1, onset-ratio transfer:
+
+| Stimulus | Outcome | MN9 at 100 / 200 Hz near the outcome |
+|---|---|---|
+| LB3c + LB3d (49, sugar-like) | calibrated, **0.188 mV (95 % CI 0.185-0.192)**, support 0.99 | 29 / 43 Hz at 0.175 mV, 41 / 49 Hz at 0.2 mV |
+| all LB3 (78) | ambiguous (ratio 0.18-0.22 from 0.225 to 0.4 mV) | - |
+
+The literal and 100 / 200 transfer rules are ambiguous or unresolved for both stimuli. The LB3c+d onset ratio is not monotonic above the crossing (0.47 at 0.225 mV, 0.26 at 0.25 mV) but stays above the target there.
+
+Independent cross-check: synapses per matched type pair (sum over >= 5-synapse edges / (n_pre x n_post), types matched via MaleCNS `fafb_783_cell_type`, 227,872 shared pairs) are 1.67x (median; geometric mean 1.74) higher in MaleCNS than in FlyWire v783; 1.47x for pairs with >= 5 synapses per neuron pair. Scaling 0.275 mV by these gives 0.165-0.187 mV.
 
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
