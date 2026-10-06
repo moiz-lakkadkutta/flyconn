@@ -16,5 +16,5 @@ jobs:
         with:
           path: .cache/data
           key: flyconn-data-${{ hashFiles('flyconn/data/registry/*.yaml') }}
-      - run: uv sync --group dev --group brian --extra sim
+      - run: uv sync --group dev --group brian --extra sim --extra interpret --extra access
       - run: uv run pytest -m "golden or benchmark or brian" --benchmark-json=benchmarks/latest.json

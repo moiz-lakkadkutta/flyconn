@@ -18,7 +18,7 @@ Status: Phase 0 output, 2026-09-26; approved 2026-09-26 ("go with recommendation
 | M11 calibration | done (protocol) | positive control recovers 0.273 mV on v630; MaleCNS onset-ratio transfer 0.188 mV (ADR-0009); default unchanged |
 | M8 BANC | done | 155,858 neurons, DN/AN counts match the paper; W3 MaleCNS vs BANC with nerve-cord partners |
 
-**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; CUDA validation of the compiled simulator; PDF reports and sweeps over seeds or multiple YAML files; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters; PyPI release. MaleCNS has a protocol calibration (0.188 mV, ADR-0009) that is not validated against data and not yet the default.
+**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; CUDA validation of the compiled simulator; PDF reports and sweeps over seeds or multiple YAML files; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters. MaleCNS has a protocol calibration (0.188 mV, ADR-0009) that is not validated against data and not yet the default.
 Inputs: `LANDSCAPE.md`, `DATA_SOURCES.md`, `GOLDEN_RESULTS.md`, ADRs 0001–0008.
 
 ## 1. Corrections to the brief (things the research showed to be wrong, different, or already done)
