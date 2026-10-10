@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import resource
+import sys
 import time
 from pathlib import Path
 
@@ -32,7 +33,8 @@ def test_robust_screen_malecns(tmp_path: Path):
     t0 = time.time()
     res = run_robust_screen(spec, out_dir=tmp_path / "robust")
     wall = time.time() - t0
-    rss_gb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e9  # bytes on macOS
+    maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    rss_gb = maxrss / 1e9 if sys.platform == "darwin" else maxrss * 1024 / 1e9  # bytes vs KiB
     out = res.out_dir
     print(f"\nM13 robust screen: {wall:.0f} s, peak RSS {rss_gb:.1f} GB")
     print(res.hits.to_string(index=False))
@@ -47,6 +49,11 @@ def test_robust_screen_malecns(tmp_path: Path):
     control = ref[ref["role"] == "control"]
     assert len(control) == 1
     assert control.index[0] not in set(res.hits["candidate"])
+    # Pinned from GOLDEN_RESULTS 6j (two identical same-seed runs): one hit, Conditional on NT signs.
+    hits = res.hits.set_index("candidate")
+    assert list(hits.index) == ["GNG232"]
+    assert hits.loc["GNG232", "tier"] == "Conditional"
+    assert hits.loc["GNG232", "failed_axes"] == "nt"
     control_p = res.provenance["robustness"]["control_null_p"][control.index[0]]
     print(
         f"negative control {control.index[0]}: effect "
