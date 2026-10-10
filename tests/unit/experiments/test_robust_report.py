@@ -25,6 +25,7 @@ HANDOFF_COLS = [
     "failed_axes",
     "untested_axes",
     "thinly_tested",
+    "random_null_note",
     "replicate",
     "path_stability",
     "best_line",
@@ -175,3 +176,25 @@ def test_skipped_null_renders_reason():
     html = _card(row, hit, True, ())
     assert "not_run (skipped: pool of 3 descending neurons is smaller than the set size 4)" in html
     assert "p n/a" not in html
+
+
+def test_degenerate_null_note():
+    from flyconn.experiments.robustness import degenerate_null_note
+
+    assert degenerate_null_note(20, 40) == (
+        "degenerate null: 20/40 random sets had no effect; p is at its floor 1/41"
+    )
+    assert degenerate_null_note(39, 40).startswith("degenerate null: 39/40 ")
+    assert degenerate_null_note(19, 40) == ""
+    assert degenerate_null_note(0, 0) == ""
+
+
+def test_degenerate_null_note_on_card():
+    from flyconn.report.robust_html import _card  # pyright: ignore[reportPrivateUsage]
+
+    row, hit = _row_hit(1 / 41)
+    note = "degenerate null: 30/40 random sets had no effect; p is at its floor 1/41"
+    row["random_null_note"] = note
+    assert note in _card(row, hit, True, ())
+    row["random_null_note"] = ""
+    assert "degenerate null" not in _card(row, hit, True, ())

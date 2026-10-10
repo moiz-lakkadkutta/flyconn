@@ -264,6 +264,16 @@ def _effect_label(axis: str, ref_difference: float, d: float, lo: float, hi: flo
     return variant_label(ref_difference, d, lo, hi)
 
 
+DEGENERATE_NULL_FRACTION = 0.5
+
+
+def degenerate_null_note(n_zero: int, n: int) -> str:
+    """Warning when at least half the random sets of a null key changed nothing (else "")."""
+    if n == 0 or n_zero / n < DEGENERATE_NULL_FRACTION:
+        return ""
+    return f"degenerate null: {n_zero}/{n} random sets had no effect; p is at its floor 1/{n + 1}"
+
+
 def run_robust_screen(
     spec: ExperimentSpec,
     *,
@@ -419,6 +429,13 @@ def run_robust_screen(
     hits = score_hits(eff, alpha=spec.report.alpha, null_p=null_by_cand, replicate=replicate_labels)
     hits["path_stability"] = _path_stability(spec, store, hits, cands)
     hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
+    zero = {
+        str(k): (int((g == 0).sum()), len(g))
+        for k, g in null_df.groupby("key")["difference"]  # pyright: ignore[reportUnknownVariableType]
+    }
+    nz = [zero.get(key_by_cand[str(c)], (0, 0)) for c in hits["candidate"]]
+    hits["random_null_zero_frac"] = [z / n if n else float("nan") for z, n in nz]
+    hits["random_null_note"] = [degenerate_null_note(z, n) for z, n in nz]
 
     sel = pd.DataFrame(stability, columns=pd.Index(["variant", "axis", "jaccard"]))
     write_table(eff, out / "hits.parquet")
@@ -475,6 +492,7 @@ HANDOFF_COLUMNS = [
     "failed_axes",
     "untested_axes",
     "thinly_tested",
+    "random_null_note",
     "replicate",
     "path_stability",
     "best_line",
@@ -518,6 +536,7 @@ def write_handoff(result: RobustScreenResult, catalog: LineCatalog | None) -> pd
             "failed_axes": h.get("failed_axes"),
             "untested_axes": h.get("untested_axes"),
             "thinly_tested": h.get("thinly_tested"),
+            "random_null_note": h.get("random_null_note"),
             "replicate": h.get("replicate"),
             "path_stability": h.get("path_stability"),
             "best_line": h.get("best_line"),

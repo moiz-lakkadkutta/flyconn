@@ -76,6 +76,10 @@ def _card(
     )
     ps = row["path_stability"]
     caveats = "".join(f"<li>{_e(c)}</li>" for c in caveat_list)
+    note = str(row.get("random_null_note", "") or "")
+    if note == "nan":  # read back from CSV
+        note = ""
+    degenerate = f"<p class='warn'>{_e(note)}</p>" if note else ""
     thin = (
         "<p class='warn'>Thinly tested: fewer than two graded axes ran.</p>"
         if bool(row["thinly_tested"])
@@ -86,7 +90,7 @@ def _card(
         f"<h3>{_e(row['label'])} &middot; {_e(row['tier'])}</h3>"
         f"<p>Silencing moves the primary readout <b>{_e(row['direction'])}</b> by "
         f"{float(row['effect_hz']):.2f} Hz (95% CI {float(row['ci_low']):.2f} to "
-        f"{float(row['ci_high']):.2f}), q {float(row['q_value']):.2g}.</p>{thin}"
+        f"{float(row['ci_high']):.2f}), q {float(row['q_value']):.2g}.</p>{thin}{degenerate}"
         "<ul>"
         f"<li>w_syn: {_e(hit['w_syn'])} ({_e(hit['w_syn_detail'])})</li>"
         f"<li>NT signs: {_e(hit['nt'])} (holds {_e(hit['nt_holds'])}; "

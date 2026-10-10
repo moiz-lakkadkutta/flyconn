@@ -224,3 +224,35 @@ def test_secondary_readout_does_not_empty_null_pool(small_store: Store, tmp_path
     assert len(res.null) > 0
     skipped = res.provenance["robustness"]["random_null"]["skipped"]
     assert not any(v.startswith("pool of 0 ") for v in skipped.values()), skipped
+
+
+def test_null_zero_fraction_and_note(small_store: Store, tmp_path: Path):
+    from flyconn.experiments.robust_null import null_key
+    from flyconn.experiments.robustness import degenerate_null_note
+
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    assert {"random_null_zero_frac", "random_null_note"} <= set(res.hits.columns)
+    ref = res.effects[res.effects["axis"] == "reference"]
+    neurons = small_store.neurons()
+    h = pd.read_csv(tmp_path / "o" / "handoff.csv", keep_default_na=False)
+    for _, row in res.hits.iterrows():
+        cand = str(row["candidate"])
+        assert cand in set(ref["candidate"])
+        ids = next(
+            c
+            for c in json.loads((tmp_path / "o/variants/reference/done.json").read_text())[
+                "candidates"
+            ]
+            if c[0] == cand
+        )[1]
+        nulls = res.null.loc[res.null["key"] == null_key(neurons, ids), "difference"]
+        if nulls.empty:
+            assert pd.isna(row["random_null_zero_frac"])
+            continue
+        n_zero = int((nulls == 0).sum())
+        assert row["random_null_zero_frac"] == pytest.approx(n_zero / len(nulls))
+        expect = degenerate_null_note(n_zero, len(nulls))
+        assert row["random_null_note"] == expect
+        assert h.set_index("label").loc[cand, "random_null_note"] == expect
