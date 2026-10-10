@@ -298,7 +298,8 @@ def test_sweep_report_has_banners_ranked_table_figure_and_n_trials_statement(
     html = (tmp_path / "out" / "report.html").read_text()
     low = html.lower()
     assert "model prediction" in low
-    assert "uncalibrated" in low  # synthetic store is labelled malecns -> uncalibrated
+    # synthetic store is labelled malecns@1.0 -> protocol calibration banner (ADR-0009)
+    assert "calibrated by protocol" in low and "not validated" in low
     assert "n = 4 trials" in low
     assert "benjamini-hochberg" in low and "whole sweep" in low
     assert "<img" in html

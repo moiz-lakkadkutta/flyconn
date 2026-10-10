@@ -46,7 +46,8 @@ def test_w2_silencing_screen_ranks_gng_types(tmp_path: Path):
     assert len(res.conditions) == 4 + 10
     stim_mn9 = res.sweep.loc[res.sweep["readout"] == "MN9", "mean_reference_hz"]
     assert (stim_mn9 > 0).all()
-    assert "UNCALIBRATED" in res.provenance["network"]["calibration"]
+    assert res.provenance["network"]["calibration"].startswith("CALIBRATED BY PROTOCOL")
     html = (tmp_path / "w2_sweep" / "report.html").read_text()
-    assert "UNCALIBRATED" in html and "model prediction" in html.lower()
+    assert "CALIBRATED BY PROTOCOL" in html and "not validated" in html
+    assert "model prediction" in html.lower()
     assert "n = 10 trials" in html

@@ -23,7 +23,7 @@ import pytest
 from flyconn.data.pull import pull
 from flyconn.data.store import Store
 from flyconn.graph import ConnectivityMatrix, SignPolicy
-from flyconn.sim import LIFNetwork, calibrate_w_syn, select_w_syn
+from flyconn.sim import LIFNetwork, ShiuParams, calibrate_w_syn, select_w_syn
 
 pytestmark = pytest.mark.golden
 
@@ -37,7 +37,7 @@ SUGAR_SUBTYPES = ("LB3c", "LB3d")
 def test_malecns_calibration_protocol_runs_and_reports():
     store = Store(pull("malecns@1.0", level="weights").store_dir)
     m = ConnectivityMatrix.from_store(store, sign_policy=SignPolicy.ARGMAX)
-    net = LIFNetwork.from_matrix(m)
+    net = LIFNetwork.from_matrix(m, ShiuParams())  # published constant as the scan base
     assert net.provenance["calibration"].startswith("UNCALIBRATED")
     meta = m.meta
     cell_type = meta["cell_type"].astype(str)

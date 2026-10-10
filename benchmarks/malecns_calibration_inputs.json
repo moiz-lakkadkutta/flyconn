@@ -1,0 +1,350 @@
+{
+ "lb3_assignment": {
+  "subtype_cosine": {
+   "LB3a": {
+    "sugar_grn": 0.439,
+    "water_grn": 0.867
+   },
+   "LB3b": {
+    "sugar_grn": 0.648,
+    "water_grn": 0.486
+   },
+   "LB3c": {
+    "sugar_grn": 0.915,
+    "water_grn": 0.621
+   },
+   "LB3d": {
+    "sugar_grn": 0.858,
+    "water_grn": 0.549
+   }
+  },
+  "per_neuron_calls": {
+   "LB3a": {
+    "sugar": 0,
+    "water": 17
+   },
+   "LB3b": {
+    "sugar": 8,
+    "water": 3
+   },
+   "LB3c": {
+    "sugar": 17,
+    "water": 6
+   },
+   "LB3d": {
+    "sugar": 24,
+    "water": 2
+   }
+  }
+ },
+ "synapse_scale": {
+  "0": {
+   "n_pairs": 227872,
+   "median_ratio": 1.6732673267326732,
+   "geomean_ratio": 1.7412537579132834,
+   "implied_w_syn_mv": 0.16434911242603553
+  },
+  "1": {
+   "n_pairs": 176324,
+   "median_ratio": 1.6,
+   "geomean_ratio": 1.6408768926975748,
+   "implied_w_syn_mv": 0.171875
+  },
+  "5": {
+   "n_pairs": 76829,
+   "median_ratio": 1.4735576923076923,
+   "geomean_ratio": 1.50494647147638,
+   "implied_w_syn_mv": 0.18662316476345842
+  }
+ },
+ "per_neuron_sugar_call_argmax": {
+  "n_sources": 49,
+  "sign_policy": "argmax",
+  "curve": [
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 16.6,
+    "readout_sd_hz": 2.0789954839350235,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.4,
+    "readout_sd_hz": 0.39440531887330776,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 36.3,
+    "readout_sd_hz": 2.2997584414213783,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 2.55,
+    "readout_sd_hz": 1.1167910378500636,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 45.4,
+    "readout_sd_hz": 1.7288403306519908,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 9.6,
+    "readout_sd_hz": 2.6956755492207636,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 52.6,
+    "readout_sd_hz": 2.7264140062238043,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 19.4,
+    "readout_sd_hz": 3.0713731999438507,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 61.5,
+    "readout_sd_hz": 4.6844897741850655,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 18.75,
+    "readout_sd_hz": 7.173446405552448,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 66.5,
+    "readout_sd_hz": 2.8087165910587855,
+    "n_trials": 10
+   }
+  ],
+  "protocol": "Shiu et al. 2024: w_syn such that the reference-rate readout is ~80% of max",
+  "target_fraction": 0.20504731861198738,
+  "reference_rate_hz": 50.0,
+  "max_rate_hz": 200.0,
+  "fractions": [
+   {
+    "w_syn_mv": 0.125,
+    "fraction": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0
+   },
+   {
+    "w_syn_mv": 0.15,
+    "fraction": 0.011019283746556476,
+    "ci_low": 0.005405223036801985,
+    "ci_high": 0.01785775692670466
+   },
+   {
+    "w_syn_mv": 0.175,
+    "fraction": 0.05616740088105727,
+    "ci_low": 0.04101816365930117,
+    "ci_high": 0.07144640875218011
+   },
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.18250950570342203,
+    "ci_low": 0.15201948058876566,
+    "ci_high": 0.21428744630732993
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.3154471544715447,
+    "ci_low": 0.28241681875614205,
+    "ci_high": 0.3473724558414776
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.2819548872180451,
+    "ci_low": 0.22047268989947844,
+    "ci_high": 0.3443117216487271
+   }
+  ],
+  "crossing_mv": 0.20423841799471668,
+  "crossing_ci_mv": [
+   0.19850434939343856,
+   0.20873675962568125
+  ],
+  "crossing_support": 0.988,
+  "n_boot": 1000,
+  "n_steps": 10000,
+  "n_trials": 10,
+  "seed": 1,
+  "status": "calibrated",
+  "label": "protocol outcome; dataset remains uncalibrated until validated",
+  "seconds": 268.256365776062
+ },
+ "lb3cd_probabilistic_signs": {
+  "n_sources": 49,
+  "sign_policy": "probabilistic",
+  "curve": [
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.0,
+    "readout_sd_hz": 0.0,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.125,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 10.8,
+    "readout_sd_hz": 1.9321835661585918,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 0.1,
+    "readout_sd_hz": 0.21081851067789195,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.15,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 35.05,
+    "readout_sd_hz": 1.6064107680028654,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 3.55,
+    "readout_sd_hz": 1.165475582469806,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.175,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 42.2,
+    "readout_sd_hz": 1.669996673316714,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 14.6,
+    "readout_sd_hz": 3.116265571338732,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.2,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 48.9,
+    "readout_sd_hz": 1.882669499525725,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 21.3,
+    "readout_sd_hz": 1.7511900715418263,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.225,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 55.05,
+    "readout_sd_hz": 2.266298989787339,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 50.0,
+    "readout_rate_hz": 28.5,
+    "readout_sd_hz": 2.953340857778226,
+    "n_trials": 10
+   },
+   {
+    "w_syn_mv": 0.25,
+    "rate_hz": 200.0,
+    "readout_rate_hz": 62.5,
+    "readout_sd_hz": 5.676462121975467,
+    "n_trials": 10
+   }
+  ],
+  "protocol": "Shiu et al. 2024: w_syn such that the reference-rate readout is ~80% of max",
+  "target_fraction": 0.20504731861198738,
+  "reference_rate_hz": 50.0,
+  "max_rate_hz": 200.0,
+  "fractions": [
+   {
+    "w_syn_mv": 0.125,
+    "fraction": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0
+   },
+   {
+    "w_syn_mv": 0.15,
+    "fraction": 0.002853067047075607,
+    "ci_low": 0.0,
+    "ci_high": 0.007052935347634819
+   },
+   {
+    "w_syn_mv": 0.175,
+    "fraction": 0.08412322274881516,
+    "ci_low": 0.06839495384824217,
+    "ci_high": 0.10071413636544665
+   },
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.2985685071574642,
+    "ci_low": 0.25955365969980615,
+    "ci_high": 0.3385325311686401
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.38692098092643057,
+    "ci_low": 0.36711054852320674,
+    "ci_high": 0.4073161251367976
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.456,
+    "ci_low": 0.42116888559604254,
+    "ci_high": 0.49464398416241195
+   }
+  ],
+  "crossing_mv": 0.18909731347050024,
+  "crossing_ci_mv": [
+   0.1867035728782756,
+   0.19220947261153104
+  ],
+  "crossing_support": 1.0,
+  "n_boot": 1000,
+  "n_steps": 10000,
+  "n_trials": 10,
+  "seed": 1,
+  "status": "calibrated",
+  "label": "protocol outcome; dataset remains uncalibrated until validated",
+  "seconds": 216.7840120792389
+ }
+}
