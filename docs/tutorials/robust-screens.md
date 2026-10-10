@@ -134,3 +134,14 @@ variants; they test the stability of one effect, not new hypotheses.
   biology or calibration.
 - Line annotations are curated text and may not match EM type names one to one.
 - "Strong" means robust within the tested axes, not true.
+
+Two more limits of the random null (not yet printed on the cards):
+
+- The random null can be degenerate. In the MaleCNS golden run nearly all random sets
+  changed the readout by exactly 0 Hz (GOLDEN_RESULTS 6j), so p floors at 1 / (n_sets + 1)
+  for any nonzero effect and "null p < 0.05" is then weak evidence. Check
+  `null.parquet` before relying on that axis.
+- A readout that is a whole super_class (e.g. `descending`) removes every neuron of that
+  super_class from the random pool, so candidates of the same super_class get no null p
+  and the axis is reported untested for them (`provenance.json`,
+  `robustness.random_null.skipped`).

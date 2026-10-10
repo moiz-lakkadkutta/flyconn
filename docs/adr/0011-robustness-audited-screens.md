@@ -81,7 +81,7 @@ spec has a `robustness:` block (`flyconn.experiments.robustness.run_robust_scree
 
 - A screen costs one reference sweep plus one sweep per variant (14 for the default block
   on MaleCNS) plus the random null; variants run without shared controls to save 4 runs
-  each. Measured on the MaleCNS golden run (15 sweeps plus 80 random-null runs, 7 candidates): 939 s and 11.8 GB peak RSS on an M4 Pro CPU (GOLDEN_RESULTS 6j), about half the 30 min extrapolated in the design.
+  each. Measured on the MaleCNS golden run (15 sweeps plus 80 random-null runs, 7 candidates): 921 s and 12.2 GB peak RSS on an M4 Pro CPU (golden test) (GOLDEN_RESULTS 6j), about half the 30 min extrapolated in the design.
 - "Strong" means robust within the tested axes, not true. The labels use the unpaired
   bootstrap CI although conditions share Poisson inputs, so they are conservative.
 - The NT axis needs the `nt-probs` level for MaleCNS; without it the axis is not run,
