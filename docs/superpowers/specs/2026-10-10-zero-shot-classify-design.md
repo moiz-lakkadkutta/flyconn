@@ -3,6 +3,9 @@
 Status: design approved in conversation 2026-10-10 (option C, per-neuron + group,
 nearest centroid with yardstick adjustment). Branch `m12-classify`.
 
+As built: see ADR-0010. Owner decision after the real-data benchmark: only group
+(whole-type) calls are calibrated; per-neuron calls are uncalibrated.
+
 ## 1. Goal and scope
 
 Given neurons in a query dataset with no type labels for those neurons, assign a
@@ -126,7 +129,7 @@ res.caveats
 res.provenance
 ```
 
-- `classify(..., partner_labels=None)`: an optional Series overriding the partner names
+- `classify(..., partner_names=None)`: an optional Series overriding the partner names
   (default: the query's cross-reference vocabulary). Mode B will pass the classifier's own
   predictions here. No other change is needed for it.
 - CLI:

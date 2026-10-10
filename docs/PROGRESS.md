@@ -2,6 +2,30 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-10 — M12 zero-shot classification (branch m12-classify)
+
+- Built: `build_atlas` / `classify` / `flyconn classify run|bench`. Partner-type profile
+  centroids with left/right yardsticks; logistic calibration from a hold-out benchmark
+  (ADR-0010; spec and plan in `docs/superpowers/`).
+- Measured (GOLDEN_RESULTS 6i), group top-1:
+  - MaleCNS -> FlyWire 0.909 (CI 0.895-0.922);
+  - BANC -> FlyWire 0.657 (0.633-0.680);
+  - BANC -> MANC 0.670.
+  Per-neuron top-1 is 0.813, 0.423 and 0.482. Shipped pooled group calibration: ECE 0.012,
+  open-set false accept 0.052.
+- Owner decision: only group calls are calibrated. Per-neuron leave-one-dataset-out ECE was
+  0.235 / 0.237; group 0.084 / 0.128, which is above the 0.05 in-sample target and quoted
+  in every result.
+- LB3 against Shiu sugar/water sets reproduces 6g's calls. The cosines are lower because
+  the atlas averages per-neuron profiles; pooling reproduces 6g to 0.002.
+- Open:
+  - mode B (no labelled partners);
+  - whether MaleCNS's FlyWire cross-references used connectivity (would inflate MaleCNS
+    accuracy);
+  - a dataset-difficulty feature to make calibration transfer;
+  - kNN voting for heterogeneous types;
+  - hemibrain not benchmarked.
+
 ## 2026-10-06 — M11 calibration (branch m11-calibration)
 
 - Nightly heavy-validation failed 2026-10-05 on 2 W5 tests (openpyxl missing: workflow lacked `--extra access`); fixed here (also on branch fix-heavy-ci).

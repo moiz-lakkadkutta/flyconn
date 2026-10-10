@@ -18,5 +18,6 @@ nav:
   - Landscape: LANDSCAPE.md
   - Scientific caveats: caveats.md
   - Tutorials: tutorials/index.md
+  - Classification: tutorials/classify.md
   - ADRs: adr/README.md
   - Progress: PROGRESS.md

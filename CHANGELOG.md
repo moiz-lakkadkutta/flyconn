@@ -4,6 +4,27 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M12 zero-shot classification
+- `flyconn.compare.build_atlas` and `classify`: assign reference cell types to unlabelled
+  neurons by partner-type profile (out + in synapse fractions in the FlyWire-or-MANC
+  vocabulary), per neuron and for the selection as a group. Custom reference groups
+  (neuron-id lists) are supported, e.g. FlyWire sugar vs water GRNs (ADR-0010).
+- Group calls are calibrated: `type` (P >= 0.8), `ambiguous` (candidates listed) or
+  `unknown`. Per-neuron calls are uncalibrated (best label and raw cosine), because
+  per-neuron confidence did not transfer between datasets (leave-one-dataset-out ECE
+  about 0.24).
+- `flyconn classify run` and `flyconn classify bench`.
+- Hold-out benchmark (`flyconn.compare.classify_bench`, GOLDEN_RESULTS 6i), 1,500 types per
+  query, labels hidden as partner names:
+  - group top-1 0.909 for MaleCNS -> FlyWire, 0.657 for BANC -> FlyWire, 0.670 for
+    BANC -> MANC;
+  - pooled group calibration ECE 0.012; leave-one-dataset-out 0.08-0.13;
+  - open-set false accept 0.05.
+  MaleCNS accuracy may be optimistic (its cross-references may partly derive from
+  connectivity); BANC is the conservative number.
+- Shipped calibration `flyconn/compare/calibration/classify_flywire_783.json`.
+- `flyconn.provenance.run_environment` (package versions, git SHA).
+
 ### M11 calibration
 - `select_w_syn` and a revised `calibrate_w_syn`: per-trial readouts, bootstrap CIs on the readout ratio, interpolated crossing with a bootstrap interval, status calibrated / ambiguous / unresolved (ADR-0009).
 - Positive control on Shiu v630 (`tests/golden/test_shiu_calibration.py`): the onset ratio (50 / 200 Hz) recovers the published w_syn (0.273 mV, CI 0.268-0.279); the literal 80 % rule is unresolved on v630.

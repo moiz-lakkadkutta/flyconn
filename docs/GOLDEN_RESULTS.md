@@ -432,6 +432,56 @@ Pathway screen (`w2_sweep_pathway_mn9.yaml`, same six relays; stimulated MN9 28.
 
 Robust to the w_syn change: GNG232 silencing lowers MN9 (and the descending and motor groups); rewiring abolishes the response. Not robust: the size and significance of DNge080 and of the inhibitory-route relays, the direction-matches-route-sign pattern (GNG215 flips, n.s.), and which GNG types a top-10 activity screen selects. Screen rankings on MaleCNS should be reported with the w_syn they used.
 
+### 6i. Zero-shot classification benchmark (ADR-0010; 2026-10-10)
+
+Command: `FLYCONN_CACHE=$PWD/.cache/flyconn uv run pytest -m golden tests/golden/test_classify.py`
+(179 s; output `benchmarks/classify_flywire_783.json`).
+
+Protocol:
+- Truth is the query's single-name `fafb_783_cell_type`; comma lists are excluded (2,751
+  MaleCNS, 1,022 BANC neurons).
+- 1,500 types per query.
+- Closed set: the held-out type is blanked as a partner name. Open set: its centroid is
+  also removed.
+- 5 type-level folds; bootstrap over types.
+- Profiles: out+in partner fractions at >= 5 synapses, FlyWire-or-MANC vocabulary.
+
+| query (vs FlyWire v783) | level | top-1 (95 % CI) | top-3 | coverage | accuracy covered | ECE out of fold | leave-one-dataset-out ECE | open-set false accept |
+|---|---|---|---|---|---|---|---|---|
+| MaleCNS v1.0 | group | 0.909 (0.895-0.922) | 0.961 | 0.649 | 0.990 | 0.047 | 0.084 | 0.059 |
+| MaleCNS v1.0 | neuron | 0.813 (0.697-0.904) | 0.899 | (0.521) | (0.991) | 0.061 | 0.235 | (0.018) |
+| BANC v888 | group | 0.657 (0.633-0.680) | 0.799 | 0.306 | 0.941 | 0.050 | 0.128 | 0.044 |
+| BANC v888 | neuron | 0.423 (0.358-0.489) | 0.557 | (0.164) | (0.749) | 0.161 | 0.237 | (0.052) |
+
+- Pooled group calibration (shipped, `da750126359a`): ECE 0.012, coverage 0.478, accuracy
+  covered 0.974, open-set false accept 0.052.
+- Thresholds: accept P >= 0.8, unknown below cosine 0.746, ambiguous within 0.05 of the
+  best.
+- Per-neuron numbers in parentheses come from a per-neuron calibration that is **not
+  shipped**: its leave-one-dataset-out ECE is about 0.24.
+
+Secondary, BANC v888 vs MANC v1.2.1 (`manc_121_cell_type` truth, nerve cord; fitted on BANC
+alone, no transfer test, not shipped):
+
+| level | top-1 (95 % CI) | top-3 | coverage | accuracy covered | ECE out of fold | open-set false accept |
+|---|---|---|---|---|---|---|
+| group | 0.670 (0.647-0.695) | 0.804 | 0.237 | 0.963 | 0.021 | 0.037 |
+| neuron | 0.482 (0.442-0.520) | 0.649 | 0.080 | 0.889 | 0.023 | 0.019 |
+
+LB3 against Shiu's sugar / water GRN sets (custom groups, output partners only,
+uncalibrated):
+
+| subtype | sugar | water | per-neuron votes sugar / water |
+|---|---|---|---|
+| LB3a | 0.443 | 0.859 | 0 / 17 |
+| LB3b | 0.562 | 0.372 | 8 / 3 |
+| LB3c | 0.811 | 0.539 | 17 / 6 |
+| LB3d | 0.810 | 0.506 | 22 / 4 |
+
+The calls agree with 6g, and so do the per-neuron votes except LB3d (22/26 here vs 24/26). The cosines are lower because the atlas averages per-neuron
+normalised profiles; 6g pooled synapses, and pooling on the same vocabulary reproduces
+6g's cosines to 0.002.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |
