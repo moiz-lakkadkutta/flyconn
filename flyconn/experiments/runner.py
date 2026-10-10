@@ -8,7 +8,7 @@ then one simulation per sweep variant.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -25,8 +25,9 @@ from flyconn.data.store import Store
 from flyconn.experiments.spec import ExperimentSpec, Stimulation, resolve_selection
 from flyconn.experiments.stats import benjamini_hochberg, compare_groups
 from flyconn.graph.matrix import ConnectivityMatrix
-from flyconn.graph.signs import SignPolicy
+from flyconn.graph.signs import SignPolicy, has_nt_probabilities
 from flyconn.sim.engine import DType, LIFNetwork, simulate
+from flyconn.sim.params import ShiuParams, default_params
 from flyconn.uncertainty.nulls import degree_preserving_rewire, shuffle_signs
 
 # One simulated condition: (condition, control, replicate, counts[n_trials, n_neurons]).
@@ -92,6 +93,13 @@ def simulate_condition(
     return res.counts
 
 
+def sim_params(spec: ExperimentSpec) -> ShiuParams:
+    """Dataset default parameters (with protocol calibration), plus the spec's overrides."""
+    base = default_params(spec.dataset)
+    w = spec.params.w_syn_mv
+    return base if w is None else replace(base, w_syn_mv=w)
+
+
 def prepare(spec: ExperimentSpec, out_dir: Path | str, store: Store | None) -> Context:
     """Create ``out_dir`` (refusing to overwrite), load the dataset and build the network."""
     out = Path(out_dir)
@@ -102,15 +110,26 @@ def prepare(spec: ExperimentSpec, out_dir: Path | str, store: Store | None) -> C
     if store is None:
         store = Store(pull(spec.dataset, level="weights").store_dir)
     neurons = store.neurons()
+    policy = SignPolicy(spec.network.sign_policy)
+    if policy is SignPolicy.SAMPLED and not has_nt_probabilities(neurons):
+        msg = (
+            f"sign_policy: sampled needs per-neuron NT probabilities, which {store.ref} lacks "
+            "(without them signs would silently fall back to argmax); for MaleCNS run "
+            "`flyconn data pull malecns@1.0 --level nt-probs`"
+        )
+        raise ValueError(msg)
     m = ConnectivityMatrix.from_store(
-        store, min_weight=spec.network.min_weight, sign_policy=SignPolicy(spec.network.sign_policy)
+        store,
+        min_weight=spec.network.min_weight,
+        sign_policy=policy,
+        seed=spec.network.sign_seed,
     )
     return Context(
         out=out,
         store=store,
         neurons=neurons,
         matrix=m,
-        net=LIFNetwork.from_matrix(m),
+        net=LIFNetwork.from_matrix(m, sim_params(spec)),
         seconds=spec.n_steps * spec.dt_ms / 1000.0,
         background=rates_hz(spec.stimulate, neurons),
         readout_ids={r.name: resolve_selection(r.select, neurons) for r in spec.readouts},
@@ -125,7 +144,7 @@ def shared_runs(ctx: Context, spec: ExperimentSpec) -> list[Run]:
     runs.append(("stimulated", "none", 0, simulate_condition(ctx.net, spec, ctx.background, [])))
     for k in range(spec.controls.degree_preserving_rewire):
         null = LIFNetwork.from_matrix(
-            degree_preserving_rewire(ctx.matrix, seed=spec.seed + 1000 + k)
+            degree_preserving_rewire(ctx.matrix, seed=spec.seed + 1000 + k), ctx.net.params
         )
         runs.append(
             (
@@ -136,7 +155,9 @@ def shared_runs(ctx: Context, spec: ExperimentSpec) -> list[Run]:
             )
         )
     for k in range(spec.controls.sign_shuffle):
-        null = LIFNetwork.from_matrix(shuffle_signs(ctx.matrix, seed=spec.seed + 2000 + k))
+        null = LIFNetwork.from_matrix(
+            shuffle_signs(ctx.matrix, seed=spec.seed + 2000 + k), ctx.net.params
+        )
         runs.append(
             ("stimulated", "sign_shuffle", k, simulate_condition(null, spec, ctx.background, []))
         )
@@ -223,6 +244,8 @@ def base_provenance(ctx: Context, spec: ExperimentSpec) -> dict[str, Any]:
             **ctx.matrix.provenance,
             "calibration": ctx.net.provenance.get("calibration"),
         },
+        "params": {"w_syn_mv": ctx.net.params.w_syn_mv},
+        "sign_seed": spec.network.sign_seed,
         "seed": spec.seed,
         "trials": spec.trials,
         "n_steps": spec.n_steps,

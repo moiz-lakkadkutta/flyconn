@@ -65,9 +65,17 @@ class Readout:
 
 
 @dataclass(frozen=True)
+class SimParams:
+    """Overrides of simulator constants; ``None`` keeps the dataset default (ADR-0009)."""
+
+    w_syn_mv: float | None = None
+
+
+@dataclass(frozen=True)
 class NetworkOptions:
     min_weight: int = 1
     sign_policy: str = "argmax"
+    sign_seed: int | None = None
 
 
 @dataclass(frozen=True)
@@ -154,6 +162,7 @@ class ExperimentSpec:
     controls: Controls = field(default_factory=Controls)
     report: ReportOptions = field(default_factory=ReportOptions)
     sweep: Sweep | None = None
+    params: SimParams = field(default_factory=SimParams)
     source_path: str | None = None
     source_sha256: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
@@ -292,6 +301,23 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     if trials < 1:
         msg = "trials must be >= 1"
         raise ValueError(msg)
+    sign_policy = str(net.get("sign_policy", "argmax"))
+    sign_seed_raw = net.get("sign_seed")
+    if sign_policy == "sampled" and sign_seed_raw is None:
+        msg = "sign_policy: sampled needs network.sign_seed (an int)"
+        raise ValueError(msg)
+    if sign_seed_raw is not None and sign_policy != "sampled":
+        msg = "network.sign_seed is only valid with sign_policy: sampled"
+        raise ValueError(msg)
+    params_d = cast("dict[str, Any]", d.get("params") or {})
+    unknown_params = sorted(set(params_d) - {"w_syn_mv"})
+    if unknown_params:
+        msg = f"unknown params {unknown_params}; supported: ['w_syn_mv']"
+        raise ValueError(msg)
+    w_raw = params_d.get("w_syn_mv")
+    if w_raw is not None and float(w_raw) <= 0:
+        msg = f"params.w_syn_mv must be > 0, got {w_raw}"
+        raise ValueError(msg)
     return ExperimentSpec(
         name=str(d["name"]),
         dataset=str(d["dataset"]),
@@ -299,7 +325,9 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
         readouts=readouts,
         perturb=perturb,
         network=NetworkOptions(
-            int(net.get("min_weight", 1)), str(net.get("sign_policy", "argmax"))
+            int(net.get("min_weight", 1)),
+            sign_policy,
+            int(sign_seed_raw) if sign_seed_raw is not None else None,
         ),
         duration_ms=float(d.get("duration_ms", 1000.0)),
         trials=trials,
@@ -313,6 +341,7 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
         ),
         report=ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05))),
         sweep=sweep,
+        params=SimParams(float(w_raw) if w_raw is not None else None),
         raw=d,
     )
 
