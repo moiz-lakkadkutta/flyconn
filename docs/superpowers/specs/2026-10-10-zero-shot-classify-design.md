@@ -119,10 +119,11 @@ Group result:
 
 ```python
 atlas = build_atlas(Store.open("flywire@783"))
-res = classify(Store.open("malecns@1.0"), atlas, cell_type="LB3b")   # or neuron_ids=[...]
-res.per_neuron   # DataFrame: neuron_id, call, label, p, s1, a1, margin, top_k, unlabelled_partner_fraction
-res.group        # GroupCall: call, label(s), p, agreement, votes
-res.caveats; res.provenance
+res = classify(Store.open("malecns@1.0"), atlas, cell_type="LB3b")  # or neuron_ids=[...]
+res.per_neuron  # DataFrame: neuron_id, call, label, p, s1, a1, margin, top_k, unlabelled_partner_fraction
+res.group  # GroupCall: call, label(s), p, agreement, votes
+res.caveats
+res.provenance
 ```
 
 - `classify(..., partner_labels=None)`: an optional Series overriding the partner names

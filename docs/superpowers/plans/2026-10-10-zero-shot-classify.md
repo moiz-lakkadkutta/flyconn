@@ -553,7 +553,10 @@ def test_masked_equals_exact_recompute(male_female: tuple[Store, Store]):
     mc = atlas.member_counts
     prof = mc.profiles(direction="both", mask=("T1",))
     agg = sp.csr_matrix(
-        (np.ones(len(atlas.member_codes)), (atlas.member_codes, np.arange(len(atlas.member_codes)))),
+        (
+            np.ones(len(atlas.member_codes)),
+            (atlas.member_codes, np.arange(len(atlas.member_codes))),
+        ),
         shape=(len(atlas.labels), len(atlas.member_codes)),
     )
     expected = (agg @ prof).toarray()
@@ -630,9 +633,7 @@ def _rowdot(a: sp.csr_matrix, b: sp.csr_matrix) -> np.ndarray:
 
 def _membership(codes: np.ndarray, n_labels: int, rows: np.ndarray | None = None) -> sp.csr_matrix:
     sel = np.arange(len(codes)) if rows is None else np.flatnonzero(rows)
-    return sp.csr_matrix(
-        (np.ones(len(sel)), (codes[sel], sel)), shape=(n_labels, len(codes))
-    )
+    return sp.csr_matrix((np.ones(len(sel)), (codes[sel], sel)), shape=(n_labels, len(codes)))
 
 
 def _fill(x: np.ndarray) -> np.ndarray:
@@ -652,9 +653,7 @@ def _yardsticks(
     ok = (n[codes] >= 2) & (pp > 0) & (rest > 1e-12)
     loo = np.full(len(codes), np.nan)
     loo[ok] = (dot[ok] - pp[ok]) / np.sqrt(pp[ok] * rest[ok])
-    neuron = (
-        pd.Series(loo).groupby(codes).median().reindex(range(n_labels)).to_numpy(dtype=float)
-    )
+    neuron = pd.Series(loo).groupby(codes).median().reindex(range(n_labels)).to_numpy(dtype=float)
     left = l2_rows(_membership(codes, n_labels, sides == "left") @ prof)
     right = l2_rows(_membership(codes, n_labels, sides == "right") @ prof)
     both = (_rowdot(left, left) > 0) & (_rowdot(right, right) > 0)
@@ -1564,8 +1563,17 @@ def test_unperturbed_type_is_classified_correctly(male_female: tuple[Store, Stor
     assert res.group.agreement == 1.0
     assert res.group.top_labels[0] == "T1"
     assert set(res.per_neuron.columns) >= {
-        "neuron_id", "call", "label", "p", "s1", "a1", "margin",
-        "top_labels", "top_s", "unlabelled_partner_fraction", "reason",
+        "neuron_id",
+        "call",
+        "label",
+        "p",
+        "s1",
+        "a1",
+        "margin",
+        "top_labels",
+        "top_s",
+        "unlabelled_partner_fraction",
+        "reason",
     }
     assert res.provenance["atlas_params_hash"] == atlas.params_hash
     assert res.provenance["calibration_id"] is not None
@@ -1582,7 +1590,9 @@ def test_uncalibrated_mode_without_calibration(male_female: tuple[Store, Store])
     assert any(c.startswith("UNCALIBRATED") for c in res.caveats)
 
 
-def test_default_calibration_missing_falls_back(male_female: tuple[Store, Store], monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_default_calibration_missing_falls_back(
+    male_female: tuple[Store, Store], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
     import flyconn.compare.calibrate as cal_mod
 
     monkeypatch.setattr(cal_mod, "CALIBRATION_DIR", tmp_path)
@@ -1608,7 +1618,9 @@ def test_calibration_caveat_quotes_transfer_ece(male_female: tuple[Store, Store]
     assert any("leave-one-dataset-out" in c and "0.04" in c for c in res.caveats)
 
 
-def test_neuron_ids_mode_deduplicates_and_single_neuron_has_no_group(male_female: tuple[Store, Store]):
+def test_neuron_ids_mode_deduplicates_and_single_neuron_has_no_group(
+    male_female: tuple[Store, Store],
+):
     male, female = male_female
     ids = male.neurons(columns=["neuron_id", "cell_type"])
     one = int(ids.loc[ids["cell_type"] == "T2", "neuron_id"].iloc[0])
@@ -1621,9 +1633,7 @@ def test_neuron_without_labelled_partners_is_unknown(male_female: tuple[Store, S
     male, female = male_female
     # 901/902 (T8) have no FlyWire name and only receive input from T0; with T0 masked
     # their profiles are empty
-    res = classify(
-        male, build_atlas(female), neuron_ids=[901, 902], mask=("T0",), calibration=None
-    )
+    res = classify(male, build_atlas(female), neuron_ids=[901, 902], mask=("T0",), calibration=None)
     assert (res.per_neuron["call"] == "unknown").all()
     assert (res.per_neuron["reason"] == "no_labelled_partners").all()
     assert (res.per_neuron["label"] == "").all()
@@ -2270,9 +2280,11 @@ def run_benchmark(
     truth, n_comma = truth_labels(
         query_matrix.meta, truth_column, {str(x) for x in atlas.labels.tolist()}
     )
-    by_type = pd.Series(np.arange(len(truth)))[pd.notna(truth)].groupby(
-        truth[pd.notna(truth)]
-    ).apply(lambda s: s.to_numpy())
+    by_type = (
+        pd.Series(np.arange(len(truth)))[pd.notna(truth)]
+        .groupby(truth[pd.notna(truth)])
+        .apply(lambda s: s.to_numpy())
+    )
     types = sorted(str(t) for t in by_type.index)
     rng = np.random.default_rng(seed)
     sample = sorted(rng.choice(types, size=min(max_types, len(types)), replace=False).tolist())
@@ -2318,9 +2330,7 @@ def _fit(df: pd.DataFrame, names: Sequence[str]) -> tuple[LogisticModel, bool]:
     return fit_logistic(_features(df, names), y, features=names), False
 
 
-def _type_bootstrap(
-    df: pd.DataFrame, col: str, n_boot: int, seed: int
-) -> list[float]:
+def _type_bootstrap(df: pd.DataFrame, col: str, n_boot: int, seed: int) -> list[float]:
     """[mean, 2.5 %, 97.5 %] of ``col`` with types resampled (records weighted)."""
     g = df.groupby("type")[col].agg(["sum", "count"])
     sums, cnts = g["sum"].to_numpy(dtype=float), g["count"].to_numpy(dtype=float)
@@ -2329,7 +2339,11 @@ def _type_bootstrap(
     rng = np.random.default_rng(seed)
     draws = rng.integers(0, len(g), size=(n_boot, len(g)))
     boot = sums[draws].sum(axis=1) / cnts[draws].sum(axis=1)
-    return [float(sums.sum() / cnts.sum()), float(np.quantile(boot, 0.025)), float(np.quantile(boot, 0.975))]
+    return [
+        float(sums.sum() / cnts.sum()),
+        float(np.quantile(boot, 0.025)),
+        float(np.quantile(boot, 0.975)),
+    ]
 
 
 def _coverage(calls: np.ndarray, correct: np.ndarray) -> tuple[float, float]:
@@ -2395,7 +2409,9 @@ def fit_calibration(
                 "brier_oof": brier(oof, y),
                 "coverage": cov,
                 "accuracy_covered": acc,
-                "false_accept_open": float((open_calls == "type").mean()) if len(o) else float("nan"),
+                "false_accept_open": float((open_calls == "type").mean())
+                if len(o)
+                else float("nan"),
                 "degenerate": degenerate,
             }
 
@@ -2403,7 +2419,10 @@ def fit_calibration(
         adj, raw = variants["adjusted"][level], variants["raw"][level]
         return bool(
             adj["ece_oof"] <= raw["ece_oof"] + SELECTION_TOLERANCE
-            and (np.isnan(raw["accuracy_covered"]) or adj["accuracy_covered"] >= raw["accuracy_covered"] - SELECTION_TOLERANCE)
+            and (
+                np.isnan(raw["accuracy_covered"])
+                or adj["accuracy_covered"] >= raw["accuracy_covered"] - SELECTION_TOLERANCE
+            )
         )
 
     variant = "adjusted" if all(no_worse(level) for level in LEVELS) else "raw"
@@ -2443,7 +2462,9 @@ def fit_calibration(
                 "ece_oof": ece(oof, c["correct"].to_numpy(dtype=float)),
                 "coverage": cov,
                 "accuracy_covered": acc,
-                "false_accept_open": float((open_calls == "type").mean()) if len(o) else float("nan"),
+                "false_accept_open": float((open_calls == "type").mean())
+                if len(o)
+                else float("nan"),
             }
 
     metrics: dict[str, Any] = {
@@ -2459,7 +2480,10 @@ def fit_calibration(
         "seed": seed,
         "max_false_accept": max_false_accept,
         "benchmark": {
-            r.query: {"n_types_available": r.n_types_available, "n_comma_excluded": r.n_comma_excluded}
+            r.query: {
+                "n_types_available": r.n_types_available,
+                "n_comma_excluded": r.n_comma_excluded,
+            }
             for r in results
         },
     }
@@ -2483,9 +2507,13 @@ def write_benchmark(out_dir: Path, results: Sequence[BenchmarkResult], cal: Cali
     for r in results:
         r.records.to_parquet(out_dir / f"records_{r.query}.parquet", index=False)
     path = out_dir / "metrics.json"
-    payload = {"calibration_id": cal.id, "variant": cal.variant, **cal.metrics,
-               "thresholds": {k: vars(v) for k, v in cal.thresholds.items()},
-               "provenance": cal.provenance}
+    payload = {
+        "calibration_id": cal.id,
+        "variant": cal.variant,
+        **cal.metrics,
+        "thresholds": {k: vars(v) for k, v in cal.thresholds.items()},
+        "provenance": cal.provenance,
+    }
     path.write_text(json.dumps(payload, indent=1, sort_keys=True, default=str) + "\n")
     return path
 ```
@@ -2560,8 +2588,18 @@ def test_run_by_type_writes_parquet_and_json(stores: dict[str, Store], tmp_path:
     out = tmp_path / "t1.parquet"
     res = CliRunner().invoke(
         app,
-        ["classify", "run", "malecns@1.0", "--reference", "flywire@783", "--type", "T1",
-         "--out", str(out), "--uncalibrated"],
+        [
+            "classify",
+            "run",
+            "malecns@1.0",
+            "--reference",
+            "flywire@783",
+            "--type",
+            "T1",
+            "--out",
+            str(out),
+            "--uncalibrated",
+        ],
     )
     assert res.exit_code == 0, res.stdout
     df = pd.read_parquet(out)
@@ -2583,8 +2621,19 @@ def test_run_with_groups_file(stores: dict[str, Store], tmp_path: Path):
     out = tmp_path / "g.parquet"
     res = CliRunner().invoke(
         app,
-        ["classify", "run", "malecns@1.0", "--reference", "flywire@783", "--type", "T1",
-         "--groups", str(gpath), "--out", str(out)],
+        [
+            "classify",
+            "run",
+            "malecns@1.0",
+            "--reference",
+            "flywire@783",
+            "--type",
+            "T1",
+            "--groups",
+            str(gpath),
+            "--out",
+            str(out),
+        ],
     )
     assert res.exit_code == 0, res.stdout
     assert (pd.read_parquet(out)["label"] == "first").all()
@@ -2593,8 +2642,20 @@ def test_run_with_groups_file(stores: dict[str, Store], tmp_path: Path):
 def test_bench_writes_metrics(stores: dict[str, Store], tmp_path: Path):
     res = CliRunner().invoke(
         app,
-        ["classify", "bench", "--query", "malecns@1.0", "--reference", "flywire@783",
-         "--out", str(tmp_path / "b"), "--max-types", "8", "--folds", "2"],
+        [
+            "classify",
+            "bench",
+            "--query",
+            "malecns@1.0",
+            "--reference",
+            "flywire@783",
+            "--out",
+            str(tmp_path / "b"),
+            "--max-types",
+            "8",
+            "--folds",
+            "2",
+        ],
     )
     assert res.exit_code == 0, res.stdout
     assert (tmp_path / "b" / "metrics.json").exists()
@@ -2624,7 +2685,9 @@ import typer
 
 from flyconn.data.store import Store
 
-app = typer.Typer(help="Zero-shot cell-type classification by partner profile.", no_args_is_help=True)
+app = typer.Typer(
+    help="Zero-shot cell-type classification by partner profile.", no_args_is_help=True
+)
 
 
 def read_ids(path: Path) -> list[int]:
@@ -2709,8 +2772,14 @@ def bench_cmd(
         store = Store.open(q)
         m = ConnectivityMatrix.from_store(store, min_weight=int(atlas.params["min_weight"]))
         results.append(
-            run_benchmark(m, atlas, query_ref=store.ref, truth_column=truth_column,
-                          max_types=max_types, seed=seed)
+            run_benchmark(
+                m,
+                atlas,
+                query_ref=store.ref,
+                truth_column=truth_column,
+                max_types=max_types,
+                seed=seed,
+            )
         )
         typer.echo(f"{q}: {results[-1].records['type'].nunique()} types benchmarked")
     cal = fit_calibration(results, atlas, n_folds=folds, seed=seed)
@@ -2854,11 +2923,22 @@ def test_banc_against_manc_nerve_cord():
     store = Store.open("banc@888")
     m = ConnectivityMatrix.from_store(store, min_weight=5)
     res = run_benchmark(
-        m, atlas, query_ref=store.ref, truth_column="manc_121_cell_type", max_types=MAX_TYPES, seed=0
+        m,
+        atlas,
+        query_ref=store.ref,
+        truth_column="manc_121_cell_type",
+        max_types=MAX_TYPES,
+        seed=0,
     )
     cal = fit_calibration([res], atlas, n_folds=5, seed=0)
-    _update("manc@1.2.1", {"per_query": cal.metrics["per_query"], "variant": cal.variant,
-                           "variants": cal.metrics["variants"]})
+    _update(
+        "manc@1.2.1",
+        {
+            "per_query": cal.metrics["per_query"],
+            "variant": cal.variant,
+            "variants": cal.metrics["variants"],
+        },
+    )
     assert cal.metrics["per_query"]["banc@888"]["group"]["n_types"] > 100
 
 
