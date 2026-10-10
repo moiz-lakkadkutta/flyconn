@@ -283,7 +283,10 @@ def degenerate_null_note(n_zero: int, n: int) -> str:
     """Warning when at least half the random sets of a null key changed nothing (else "")."""
     if n == 0 or n_zero / n < DEGENERATE_NULL_FRACTION:
         return ""
-    return f"degenerate null: {n_zero}/{n} random sets had no effect; p is at its floor 1/{n + 1}"
+    return (
+        f"degenerate null: {n_zero}/{n} random sets had no effect; "
+        f"p cannot go below 1/{n + 1} and is weak evidence"
+    )
 
 
 def run_robust_screen(
