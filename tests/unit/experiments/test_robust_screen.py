@@ -300,3 +300,15 @@ def test_corrupt_plan_file_refuses_clearly(small_store: Store, tmp_path: Path, c
     (out / "robustness_plan.json").write_text(content)
     with pytest.raises(FileExistsError, match=r"unreadable robustness_plan\.json"):
         run_robust_screen(spec_from_dict(_d(small_store)), out_dir=out, store=small_store)
+
+
+def test_provenance_records_seeds_actually_used(small_store: Store, tmp_path: Path):
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    rob = res.provenance["robustness"]
+    assert rob["nt_sign_seeds"] == [2002, 2003]  # seed 2 + 2000 + k, from the plan variants
+    rn = rob["random_null"]
+    assert rn["seeds"] == sorted({int(s) for s in res.null["seed"]})
+    assert rn["keys_drawn"] == sorted({str(k) for k in res.null["key"]})
+    assert not set(rn["keys_drawn"]) & set(rn["skipped"])

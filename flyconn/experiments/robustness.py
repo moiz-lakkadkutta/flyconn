@@ -472,7 +472,8 @@ def run_robust_screen(
             "replicate": rep_prov | {"ref": r.replicate},
             "random_null": {
                 "n_sets": r.random_null_sets,
-                "seeds": [spec.seed + 3000 + i for i in range(r.random_null_sets)],
+                "seeds": sorted({int(x) for x in null_df["seed"]}),
+                "keys_drawn": sorted({str(x) for x in null_df["key"]}),
                 "skipped": skipped,
                 "p_rule": "(1 + #null at least as extreme) / (n_sets + 1) < 0.05",
             },
