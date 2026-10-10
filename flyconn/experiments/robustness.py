@@ -428,6 +428,7 @@ def run_robust_screen(
         key_by_cand[c.label] = key
         nulls = [float(x) for x in null_df.loc[null_df["key"] == key, "difference"]]
         p = null_p(ref_d.get(c.label, 0.0), nulls) if nulls else None
+        p = None if p is None or np.isnan(p) else p  # NaN effect or nulls: not run
         (null_by_cand if c.role == "candidate" else control_null_p)[c.label] = p
 
     eff = pd.concat(effects, ignore_index=True)

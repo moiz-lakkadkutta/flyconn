@@ -60,3 +60,11 @@ def test_null_p():
     assert null_p(-10.0, [-1.0] * 40) == 1 / 41
     assert null_p(-10.0, [-20.0] * 40) == 1.0
     assert null_p(5.0, [6.0, 1.0, 1.0]) == 2 / 4
+
+
+def test_null_p_ignores_nan_nulls_and_nan_effect():
+    import math
+
+    assert null_p(-10.0, [-1.0, float("nan"), -20.0]) == 2 / 3
+    assert math.isnan(null_p(float("nan"), [-1.0, -2.0]))
+    assert math.isnan(null_p(-10.0, [float("nan")] * 3))

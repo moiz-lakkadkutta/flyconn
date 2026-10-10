@@ -120,3 +120,10 @@ def test_score_hits_skips_zero_difference_reference():
     eff.loc[(eff["axis"] == "reference") & (eff["candidate"] == "B"), "difference"] = 0.0
     hits = score_hits(eff, alpha=0.05, null_p={}, replicate={})
     assert list(hits["candidate"]) == ["A"]
+
+
+def test_score_hits_skips_nan_difference_reference():
+    eff = _effects()
+    eff.loc[(eff["axis"] == "reference") & (eff["candidate"] == "B"), "difference"] = float("nan")
+    hits = score_hits(eff, alpha=0.05, null_p={}, replicate={})
+    assert list(hits["candidate"]) == ["A"]

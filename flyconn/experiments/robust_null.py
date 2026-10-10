@@ -70,7 +70,14 @@ def draw_null_sets(
 
 
 def null_p(effect: float, null_effects: Sequence[float]) -> float:
-    """(1 + #null at least as extreme in the effect's direction) / (n + 1)."""
-    s = 1.0 if effect >= 0 else -1.0
+    """(1 + #null at least as extreme in the effect's direction) / (n + 1).
+
+    NaN null effects are dropped (n counts the rest); a NaN effect, or no finite null
+    left, gives NaN (the null axis then scores not_run).
+    """
     arr = np.asarray(null_effects, dtype=float)
+    arr = arr[~np.isnan(arr)]
+    if math.isnan(effect) or len(arr) == 0:
+        return float("nan")
+    s = 1.0 if effect >= 0 else -1.0
     return float((1 + int((arr * s >= effect * s).sum())) / (len(arr) + 1))

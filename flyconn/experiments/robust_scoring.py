@@ -74,6 +74,7 @@ def score_hits(
         (effects["axis"] == "reference")
         & (effects["role"] == "candidate")
         & (effects["q_value"] < alpha)
+        & effects["difference"].notna()
         & (effects["difference"] != 0)
     ]
     rows: list[dict[str, Any]] = []
