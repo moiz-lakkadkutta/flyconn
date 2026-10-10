@@ -49,7 +49,7 @@ def test_robust_screen_malecns(tmp_path: Path):
     control = ref[ref["role"] == "control"]
     assert len(control) == 1
     assert control.index[0] not in set(res.hits["candidate"])
-    # Pinned from GOLDEN_RESULTS 6j (two identical same-seed runs): one hit, Conditional on NT signs.
+    # Pinned from GOLDEN_RESULTS 6j (MaleCNS golden run): one hit, Conditional on NT signs.
     hits = res.hits.set_index("candidate")
     assert list(hits.index) == ["GNG232"]
     assert hits.loc["GNG232", "tier"] == "Conditional"
