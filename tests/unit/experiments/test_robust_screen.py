@@ -213,3 +213,14 @@ def test_control_candidate_gets_null_p(small_store: Store, tmp_path: Path):
         assert rob["random_null"]["skipped"], "a None null p must come with a recorded skip"
     else:
         assert isinstance(p, float) and 0 < p <= 1
+
+
+def test_secondary_readout_does_not_empty_null_pool(small_store: Store, tmp_path: Path):
+    # a super_class-wide secondary readout covers every neuron; the null pool excludes
+    # only stimulus and primary-readout neurons, so sets are still drawn (spec 2.2)
+    d = _d(small_store)
+    d["readouts"] = [*d["readouts"], {"name": "wide", "select": {"super_class": "*"}}]  # type: ignore[misc]
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    assert len(res.null) > 0
+    skipped = res.provenance["robustness"]["random_null"]["skipped"]
+    assert not any(v.startswith("pool of 0 ") for v in skipped.values()), skipped

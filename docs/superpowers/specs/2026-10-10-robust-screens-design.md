@@ -165,7 +165,7 @@ robustness:
 - **Excluded from random sets:**
   - every candidate's neurons (extra candidates included);
   - the stimulus neurons;
-  - every readout's neurons.
+  - the primary readout's neurons.
   Silencing a readout or stimulus neuron would trivially remove the response and inflate
   the null.
 - Sizes are binned to the nearest of {1, 2, 4, 8, 16, 32, ...} to bound cost. The bin is

@@ -58,6 +58,14 @@ def _p(x: object) -> str:
     return "n/a" if bool(pd.isna(x)) else _e(x)  # pyright: ignore[reportArgumentType]
 
 
+def _null_text(hit: pd.Series) -> str:
+    """Random-null line: outcome and p, or the recorded reason the null was skipped."""
+    skipped = str(hit.get("random_null_skipped", "") or "")
+    if skipped:
+        return f"{_e(hit['random_null'])} (skipped: {_e(skipped)})"
+    return f"{_e(hit['random_null'])} (p {_p(hit['random_null_p'])})"
+
+
 def _card(
     row: pd.Series, hit: pd.Series, catalog_loaded: bool, caveat_list: tuple[str, ...]
 ) -> str:
@@ -84,7 +92,7 @@ def _card(
         f"<li>NT signs: {_e(hit['nt'])} (holds {_e(hit['nt_holds'])}; "
         f"flips: {_e(hit['nt_flips']) or 'none'})</li>"
         f"<li>threshold: {_e(hit['min_weight'])} ({_e(hit['min_weight_detail'])})</li>"
-        f"<li>random null: {_e(hit['random_null'])} (p {_p(hit['random_null_p'])})</li>"
+        f"<li>random null: {_null_text(hit)}</li>"
         f"<li>replicate (supporting, not graded): {_e(row['replicate'])}</li>"
         f"<li>path stability: {'n/a' if bool(pd.isna(ps)) else f'{float(ps):.2f}'}</li>"
         f"<li>lines: {lines} [{_e(row['line_match'])}]</li>"

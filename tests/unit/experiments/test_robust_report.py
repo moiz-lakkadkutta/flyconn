@@ -164,3 +164,14 @@ def test_conditional_caveats(small_store: Store):
     cav = " ".join(caveats_for(spec_from_dict(d)))
     assert "other@1 runs at Shiu's published w_syn, uncalibrated for this dataset." in cav
     assert "calibrated by protocol" not in cav
+
+
+def test_skipped_null_renders_reason():
+    from flyconn.report.robust_html import _card  # pyright: ignore[reportPrivateUsage]
+
+    row, hit = _row_hit(float("nan"))
+    hit["random_null"] = "not_run"
+    hit["random_null_skipped"] = "pool of 3 descending neurons is smaller than the set size 4"
+    html = _card(row, hit, True, ())
+    assert "not_run (skipped: pool of 3 descending neurons is smaller than the set size 4)" in html
+    assert "p n/a" not in html

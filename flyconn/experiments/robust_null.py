@@ -1,7 +1,7 @@
 """Random-silencing null for robustness screens (ADR-0011).
 
 A hit should matter more than silencing the same number of random neurons of the same
-super_class. Sets never contain candidate, stimulus or readout neurons.
+super_class. Sets never contain candidate, stimulus or primary-readout neurons.
 """
 
 from __future__ import annotations

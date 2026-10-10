@@ -362,8 +362,12 @@ def run_robust_screen(
     null_by_cand: dict[str, float | None] = {}
     skipped: dict[str, str] = {}
     if r.random_null_sets > 0:
+        # stimulus + primary readout only, as the reference screen and replicate exclude
         excluded = set(rates_hz(spec.stimulate, neurons)) | {
-            int(i) for ro in spec.readouts for i in resolve_selection(ro.select, neurons)
+            int(i)
+            for ro in spec.readouts
+            if ro.name == primary
+            for i in resolve_selection(ro.select, neurons)
         }
         sets, skipped = draw_null_sets(
             neurons, cands, excluded, n_sets=r.random_null_sets, seed=spec.seed
@@ -392,8 +396,10 @@ def run_robust_screen(
     )
     ref_d = _reference_differences(effects[0])
     control_null_p: dict[str, float | None] = {}
+    key_by_cand: dict[str, str] = {}
     for c in cands:
         key = null_key(neurons, c.neuron_ids)
+        key_by_cand[c.label] = key
         nulls = [float(x) for x in null_df.loc[null_df["key"] == key, "difference"]]
         p = null_p(ref_d.get(c.label, 0.0), nulls) if nulls else None
         (null_by_cand if c.role == "candidate" else control_null_p)[c.label] = p
@@ -412,6 +418,7 @@ def run_robust_screen(
     ]
     hits = score_hits(eff, alpha=spec.report.alpha, null_p=null_by_cand, replicate=replicate_labels)
     hits["path_stability"] = _path_stability(spec, store, hits, cands)
+    hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
 
     sel = pd.DataFrame(stability, columns=pd.Index(["variant", "axis", "jaccard"]))
     write_table(eff, out / "hits.parquet")
