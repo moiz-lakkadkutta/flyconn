@@ -142,6 +142,18 @@ class RateSweep:
     kind: str = "rate_hz"
 
 
+@dataclass(frozen=True)
+class RobustnessOptions:
+    primary_readout: str
+    readout_proxy: str | None = None
+    w_syn: str | tuple[float, ...] = "auto"  # "auto" | "off" | explicit mV values
+    nt_samples: int = 8
+    min_weights: tuple[int, ...] = (3, 5)
+    replicate: str | None = "flywire@783"
+    random_null_sets: int = 40
+    extra_candidates: tuple[Selection, ...] = ()
+
+
 Sweep = SilenceEachSweep | RateSweep
 
 
@@ -163,6 +175,7 @@ class ExperimentSpec:
     report: ReportOptions = field(default_factory=ReportOptions)
     sweep: Sweep | None = None
     params: SimParams = field(default_factory=SimParams)
+    robustness: RobustnessOptions | None = None
     source_path: str | None = None
     source_sha256: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
@@ -264,6 +277,89 @@ def _sweep(d: Any) -> Sweep | None:
     )
 
 
+_ROBUSTNESS_KEYS = (
+    "primary_readout",
+    "readout_proxy",
+    "w_syn",
+    "nt_samples",
+    "min_weights",
+    "replicate",
+    "random_null",
+    "extra_candidates",
+)
+
+
+def _robustness(
+    d: Any, *, dataset: str, sweep: Sweep | None, readout_names: list[str]
+) -> RobustnessOptions | None:
+    if d is None:
+        return None
+    if not isinstance(d, dict):
+        msg = "robustness must be a mapping"
+        raise ValueError(msg)
+    dd = cast("dict[str, Any]", d)
+    unknown = sorted(set(dd) - set(_ROBUSTNESS_KEYS))
+    if unknown:
+        msg = f"unknown robustness key(s) {unknown}; expected some of {list(_ROBUSTNESS_KEYS)}"
+        raise ValueError(msg)
+    if not isinstance(sweep, SilenceEachSweep):
+        msg = "robustness needs a silence_each sweep"
+        raise ValueError(msg)
+    primary = dd.get("primary_readout")
+    if primary not in readout_names:
+        msg = f"robustness primary_readout must name a readout group; have {readout_names}"
+        raise ValueError(msg)
+    w_raw = dd.get("w_syn", "auto")
+    w_syn: str | tuple[float, ...]
+    if w_raw in ("auto", "off"):
+        w_syn = str(w_raw)
+    elif (
+        isinstance(w_raw, list)
+        and w_raw
+        and all(isinstance(x, int | float) and x > 0 for x in cast("list[Any]", w_raw))
+    ):
+        w_syn = tuple(float(x) for x in cast("list[Any]", w_raw))
+    else:
+        msg = (
+            f"robustness w_syn must be 'auto', 'off' or a list of positive mV values, got {w_raw!r}"
+        )
+        raise ValueError(msg)
+    nt_samples = int(dd.get("nt_samples", 8))
+    if nt_samples < 0:
+        msg = "robustness nt_samples must be >= 0"
+        raise ValueError(msg)
+    mw = [int(x) for x in cast("list[Any]", dd.get("min_weights", [3, 5]) or [])]
+    if any(x < 1 for x in mw) or len(set(mw)) != len(mw):
+        msg = f"robustness min_weights must be distinct ints >= 1, got {mw}"
+        raise ValueError(msg)
+    replicate = dd.get("replicate", "flywire@783")
+    if replicate is not None and str(replicate) == dataset:
+        msg = f"robustness replicate must differ from the dataset ({dataset})"
+        raise ValueError(msg)
+    null_d = cast("dict[str, Any]", dd.get("random_null") or {})
+    n_sets = int(null_d.get("n_sets", 40))
+    if n_sets < 0:
+        msg = "robustness random_null n_sets must be >= 0"
+        raise ValueError(msg)
+    extras_raw = dd.get("extra_candidates") or []
+    if not isinstance(extras_raw, list) or not all(
+        isinstance(x, dict) for x in cast("list[Any]", extras_raw)
+    ):
+        msg = "robustness extra_candidates must be a list of selection mappings"
+        raise ValueError(msg)
+    proxy = dd.get("readout_proxy")
+    return RobustnessOptions(
+        primary_readout=str(primary),
+        readout_proxy=str(proxy) if proxy is not None else None,
+        w_syn=w_syn,
+        nt_samples=nt_samples,
+        min_weights=tuple(mw),
+        replicate=str(replicate) if replicate is not None else None,
+        random_null_sets=n_sets,
+        extra_candidates=tuple(_selection(x) for x in cast("list[Any]", extras_raw)),
+    )
+
+
 def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     """Build and validate an :class:`ExperimentSpec` from a parsed YAML mapping."""
     for key in ("name", "dataset"):
@@ -318,6 +414,12 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     if w_raw is not None and float(w_raw) <= 0:
         msg = f"params.w_syn_mv must be > 0, got {w_raw}"
         raise ValueError(msg)
+    robustness = _robustness(
+        d.get("robustness"),
+        dataset=str(d["dataset"]),
+        sweep=sweep,
+        readout_names=[r.name for r in readouts],
+    )
     return ExperimentSpec(
         name=str(d["name"]),
         dataset=str(d["dataset"]),
@@ -342,6 +444,7 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
         report=ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05))),
         sweep=sweep,
         params=SimParams(float(w_raw) if w_raw is not None else None),
+        robustness=robustness,
         raw=d,
     )
 
