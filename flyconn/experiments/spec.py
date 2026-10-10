@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
-from dataclasses import dataclass, field, replace
+import json
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -178,6 +179,7 @@ class ExperimentSpec:
     robustness: RobustnessOptions | None = None
     source_path: str | None = None
     source_sha256: str | None = None
+    parent_sha256: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -457,6 +459,26 @@ def load_spec(path: Path | str) -> ExperimentSpec:
     spec = spec_from_dict(d)
     digest = hashlib.sha256(text.encode()).hexdigest()
     return replace(spec, source_path=str(path), source_sha256=digest)
+
+
+NO_CONTROLS = Controls(0, 0, False)
+_PROVENANCE_FIELDS = ("raw", "source_path", "source_sha256", "parent_sha256")
+
+
+def canonical_dict(spec: ExperimentSpec) -> dict[str, Any]:
+    """JSON-safe dict of every field that affects a run (provenance fields excluded)."""
+    d = asdict(spec)
+    for k in _PROVENANCE_FIELDS:
+        d.pop(k, None)
+    return cast("dict[str, Any]", json.loads(json.dumps(d, default=str)))
+
+
+def derive(spec: ExperimentSpec, *, parent_sha256: str | None, **changes: Any) -> ExperimentSpec:
+    """A changed copy whose ``raw`` and ``source_sha256`` describe the copy, not the parent."""
+    s = replace(spec, **changes)
+    raw = canonical_dict(s)
+    digest = hashlib.sha256(json.dumps(raw, sort_keys=True).encode()).hexdigest()
+    return replace(s, raw=raw, source_path=None, source_sha256=digest, parent_sha256=parent_sha256)
 
 
 def _matches(value: object, pattern: str) -> bool:

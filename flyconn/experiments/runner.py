@@ -237,6 +237,7 @@ def base_provenance(ctx: Context, spec: ExperimentSpec) -> dict[str, Any]:
         "label": "model prediction",
         "spec": spec.raw | {"name": spec.name},
         "spec_sha256": spec.source_sha256,
+        "parent_spec_sha256": spec.parent_sha256,
         "spec_path": spec.source_path,
         "dataset": ctx.store.ref,
         "dataset_provenance": ctx.store.provenance,
