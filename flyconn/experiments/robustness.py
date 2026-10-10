@@ -139,7 +139,18 @@ def _open_out(out: Path, plan_hash: str) -> None:
     """Create ``out`` with the plan file, or check an existing one holds the same plan."""
     plan_file = out / "robustness_plan.json"
     if out.exists() and any(out.iterdir()):
-        if not plan_file.exists() or json.loads(plan_file.read_text())["hash"] != plan_hash:
+        if plan_file.exists():
+            try:
+                stored = json.loads(plan_file.read_text())["hash"]
+            except (json.JSONDecodeError, KeyError, TypeError, IndexError) as e:
+                msg = (
+                    f"{out} has an unreadable robustness_plan.json ({type(e).__name__}); "
+                    "move the directory aside or choose a new output directory"
+                )
+                raise FileExistsError(msg) from e
+        else:
+            stored = None
+        if stored != plan_hash:
             msg = (
                 f"{out} holds a different robustness plan (or none); choose a new output "
                 "directory to run a changed spec"

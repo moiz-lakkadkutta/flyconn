@@ -291,3 +291,12 @@ def test_missing_nt_probabilities_skips_nt_axis(no_nt_store: Store, tmp_path: Pa
     assert rob["nt"] == "not run: flyconn data pull malecns@1.0 --level nt-probs"
     assert rob["nt_sign_seeds"] == []
     assert not (tmp_path / "o" / "variants" / "nt_s0").exists()
+
+
+@pytest.mark.parametrize("content", ["{not json", "[]", '{"other": 1}'])
+def test_corrupt_plan_file_refuses_clearly(small_store: Store, tmp_path: Path, content: str):
+    out = tmp_path / "o"
+    out.mkdir()
+    (out / "robustness_plan.json").write_text(content)
+    with pytest.raises(FileExistsError, match=r"unreadable robustness_plan\.json"):
+        run_robust_screen(spec_from_dict(_d(small_store)), out_dir=out, store=small_store)
