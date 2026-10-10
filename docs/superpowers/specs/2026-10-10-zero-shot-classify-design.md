@@ -35,7 +35,7 @@ centroids fail on heterogeneous types).
 
 ### 2.1 Reference atlas
 
-`build_atlas(store, *, groups=None, min_weight=5, vocabulary="fafb_or_manc") -> Atlas`
+`build_atlas(store, *, groups=None, min_weight=5, vocabulary="fafb_or_manc", direction="both", on_missing="raise") -> Atlas`
 
 - Reference labels are the store's `cell_type` by default, or user-supplied
   `groups: Mapping[str, Sequence[int]]` (label -> neuron ids). Custom groups are
@@ -48,8 +48,12 @@ centroids fail on heterogeneous types).
   yardstick and are flagged `yardstick_fallback`.
 - Profiles and centroids are sparse (`scipy.sparse`). Measured in the throwaway spike:
   FlyWire 783 gives 8,452 types x 16,904 columns, built in seconds.
-- Atlases are cached as Parquet plus `provenance.json` under
-  `$FLYCONN_CACHE/atlas/<ref>/<hash of parameters>/`.
+- `direction` (`both` | `out` | `in`) selects the profile halves. `out` reproduces the
+  LB3 analysis, which used output partners only.
+- `on_missing="drop"` drops group ids absent from the store and records the count; the
+  default raises `KeyError`. Shiu's v630 ids are 20/21 and 18/18 present in v783.
+- No on-disk atlas cache: the spike built an atlas in seconds (YAGNI). `atlas.params_hash`
+  identifies the parameters for calibration matching.
 
 ### 2.2 Profiler
 
@@ -90,9 +94,14 @@ Calibrated mode (a calibration file exists for this atlas and partner-vocabulary
   `s_floor` and `delta` come from the benchmark:
   - `s_floor`: lowest score at which the open-set false-accept rate is <= 10 %;
   - `delta`: largest margin bin where top-1 accuracy is < 50 %.
-- The calibration file (`flyconn/compare/calibration/classify_<ref>.json`) holds the
-  coefficients, thresholds, benchmark metrics and provenance. It is versioned in the repo
-  and produced only by the benchmark.
+- The calibration file (`flyconn/compare/calibration/classify_<name>_<version>.json`, one
+  per reference) is fitted on the benchmark pairs pooled (MaleCNS and BANC against FlyWire
+  783). A new query dataset has no labels to calibrate on, so it uses this pooled fit.
+- The file holds coefficients, thresholds, benchmark metrics (including the
+  leave-one-dataset-out transfer ECE) and provenance. It is versioned in the repo and
+  produced only by the benchmark.
+- Results carry a caveat quoting the transfer ECE. When the query was one of the fitting
+  datasets, the caveat also says the calibration saw it.
 
 Uncalibrated mode (custom groups, or a reference without a calibration file):
 
@@ -110,7 +119,7 @@ Group result:
 
 ```python
 atlas = build_atlas(Store.open("flywire@783"))
-res = classify(Store.open("malecns@1.0"), atlas, type="LB3b")   # or neuron_ids=[...]
+res = classify(Store.open("malecns@1.0"), atlas, cell_type="LB3b")   # or neuron_ids=[...]
 res.per_neuron   # DataFrame: neuron_id, call, label, p, s1, a1, margin, top_k, unlabelled_partner_fraction
 res.group        # GroupCall: call, label(s), p, agreement, votes
 res.caveats; res.provenance
@@ -120,8 +129,8 @@ res.caveats; res.provenance
   (default: the query's cross-reference vocabulary). Mode B will pass the classifier's own
   predictions here. No other change is needed for it.
 - CLI:
-  - `flyconn classify QUERY --reference REF (--type T | --ids FILE) [--groups FILE.json] --out OUT.parquet`
-  - `flyconn classify bench --query Q --reference REF --out DIR`
+  - `flyconn classify run QUERY --reference REF (--type T | --ids FILE) [--groups FILE.json] [--direction both] --out OUT.parquet`
+  - `flyconn classify bench --query Q [--query Q2 ...] --reference REF --out DIR [--max-types N] [--write-calibration]`
 
 ## 3. Caveats attached to results (defaults on)
 
@@ -142,9 +151,9 @@ separately.
 
 | query | reference | role |
 |-------|-----------|------|
-| malecns@1.0 | flywire@783 | fit calibration (type-level 5-fold split) |
-| banc@888 | flywire@783 | transfer test: calibration is not refitted here; per-pair refit reported too |
-| banc@888 | manc@1.2.1 (via `manc_121_cell_type`) | secondary, nerve cord |
+| malecns@1.0 | flywire@783 | pooled calibration fit; type-level 5-fold out-of-fold metrics |
+| banc@888 | flywire@783 | pooled fit; also the leave-one-dataset-out transfer test (fit on MaleCNS, evaluate on BANC, and the reverse) |
+| banc@888 | manc@1.2.1 (via `manc_121_cell_type`) | secondary, nerve cord; reported, no calibration file in M12 |
 
 **Protocols:**
 
@@ -215,8 +224,13 @@ Golden tests (`tests/golden/test_classify.py`, cached data):
 
 - the MaleCNS->FlyWire and BANC->FlyWire benchmarks, with accuracy and ECE pinned in bands
   after the first real run;
-- LB3 via custom sugar/water groups (Shiu ids) reproduces GOLDEN_RESULTS 6g:
-  LB3c 0.92 / 0.62, LB3a water-like, LB3b flagged heterogeneous or ambiguous.
+- LB3 via custom sugar/water groups (Shiu ids, `direction="out"`) agrees with GOLDEN_RESULTS 6g:
+  - LB3c and LB3d sugar-like and LB3a water-like at group level;
+  - group sugar cosines within 0.05 of 6g (6g pooled synapses, the atlas averages
+    normalised member profiles);
+  - LB3b's sugar-vs-water margin is the smallest of the four.
+  The measured numbers are recorded. LB3b's 6g agreement (8/11 = 0.73) is above the 0.7
+  cutoff, so it is not expected to be flagged heterogeneous.
 
 Benchmark runtime target: < 10 min per pair on the M4 Pro, peak RSS < 8 GB.
 
