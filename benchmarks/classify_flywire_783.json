@@ -13,8 +13,8 @@
   "calibrated_levels": [
    "group"
   ],
-  "calibration_id": "a5101cd52d80",
-  "elapsed_s": 117.8,
+  "calibration_id": "2a6f513aec1c",
+  "elapsed_s": 106.1,
   "evaluation": "out_of_fold",
   "max_false_accept": 0.1,
   "n_folds": 5,
@@ -23,7 +23,7 @@
     "group": {
      "accuracy_covered": 0.9368191721132898,
      "coverage": 0.3088829071332436,
-     "ece_oof": 0.050061305821262836,
+     "ece_oof": 0.050074672280314876,
      "false_accept_open": 0.04576043068640646,
      "n_records": 1486,
      "n_types": 1486,
@@ -33,15 +33,15 @@
       0.680349932705249
      ],
      "top3": [
-      0.7987886944818304,
-      0.7799461641991925,
-      0.8183041722745625
+      0.7981157469717362,
+      0.7792732166890982,
+      0.8169751009421266
      ]
     },
     "neuron": {
      "accuracy_covered": 0.7478937135450421,
      "coverage": 0.1655579399141631,
-     "ece_oof": 0.15807041285579124,
+     "ece_oof": 0.1580580484908379,
      "false_accept_open": 0.05600858369098712,
      "n_records": 9320,
      "n_types": 1486,
@@ -61,7 +61,7 @@
     "group": {
      "accuracy_covered": 0.9896907216494846,
      "coverage": 0.6466666666666666,
-     "ece_oof": 0.047427362187909876,
+     "ece_oof": 0.04743563315459253,
      "false_accept_open": 0.058,
      "n_records": 1500,
      "n_types": 1500,
@@ -79,7 +79,7 @@
     "neuron": {
      "accuracy_covered": 0.9915391666079109,
      "coverage": 0.5232613908872902,
-     "ece_oof": 0.05351482548240581,
+     "ece_oof": 0.05351336617581614,
      "false_accept_open": 0.01689725142962553,
      "n_records": 27105,
      "n_types": 1500,
@@ -134,7 +134,8 @@
    },
    "environment": {
     "flyconn_version": "0.3.0",
-    "git_sha": "58d2d6ec9e613f63fe52c4648cd005a1dafe19c0",
+    "git_dirty": false,
+    "git_sha": "37bb8cbccdde2a80989b8e6cb3503bf97b068d27",
     "packages": {
      "numpy": "2.5.3",
      "pandas": "2.3.3",
@@ -178,7 +179,7 @@
    }
   },
   "seed": 0,
-  "selection_rule": "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by more than 0.005 at either level",
+  "selection_rule": "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by more than 0.005 at a calibrated level (group)",
   "thresholds": {
    "group": {
     "accept": 0.8,
@@ -188,12 +189,12 @@
   },
   "transfer_ece": {
    "banc@888": {
-    "group": 0.12760723220478598,
-    "neuron": 0.2370194678507534
+    "group": 0.12765561574227036,
+    "neuron": 0.23700919416847274
    },
    "malecns@1.0": {
-    "group": 0.08418023027380644,
-    "neuron": 0.2345686292957853
+    "group": 0.08418878004679939,
+    "neuron": 0.23455425372495659
    }
   },
   "variant": "adjusted",
@@ -202,36 +203,36 @@
    "adjusted": {
     "group": {
      "accuracy_covered": 0.9727081875437369,
-     "brier_oof": 0.1028096182319034,
+     "brier_oof": 0.10281840325012002,
      "coverage": 0.47856664434025453,
      "degenerate": false,
-     "ece_oof": 0.01155481499592715,
+     "ece_oof": 0.01156831389915287,
      "false_accept_open": 0.05190890823844608
     },
     "neuron": {
      "accuracy_covered": 0.9676332188732036,
-     "brier_oof": 0.13464465406229764,
+     "brier_oof": 0.13464129018624707,
      "coverage": 0.43173644474948525,
      "degenerate": false,
-     "ece_oof": 0.03125263720568026,
+     "ece_oof": 0.031236003980817426,
      "false_accept_open": 0.026904598490048046
     }
    },
    "raw": {
     "group": {
      "accuracy_covered": 0.9726890756302521,
-     "brier_oof": 0.10255927391212005,
+     "brier_oof": 0.10256801169331879,
      "coverage": 0.478231748158071,
      "degenerate": false,
-     "ece_oof": 0.011661584238808394,
+     "ece_oof": 0.011649212748197753,
      "false_accept_open": 0.05190890823844608
     },
     "neuron": {
      "accuracy_covered": 0.9653289306578613,
-     "brier_oof": 0.13430742604004,
+     "brier_oof": 0.1343043154644742,
      "coverage": 0.4323404255319149,
      "degenerate": false,
-     "ece_oof": 0.029658712810143338,
+     "ece_oof": 0.029625496684610477,
      "false_accept_open": 0.026904598490048046
     }
    }
@@ -296,39 +297,39 @@
   "per_query": {
    "banc@888": {
     "group": {
-     "accuracy_covered": 0.9661971830985916,
-     "coverage": 0.23682454969979988,
-     "ece_oof": 0.02142308122177873,
-     "false_accept_open": 0.03602401601067378,
-     "n_records": 1499,
-     "n_types": 1499,
+     "accuracy_covered": 0.980544747081712,
+     "coverage": 0.3426666666666667,
+     "ece_oof": 0.02054200133954088,
+     "false_accept_open": 0.04133333333333333,
+     "n_records": 1500,
+     "n_types": 1500,
      "top1": [
-      0.6704469646430954,
-      0.6470980653769179,
-      0.695130086724483
+      0.7493333333333333,
+      0.7259833333333333,
+      0.7713333333333333
      ],
      "top3": [
-      0.8038692461641094,
-      0.7831887925283523,
-      0.8232321547698466
+      0.8533333333333334,
+      0.83465,
+      0.8713333333333333
      ]
     },
     "neuron": {
-     "accuracy_covered": 0.888130968622101,
-     "coverage": 0.07874946282767512,
-     "ece_oof": 0.022871562598471402,
-     "false_accept_open": 0.019015900300816502,
-     "n_records": 9308,
-     "n_types": 1499,
+     "accuracy_covered": 0.9318965517241379,
+     "coverage": 0.12307692307692308,
+     "ece_oof": 0.011631854232737661,
+     "false_accept_open": 0.02143236074270557,
+     "n_records": 9425,
+     "n_types": 1500,
      "top1": [
-      0.48162870648904166,
-      0.44229944356202916,
-      0.5204174929664656
+      0.5446153846153846,
+      0.5105114514336064,
+      0.5764879874674165
      ],
      "top3": [
-      0.6490116029222175,
-      0.605828091257177,
-      0.6907525907664158
+      0.7041909814323607,
+      0.6651585309661565,
+      0.739360262670603
      ]
     }
    }
@@ -337,38 +338,38 @@
   "variants": {
    "adjusted": {
     "group": {
-     "accuracy_covered": 0.9661971830985916,
-     "brier_oof": 0.1369425137890068,
-     "coverage": 0.23682454969979988,
+     "accuracy_covered": 0.980544747081712,
+     "brier_oof": 0.11994793449408236,
+     "coverage": 0.3426666666666667,
      "degenerate": false,
-     "ece_oof": 0.02142308122177873,
-     "false_accept_open": 0.03602401601067378
+     "ece_oof": 0.02054200133954088,
+     "false_accept_open": 0.04133333333333333
     },
     "neuron": {
-     "accuracy_covered": 0.888130968622101,
-     "brier_oof": 0.18598241200546425,
-     "coverage": 0.07874946282767512,
+     "accuracy_covered": 0.9318965517241379,
+     "brier_oof": 0.18182328180174961,
+     "coverage": 0.12307692307692308,
      "degenerate": false,
-     "ece_oof": 0.022871562598471402,
-     "false_accept_open": 0.019015900300816502
+     "ece_oof": 0.011631854232737661,
+     "false_accept_open": 0.02143236074270557
     }
    },
    "raw": {
     "group": {
-     "accuracy_covered": 0.9631728045325779,
-     "brier_oof": 0.13892182409200896,
-     "coverage": 0.23549032688458973,
+     "accuracy_covered": 0.9820717131474104,
+     "brier_oof": 0.12136105795500063,
+     "coverage": 0.33466666666666667,
      "degenerate": false,
-     "ece_oof": 0.027608313602679707,
-     "false_accept_open": 0.03669112741827885
+     "ece_oof": 0.019557673714189847,
+     "false_accept_open": 0.038
     },
     "neuron": {
-     "accuracy_covered": 0.8742774566473989,
-     "brier_oof": 0.19217570688197022,
-     "coverage": 0.07434464976364417,
+     "accuracy_covered": 0.9227313566936208,
+     "brier_oof": 0.18606704429076362,
+     "coverage": 0.11809018567639257,
      "degenerate": false,
-     "ece_oof": 0.02356726248100444,
-     "false_accept_open": 0.018371293510958314
+     "ece_oof": 0.01417834344377472,
+     "false_accept_open": 0.02196286472148541
     }
    }
   }

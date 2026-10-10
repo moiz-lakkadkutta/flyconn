@@ -35,7 +35,7 @@
     "group": {
      "accuracy_covered": 0.9368191721132898,
      "coverage": 0.3088829071332436,
-     "ece_oof": 0.050061305821262836,
+     "ece_oof": 0.050074672280314876,
      "false_accept_open": 0.04576043068640646,
      "n_records": 1486,
      "n_types": 1486,
@@ -45,15 +45,15 @@
       0.680349932705249
      ],
      "top3": [
-      0.7987886944818304,
-      0.7799461641991925,
-      0.8183041722745625
+      0.7981157469717362,
+      0.7792732166890982,
+      0.8169751009421266
      ]
     },
     "neuron": {
      "accuracy_covered": 0.7478937135450421,
      "coverage": 0.1655579399141631,
-     "ece_oof": 0.15807041285579124,
+     "ece_oof": 0.1580580484908379,
      "false_accept_open": 0.05600858369098712,
      "n_records": 9320,
      "n_types": 1486,
@@ -73,7 +73,7 @@
     "group": {
      "accuracy_covered": 0.9896907216494846,
      "coverage": 0.6466666666666666,
-     "ece_oof": 0.047427362187909876,
+     "ece_oof": 0.04743563315459253,
      "false_accept_open": 0.058,
      "n_records": 1500,
      "n_types": 1500,
@@ -91,7 +91,7 @@
     "neuron": {
      "accuracy_covered": 0.9915391666079109,
      "coverage": 0.5232613908872902,
-     "ece_oof": 0.05351482548240581,
+     "ece_oof": 0.05351336617581614,
      "false_accept_open": 0.01689725142962553,
      "n_records": 27105,
      "n_types": 1500,
@@ -109,15 +109,15 @@
    }
   },
   "seed": 0,
-  "selection_rule": "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by more than 0.005 at either level",
+  "selection_rule": "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by more than 0.005 at a calibrated level (group)",
   "transfer_ece": {
    "banc@888": {
-    "group": 0.12760723220478598,
-    "neuron": 0.2370194678507534
+    "group": 0.12765561574227036,
+    "neuron": 0.23700919416847274
    },
    "malecns@1.0": {
-    "group": 0.08418023027380644,
-    "neuron": 0.2345686292957853
+    "group": 0.08418878004679939,
+    "neuron": 0.23455425372495659
    }
   },
   "variant_selected": "adjusted",
@@ -125,36 +125,36 @@
    "adjusted": {
     "group": {
      "accuracy_covered": 0.9727081875437369,
-     "brier_oof": 0.1028096182319034,
+     "brier_oof": 0.10281840325012002,
      "coverage": 0.47856664434025453,
      "degenerate": false,
-     "ece_oof": 0.01155481499592715,
+     "ece_oof": 0.01156831389915287,
      "false_accept_open": 0.05190890823844608
     },
     "neuron": {
      "accuracy_covered": 0.9676332188732036,
-     "brier_oof": 0.13464465406229764,
+     "brier_oof": 0.13464129018624707,
      "coverage": 0.43173644474948525,
      "degenerate": false,
-     "ece_oof": 0.03125263720568026,
+     "ece_oof": 0.031236003980817426,
      "false_accept_open": 0.026904598490048046
     }
    },
    "raw": {
     "group": {
      "accuracy_covered": 0.9726890756302521,
-     "brier_oof": 0.10255927391212005,
+     "brier_oof": 0.10256801169331879,
      "coverage": 0.478231748158071,
      "degenerate": false,
-     "ece_oof": 0.011661584238808394,
+     "ece_oof": 0.011649212748197753,
      "false_accept_open": 0.05190890823844608
     },
     "neuron": {
      "accuracy_covered": 0.9653289306578613,
-     "brier_oof": 0.13430742604004,
+     "brier_oof": 0.1343043154644742,
      "coverage": 0.4323404255319149,
      "degenerate": false,
-     "ece_oof": 0.029658712810143338,
+     "ece_oof": 0.029625496684610477,
      "false_accept_open": 0.026904598490048046
     }
    }
@@ -163,10 +163,10 @@
  "models": {
   "group": {
    "coef": [
-    -2.8516238900351056,
-    3.4871074726730624,
-    -0.017433823211931942,
-    13.20506507302646
+    -2.852334208210836,
+    3.4881894316677715,
+    -0.01744751231758627,
+    13.203934155364204
    ],
    "features": [
     "s1",
@@ -213,7 +213,8 @@
   },
   "environment": {
    "flyconn_version": "0.3.0",
-   "git_sha": "58d2d6ec9e613f63fe52c4648cd005a1dafe19c0",
+   "git_dirty": false,
+   "git_sha": "37bb8cbccdde2a80989b8e6cb3503bf97b068d27",
    "packages": {
     "numpy": "2.5.3",
     "pandas": "2.3.3",
