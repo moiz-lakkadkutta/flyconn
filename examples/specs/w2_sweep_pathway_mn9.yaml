@@ -1,4 +1,4 @@
-# W2 sweep - pathway-ranked silencing screen (MaleCNS v1.0; UNCALIBRATED model).
+# W2 sweep - pathway-ranked silencing screen (MaleCNS v1.0; w_syn calibrated by protocol, not validated; ADR-0009).
 # Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz.
 # Candidates: every neuron on a connectome path LB3* -> MN9 of up to 3 synapses (each hop at
 #   least 5 synapses and 1 % of the target's input), grouped by cell type and ranked by the

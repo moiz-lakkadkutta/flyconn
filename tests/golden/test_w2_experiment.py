@@ -41,6 +41,7 @@ def test_w2_yaml_experiment_runs_with_controls_and_report(tmp_path: Path):
     assert (
         res.conditions.query("control == 'none' and condition == 'stimulated'")["total_spikes"] > 0
     ).all()
-    assert "UNCALIBRATED" in res.provenance["network"]["calibration"]
+    assert res.provenance["network"]["calibration"].startswith("CALIBRATED BY PROTOCOL")
     html = (tmp_path / "w2" / "report.html").read_text()
-    assert "UNCALIBRATED" in html and "model prediction" in html.lower()
+    assert "CALIBRATED BY PROTOCOL" in html and "not validated" in html
+    assert "model prediction" in html.lower()

@@ -15,9 +15,10 @@ Status: Phase 0 output, 2026-09-26; approved 2026-09-26 ("go with recommendation
 | M9 sim speed-up | done | 6-11x faster, spike-for-spike identical; Shiu golden 30 trials in ~20 s |
 | M9 sweeps | done | silencing screen over 10 GNG types on MaleCNS in 286 s, ranked report |
 | M9 hemibrain + MANC | done | 21,739 / 23,650 neurons; counts match exports; compare_type runs vs MaleCNS |
+| M11 calibration | done | positive control recovers 0.273 mV on v630; MaleCNS onset-ratio transfer 0.188 mV (range 0.185-0.209), now the MaleCNS default, labelled not validated (ADR-0009) |
 | M8 BANC | done | 155,858 neurons, DN/AN counts match the paper; W3 MaleCNS vs BANC with nerve-cord partners |
 
-**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; CUDA validation of the compiled simulator; PDF reports and sweeps over seeds or multiple YAML files; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters; PyPI release. The MaleCNS simulator remains **uncalibrated** by protocol outcome.
+**What is not done** (deferred, see PROGRESS.md entries): MaleCNS ROI-resolved edges; CUDA validation of the compiled simulator; PDF reports and sweeps over seeds or multiple YAML files; input-direction batch comparisons and morphology-based matching; VFB/FlyBase adapters. MaleCNS runs use a protocol calibration (0.188 mV, ADR-0009) that is not validated against data.
 Inputs: `LANDSCAPE.md`, `DATA_SOURCES.md`, `GOLDEN_RESULTS.md`, ADRs 0001–0008.
 
 ## 1. Corrections to the brief (things the research showed to be wrong, different, or already done)

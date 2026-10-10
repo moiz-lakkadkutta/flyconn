@@ -1,4 +1,4 @@
-# W2 - in-silico experiment before ordering fly lines (MaleCNS v1.0; UNCALIBRATED model).
+# W2 - in-silico experiment before ordering fly lines (MaleCNS v1.0; w_syn calibrated by protocol, not validated; ADR-0009).
 # Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz.
 # Perturbation: silence GNG232 (a relay on the strongest LB3 -> MN9 paths found in W1).
 # Readouts: MN9, all descending neurons, all motor neurons.

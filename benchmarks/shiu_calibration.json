@@ -1,0 +1,658 @@
+{
+ "seconds": 515.809366941452,
+ "grid_mv": [
+  0.2,
+  0.225,
+  0.25,
+  0.275,
+  0.3,
+  0.325,
+  0.35,
+  0.375,
+  0.4
+ ],
+ "curve_seed0": [
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 0.0,
+   "readout_sd_hz": 0.0,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 7.0,
+   "readout_sd_hz": 2.581988897471611,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 71.3,
+   "readout_sd_hz": 5.29255241930688,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 0.0,
+   "readout_sd_hz": 0.0,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 41.2,
+   "readout_sd_hz": 3.823901439919996,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 83.0,
+   "readout_sd_hz": 5.354126134736338,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 4.5,
+   "readout_sd_hz": 3.92286743197994,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 61.1,
+   "readout_sd_hz": 4.458450154232722,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 89.6,
+   "readout_sd_hz": 3.747591819348051,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 19.5,
+   "readout_sd_hz": 5.380004130522991,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 65.5,
+   "readout_sd_hz": 4.006938426723772,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 95.1,
+   "readout_sd_hz": 5.704773829385737,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 39.7,
+   "readout_sd_hz": 6.18331087147762,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 72.7,
+   "readout_sd_hz": 5.375872022286243,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 96.3,
+   "readout_sd_hz": 3.973523485382828,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 44.7,
+   "readout_sd_hz": 7.846442930823283,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 76.8,
+   "readout_sd_hz": 5.39135109844153,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 100.2,
+   "readout_sd_hz": 3.735713526965843,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 50.5,
+   "readout_sd_hz": 6.222718234198156,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 79.3,
+   "readout_sd_hz": 4.347413023856831,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 101.7,
+   "readout_sd_hz": 3.5605867181937563,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 52.3,
+   "readout_sd_hz": 4.001388647846033,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 84.4,
+   "readout_sd_hz": 5.777350411544883,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 109.2,
+   "readout_sd_hz": 7.405703507732703,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 52.7,
+   "readout_sd_hz": 6.325433669805662,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 83.2,
+   "readout_sd_hz": 6.303438215238834,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 105.7,
+   "readout_sd_hz": 8.165646194746486,
+   "n_trials": 10
+  }
+ ],
+ "curve_seed1": [
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 0.0,
+   "readout_sd_hz": 0.0,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 8.3,
+   "readout_sd_hz": 3.973523485382827,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.2,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 68.8,
+   "readout_sd_hz": 5.159672685570495,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 0.6,
+   "readout_sd_hz": 1.577621275493231,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 41.8,
+   "readout_sd_hz": 5.223876806442595,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.225,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 82.1,
+   "readout_sd_hz": 5.195083145522205,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 4.3,
+   "readout_sd_hz": 3.2335051500740732,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 62.6,
+   "readout_sd_hz": 5.059644256269408,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.25,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 88.2,
+   "readout_sd_hz": 3.293090409394258,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 20.4,
+   "readout_sd_hz": 6.979334575094614,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 66.6,
+   "readout_sd_hz": 3.3065591380365995,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.275,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 94.6,
+   "readout_sd_hz": 4.195235392680606,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 37.6,
+   "readout_sd_hz": 3.2041639575194445,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 76.9,
+   "readout_sd_hz": 4.040077006966852,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.3,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 98.4,
+   "readout_sd_hz": 4.477102237434884,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 43.9,
+   "readout_sd_hz": 5.685263601823773,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 75.6,
+   "readout_sd_hz": 5.501514942874068,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.325,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 98.7,
+   "readout_sd_hz": 4.691600058733812,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 50.2,
+   "readout_sd_hz": 3.6147844564602556,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 81.2,
+   "readout_sd_hz": 5.00666222813829,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.35,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 102.9,
+   "readout_sd_hz": 7.752418977325723,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 57.1,
+   "readout_sd_hz": 4.77144282860716,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 81.2,
+   "readout_sd_hz": 6.088240030309802,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.375,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 106.3,
+   "readout_sd_hz": 4.347413023856831,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 50.0,
+   "readout_rate_hz": 52.1,
+   "readout_sd_hz": 3.414023367751831,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 100.0,
+   "readout_rate_hz": 77.4,
+   "readout_sd_hz": 16.833828375559072,
+   "n_trials": 10
+  },
+  {
+   "w_syn_mv": 0.4,
+   "rate_hz": 200.0,
+   "readout_rate_hz": 99.1,
+   "readout_sd_hz": 14.278577582440688,
+   "n_trials": 10
+  }
+ ],
+ "transfer_50": {
+  "reference_rate_hz": 50.0,
+  "target_fraction": 0.20504731861198738,
+  "status": "calibrated",
+  "crossing_mv": 0.27341252088418694,
+  "crossing_ci_mv": [
+   0.2683627108743485,
+   0.27866556540650583
+  ],
+  "support": 1.0,
+  "fractions": [
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.00730816077953715,
+    "ci_low": 0.0,
+    "ci_high": 0.019828367456398304
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.04875283446712018,
+    "ci_low": 0.029243069140433592,
+    "ci_high": 0.07102608651041621
+   },
+   {
+    "w_syn_mv": 0.275,
+    "fraction": 0.2156448202959831,
+    "ci_low": 0.17504912486496874,
+    "ci_high": 0.2619565217391304
+   },
+   {
+    "w_syn_mv": 0.3,
+    "fraction": 0.38211382113821135,
+    "ci_low": 0.3588461838550755,
+    "ci_high": 0.40324214792299895
+   },
+   {
+    "w_syn_mv": 0.325,
+    "fraction": 0.44478216818642347,
+    "ci_low": 0.4105148973025736,
+    "ci_high": 0.48048242659409157
+   },
+   {
+    "w_syn_mv": 0.35,
+    "fraction": 0.4878522837706511,
+    "ci_low": 0.45853442189884086,
+    "ci_high": 0.5182385800455254
+   },
+   {
+    "w_syn_mv": 0.375,
+    "fraction": 0.5371589840075259,
+    "ci_low": 0.5096713329275715,
+    "ci_high": 0.5684447967739962
+   },
+   {
+    "w_syn_mv": 0.4,
+    "fraction": 0.525731584258325,
+    "ci_low": 0.48399527386856506,
+    "ci_high": 0.582589770962733
+   }
+  ]
+ },
+ "literal_50": {
+  "reference_rate_hz": 50.0,
+  "target_fraction": 0.8,
+  "status": "unresolved",
+  "crossing_mv": null,
+  "crossing_ci_mv": null,
+  "support": 0.0,
+  "fractions": [
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 0.0
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.00730816077953715,
+    "ci_low": 0.0,
+    "ci_high": 0.019828367456398304
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.04875283446712018,
+    "ci_low": 0.029243069140433592,
+    "ci_high": 0.07102608651041621
+   },
+   {
+    "w_syn_mv": 0.275,
+    "fraction": 0.2156448202959831,
+    "ci_low": 0.17504912486496874,
+    "ci_high": 0.2619565217391304
+   },
+   {
+    "w_syn_mv": 0.3,
+    "fraction": 0.38211382113821135,
+    "ci_low": 0.3588461838550755,
+    "ci_high": 0.40324214792299895
+   },
+   {
+    "w_syn_mv": 0.325,
+    "fraction": 0.44478216818642347,
+    "ci_low": 0.4105148973025736,
+    "ci_high": 0.48048242659409157
+   },
+   {
+    "w_syn_mv": 0.35,
+    "fraction": 0.4878522837706511,
+    "ci_low": 0.45853442189884086,
+    "ci_high": 0.5182385800455254
+   },
+   {
+    "w_syn_mv": 0.375,
+    "fraction": 0.5371589840075259,
+    "ci_low": 0.5096713329275715,
+    "ci_high": 0.5684447967739962
+   },
+   {
+    "w_syn_mv": 0.4,
+    "fraction": 0.525731584258325,
+    "ci_low": 0.48399527386856506,
+    "ci_high": 0.582589770962733
+   }
+  ]
+ },
+ "transfer_100": {
+  "reference_rate_hz": 100.0,
+  "target_fraction": 0.6887486855941115,
+  "status": "ambiguous",
+  "crossing_mv": 0.24738281746227356,
+  "crossing_ci_mv": [
+   0.2439821170262902,
+   0.26677224624128226
+  ],
+  "support": 0.805,
+  "fractions": [
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.12063953488372095,
+    "ci_low": 0.08381232881446728,
+    "ci_high": 0.15108122804082316
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.5091352009744214,
+    "ci_low": 0.4679998891881755,
+    "ci_high": 0.5534722559053208
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.7097505668934241,
+    "ci_low": 0.6744133431547932,
+    "ci_high": 0.7457479051406408
+   },
+   {
+    "w_syn_mv": 0.275,
+    "fraction": 0.7040169133192389,
+    "ci_low": 0.6780489692569396,
+    "ci_high": 0.7315017171868001
+   },
+   {
+    "w_syn_mv": 0.3,
+    "fraction": 0.7815040650406504,
+    "ci_low": 0.7509959171251502,
+    "ci_high": 0.8127572016460906
+   },
+   {
+    "w_syn_mv": 0.325,
+    "fraction": 0.7659574468085105,
+    "ci_low": 0.7272634979233963,
+    "ci_high": 0.8034845963779336
+   },
+   {
+    "w_syn_mv": 0.35,
+    "fraction": 0.7891156462585034,
+    "ci_low": 0.7433882070966462,
+    "ci_high": 0.8390971111477104
+   },
+   {
+    "w_syn_mv": 0.375,
+    "fraction": 0.7638758231420508,
+    "ci_low": 0.7255306616122479,
+    "ci_high": 0.8038540681173131
+   },
+   {
+    "w_syn_mv": 0.4,
+    "fraction": 0.7810292633703331,
+    "ci_low": 0.6542098327663041,
+    "ci_high": 0.8943092743124901
+   }
+  ]
+ },
+ "literal_100": {
+  "reference_rate_hz": 100.0,
+  "target_fraction": 0.8,
+  "status": "unresolved",
+  "crossing_mv": null,
+  "crossing_ci_mv": null,
+  "support": 0.23,
+  "fractions": [
+   {
+    "w_syn_mv": 0.2,
+    "fraction": 0.12063953488372095,
+    "ci_low": 0.08381232881446728,
+    "ci_high": 0.15108122804082316
+   },
+   {
+    "w_syn_mv": 0.225,
+    "fraction": 0.5091352009744214,
+    "ci_low": 0.4679998891881755,
+    "ci_high": 0.5534722559053208
+   },
+   {
+    "w_syn_mv": 0.25,
+    "fraction": 0.7097505668934241,
+    "ci_low": 0.6744133431547932,
+    "ci_high": 0.7457479051406408
+   },
+   {
+    "w_syn_mv": 0.275,
+    "fraction": 0.7040169133192389,
+    "ci_low": 0.6780489692569396,
+    "ci_high": 0.7315017171868001
+   },
+   {
+    "w_syn_mv": 0.3,
+    "fraction": 0.7815040650406504,
+    "ci_low": 0.7509959171251502,
+    "ci_high": 0.8127572016460906
+   },
+   {
+    "w_syn_mv": 0.325,
+    "fraction": 0.7659574468085105,
+    "ci_low": 0.7272634979233963,
+    "ci_high": 0.8034845963779336
+   },
+   {
+    "w_syn_mv": 0.35,
+    "fraction": 0.7891156462585034,
+    "ci_low": 0.7433882070966462,
+    "ci_high": 0.8390971111477104
+   },
+   {
+    "w_syn_mv": 0.375,
+    "fraction": 0.7638758231420508,
+    "ci_low": 0.7255306616122479,
+    "ci_high": 0.8038540681173131
+   },
+   {
+    "w_syn_mv": 0.4,
+    "fraction": 0.7810292633703331,
+    "ci_low": 0.6542098327663041,
+    "ci_high": 0.8943092743124901
+   }
+  ]
+ }
+}

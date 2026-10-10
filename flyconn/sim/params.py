@@ -1,8 +1,9 @@
 """Leaky integrate-and-fire parameters of Shiu et al. 2024 (Nature 634:210) and derived constants.
 
 Values are quoted from the paper's Methods and the reference ``model.py``
-(``docs/GOLDEN_RESULTS.md`` section 3.1). They were fitted to FlyWire v630;
-simulations on other datasets are uncalibrated (ADR-0004).
+(``docs/GOLDEN_RESULTS.md`` section 3.1). They were fitted to FlyWire v630.
+Other datasets are uncalibrated (ADR-0004) unless :data:`CALIBRATIONS` holds a
+w_syn from the re-calibration protocol (ADR-0009); :func:`default_params` applies it.
 """
 
 from __future__ import annotations
@@ -65,3 +66,48 @@ class ShiuParams:
             poisson_kick_mv=self.poisson_kick_mv,
         )
         return d
+
+
+@dataclass(frozen=True)
+class DatasetCalibration:
+    """A w_syn from the re-calibration protocol: a protocol outcome, not a validation."""
+
+    dataset: str
+    w_syn_mv: float
+    ci_mv: tuple[float, float]
+    sensitivity_mv: tuple[float, float]
+    method: str
+    evidence: str
+
+    def note(self) -> str:
+        return (
+            f"CALIBRATED BY PROTOCOL, not validated against data: w_syn = {self.w_syn_mv:g} mV "
+            f"(95 % CI {self.ci_mv[0]:g}-{self.ci_mv[1]:g}; {self.sensitivity_mv[0]:g}-"
+            f"{self.sensitivity_mv[1]:g} across stimulus-set and sign variants) by "
+            f"{self.method} (ADR-0009); "
+            "spike counts are model predictions"
+        )
+
+
+CALIBRATIONS: dict[str, DatasetCalibration] = {
+    "malecns@1.0": DatasetCalibration(
+        dataset="malecns@1.0",
+        w_syn_mv=0.188,
+        ci_mv=(0.185, 0.192),
+        sensitivity_mv=(0.185, 0.209),
+        method=(
+            "transfer of FlyWire v630's MN9 onset ratio (50 / 200 Hz drive of sugar-like "
+            "LB3c+LB3d GRNs; argmax signs)"
+        ),
+        evidence=(
+            "docs/GOLDEN_RESULTS.md 6g; benchmarks/malecns_calibration.json, "
+            "benchmarks/malecns_calibration_inputs.json"
+        ),
+    ),
+}
+
+
+def default_params(dataset: str) -> ShiuParams:
+    """Shiu's parameters, with the protocol w_syn for datasets in :data:`CALIBRATIONS`."""
+    cal = CALIBRATIONS.get(dataset)
+    return ShiuParams(w_syn_mv=cal.w_syn_mv) if cal else ShiuParams()

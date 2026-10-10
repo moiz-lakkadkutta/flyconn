@@ -2,6 +2,14 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-06 — M11 calibration (branch m11-calibration)
+
+- Nightly heavy-validation failed 2026-10-05 on 2 W5 tests (openpyxl missing: workflow lacked `--extra access`); fixed here (also on branch fix-heavy-ci).
+- Positive control: Shiu's literal rule (100 Hz -> 80 % of the 200 Hz readout) is unresolved on v630 itself; the 100 / 200 ratio plateaus at 0.70-0.79 above 0.25 mV. Transferring v630's onset ratio (50 / 200 Hz, 0.205 at 0.275 mV) recovers 0.273 mV (CI 0.268-0.279) on independent seeds (GOLDEN_RESULTS 6g, ADR-0009).
+- MaleCNS: LB3c+LB3d are sugar-like by output-partner profile (LB3a water-like). Onset-ratio calibration with LB3c+d: 0.188 mV (CI 0.185-0.192, support 0.99); with all LB3: ambiguous. Synapses per matched type pair are 1.47-1.67x FlyWire, predicting 0.165-0.187 mV.
+- 2026-10-10 (owner approved): sensitivity run (per-neuron sugar call 0.204 mV, probabilistic signs 0.189 mV; range 0.185-0.209); MaleCNS v1.0 now defaults to 0.188 mV via `flyconn.sim.CALIBRATIONS`, labelled "CALIBRATED BY PROTOCOL, not validated". W2 / sweep / pathway golden reruns in GOLDEN_RESULTS 6h: GNG232 -> MN9 effect robust; DNge080, inhibitory relays and the top-10 GNG selection are not.
+- Not done: the W2 example specs still stimulate all LB3 (sugar + water); a sugar-only (LB3c+d) variant would match the calibration stimulus.
+
 ## 2026-10-04 — Pathway-ranked screens; v0.3.0
 
 - `rank_by: pathway` for silencing screens (branch m10-pathway-sweep, merged). Real-data result in GOLDEN_RESULTS 6f: the six LB3 -> MN9 relay types from W1 are selected; silencing the two on excitatory routes lowers MN9 (GNG232 -11.7 Hz, DNge080 -9.2 Hz, q 0.008), the four on inhibitory routes raise it (not significant at 10 trials).

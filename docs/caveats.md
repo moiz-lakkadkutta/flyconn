@@ -5,7 +5,7 @@ Grows with each milestone. Seeds:
 - A connectome is wiring; it carries no measured dynamics.
 - Neurotransmitter identities are classifier predictions (Eckstein et al. 2024 lineage; MaleCNS body-level file gives argmax + confidence only).
 - Weights are synapse counts under a detection and confidence threshold that differs per dataset (see `DATA_SOURCES.md`).
-- Simulation outputs are model predictions; the Shiu et al. constants were fitted to FlyWire, so MaleCNS runs are uncalibrated until stated otherwise.
+- Simulation outputs are model predictions; the Shiu et al. constants were fitted to FlyWire, so other datasets are uncalibrated unless re-calibrated by protocol; MaleCNS v1.0 is (0.188 mV, ADR-0009), which is still not a validation against recordings.
 - Bit-exact determinism holds on CPU float64 only; MPS/CUDA results are seeded but summation-order dependent.
 
 ## Path and cell-type caveats (M2)
@@ -24,7 +24,8 @@ Grows with each milestone. Seeds:
 
 ## Simulation caveats (M4)
 
-- The LIF model has one free parameter (w_syn = 0.275 mV) that Shiu et al. chose so that 100 Hz sugar-GRN drive gives about 80 % of MN9's maximal rate in FlyWire v630. Every constant was fitted to FlyWire; MaleCNS (and any other dataset) runs are **uncalibrated** and their spike counts are not comparable until the re-calibration protocol has been applied and reported.
+- The LIF model has one free parameter (w_syn = 0.275 mV) that Shiu et al. chose so that 100 Hz sugar-GRN drive gives about 80 % of MN9's maximal rate in FlyWire v630. Every other constant was fitted to FlyWire too; datasets without a protocol calibration (BANC, hemibrain, MANC) are **uncalibrated**.
+- **Re-calibration (ADR-0009).** Shiu's literal rule (100 Hz drive gives 80 % of the 200 Hz readout) is never met on v630 itself; flyconn transfers v630's onset ratio (MN9 at 50 / 200 Hz drive) instead, which recovers 0.273 mV on v630. For MaleCNS with the sugar-like LB3c+LB3d GRNs this gives 0.188 mV (95 % CI 0.185-0.192). The interval covers trial noise only, not the sugar/water assignment of LB3 subtypes (by connectivity, not by receptor), the sign/NT model, or the choice of readout. Since 2026-10-10 MaleCNS v1.0 networks default to 0.188 mV and are labelled "CALIBRATED BY PROTOCOL, not validated against data"; the sensitivity range is 0.185-0.209 mV (choice of sugar GRN set). Pass `ShiuParams()` to use 0.275 mV (labelled UNCALIBRATED). MaleCNS numbers in the docs dated before 2026-10-10 used 0.275 mV. Calibration fixes one scale constant; it does not make MaleCNS spike counts comparable to recordings.
 - Baseline firing is 0 Hz; there is no intrinsic activity, noise, neuromodulation, gap junctions, or synaptic plasticity. Outputs are model predictions of wiring-constrained excitability, not predictions of behaviour.
 - Signs come from predicted transmitters under a single-sign-per-neuron rule; histamine is inhibitory by default in flyconn but Shiu's FlyWire predictions had no histamine class.
 - Exactness: bit-identical spikes are guaranteed only for the CPU float64 path. float32 on CPU/MPS/CUDA matched the reference in every test so far, but summation order can move borderline spikes by a tick; compare distributions, not single runs.
@@ -43,7 +44,7 @@ Grows with each milestone. Seeds:
 - A sweep (`sweep: {silence_each: ...}` or `sweep: {rate_hz: [...]}`) runs the shared conditions (baseline, stimulated, controls) once and one simulation per variant. Every variant reuses the spec's seeds, so variant and reference trials share Poisson input; the Mann-Whitney test treats them as unpaired, which is conservative.
 - n is the number of trials per variant. Benjamini-Hochberg runs across *all* variant x readout rows of the sweep (`sweep.parquet`); the shared stimulated-vs-baseline/control comparisons in `readouts.parquet` form a separate family.
 - `silence_each` simulates only the `max_items` candidate groups with the highest summed firing rate in the stimulated condition (in the spirit of Shiu et al. 2024's screen of the most active neurons). Groups that never fire are listed as skipped: silencing zeroes outgoing synapses, so they cannot change that run. A type that is silent under this stimulation may still matter under another one. Ranking by summed rate favours types with many neurons.
-- A screen ranks effects within one model and one stimulation; it is a list of candidates for experiments, not evidence that a type is necessary in the fly. With an uncalibrated dataset (MaleCNS) the magnitudes are not comparable to FlyWire runs.
+- A screen ranks effects within one model and one stimulation; it is a list of candidates for experiments, not evidence that a type is necessary in the fly. MaleCNS magnitudes are only roughly comparable to FlyWire runs: w_syn is calibrated by protocol (onset ratio), not the other constants or absolute rates.
 - To bound file size, `counts.parquet` stores all non-zero counts for the shared runs but only the readout neurons' counts for variant runs; per-variant totals are in `conditions.parquet` and `variants.parquet`.
 - In a `rate_hz` sweep every `stimulate` entry is set to the same rate; the reference is the unstimulated baseline (or the stimulated condition when the baseline is disabled).
 

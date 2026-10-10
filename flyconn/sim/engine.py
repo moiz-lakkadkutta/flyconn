@@ -18,6 +18,7 @@ Every output is a **model prediction** from wiring plus predicted transmitters.
 
 from __future__ import annotations
 
+import math
 import warnings
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -30,7 +31,7 @@ import torch
 
 import flyconn
 from flyconn.graph.matrix import ConnectivityMatrix
-from flyconn.sim.params import ShiuParams
+from flyconn.sim.params import CALIBRATIONS, ShiuParams, default_params
 
 Device = Literal["cpu", "mps", "cuda"]
 DType = Literal["float32", "float64"]
@@ -63,17 +64,24 @@ class LIFNetwork:
 
     @classmethod
     def from_matrix(cls, m: ConnectivityMatrix, params: ShiuParams | None = None) -> LIFNetwork:
-        """Signed synapse counts times ``w_syn`` (Shiu: ``Excitatory x Connectivity x w_syn``)."""
-        params = params or ShiuParams()
+        """Signed synapse counts times ``w_syn`` (Shiu: ``Excitatory x Connectivity x w_syn``).
+
+        Without ``params``, datasets with a protocol calibration (``CALIBRATIONS``) get
+        their w_syn; all others get Shiu's published constants.
+        """
+        ds = str(m.provenance.get("dataset", ""))
+        params = params or default_params(ds)
         w = sp.csr_matrix(m.signed_weights, dtype=np.float64) * params.w_syn_mv
-        prov = {"matrix": m.provenance, "calibration": _calibration_note(m)}
+        prov = {"matrix": m.provenance, "calibration": _calibration_note(ds, params)}
         return cls(m.neuron_ids, w, params, prov)
 
 
-def _calibration_note(m: ConnectivityMatrix) -> str:
-    ds = str(m.provenance.get("dataset", ""))
+def _calibration_note(ds: str, params: ShiuParams) -> str:
     if ds.startswith(("shiu", "flywire")):
         return "constants fitted to FlyWire v630 by Shiu et al. 2024"
+    cal = CALIBRATIONS.get(ds)
+    if cal is not None and math.isclose(params.w_syn_mv, cal.w_syn_mv):
+        return cal.note()
     return "UNCALIBRATED: constants were fitted to FlyWire; spike counts are not comparable"
 
 
