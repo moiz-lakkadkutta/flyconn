@@ -263,5 +263,8 @@ def build_atlas(
         vocabulary=vocabulary,
         direction=direction,
         on_missing=on_missing,
-        store_provenance={"counts": store.provenance.get("counts", {})},
+        store_provenance={
+            "counts": store.provenance.get("counts", {}),
+            "inputs": store.provenance.get("inputs", []),
+        },
     )

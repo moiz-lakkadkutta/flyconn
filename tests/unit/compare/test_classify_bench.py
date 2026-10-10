@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from flyconn.compare.atlas import build_atlas
 from flyconn.compare.classify_bench import (
@@ -91,3 +92,52 @@ def test_benchmark_is_deterministic(male_female: tuple[Store, Store]):
     _, b = _bench(male_female)
     pd.testing.assert_frame_equal(a.records, b.records)
     assert np.isfinite(a.records["s1"]).all()
+
+
+def test_open_set_false_accept_is_out_of_fold(male_female: tuple[Store, Store]):
+    from flyconn.compare.classify_bench import BenchmarkResult
+
+    atlas = build_atlas(male_female[1])
+    rows = []
+    for i in range(10):
+        for level in ("neuron", "group"):
+            base = {
+                "query": "q@1",
+                "level": level,
+                "type": f"t{i}",
+                "neuron_id": -1,
+                "top_labels": ["x"],
+                "a1": 1.0,
+                "top3": True,
+                "empty": False,
+            }
+            rows.append(
+                {
+                    **base,
+                    "protocol": "closed",
+                    "top1": f"t{i}",
+                    "s1": 0.95,
+                    "margin": 0.3,
+                    "correct": True,
+                }
+            )
+            rows.append(
+                {
+                    **base,
+                    "protocol": "open",
+                    "top1": "x",
+                    "s1": i / 10,
+                    "margin": 0.3,
+                    "correct": False,
+                }
+            )
+    res = BenchmarkResult("q@1", atlas.reference, pd.DataFrame(rows), 10, 0)
+    cal = fit_calibration([res], atlas, n_folds=10, seed=0, n_boot=10)
+    # in-sample the 90th-percentile floor lets 1 of 10 through; held out by type, 2 of 10
+    assert cal.metrics["per_query"]["q@1"]["group"]["false_accept_open"] == pytest.approx(0.2)
+    assert cal.metrics["evaluation"] == "out_of_fold"
+
+
+def test_benchmark_records_query_provenance(male_female: tuple[Store, Store]):
+    _, res = _bench(male_female)
+    assert res.query_provenance["dataset"] == "malecns@1.0"

@@ -19,11 +19,15 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
   - group top-1 0.909 for MaleCNS -> FlyWire, 0.657 for BANC -> FlyWire, 0.670 for
     BANC -> MANC;
   - pooled group calibration ECE 0.012; leave-one-dataset-out 0.08-0.13;
-  - open-set false accept 0.05.
+  - open-set false accept 0.05 (out of fold).
   MaleCNS accuracy may be optimistic (its cross-references may partly derive from
   connectivity); BANC is the conservative number.
 - Shipped calibration `flyconn/compare/calibration/classify_flywire_783.json`.
 - `flyconn.provenance.run_environment` (package versions, git SHA).
+- `classify` blanks the selection's own cross-reference names as partners by default
+  (`mask_self`), as the benchmark does. Queries without cross-references, and
+  `partner_names` overrides, are uncalibrated. Results record the query store's
+  provenance.
 
 ### M11 calibration
 - `select_w_syn` and a revised `calibrate_w_syn`: per-trial readouts, bootstrap CIs on the readout ratio, interpolated crossing with a bootstrap interval, status calibrated / ambiguous / unresolved (ADR-0009).

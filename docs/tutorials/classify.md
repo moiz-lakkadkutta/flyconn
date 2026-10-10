@@ -26,7 +26,10 @@ res.caveats  # always read these
 res.provenance  # datasets, atlas parameters, calibration id, package versions, git SHA
 ```
 
-Select neurons by the query's own `cell_type` or by `neuron_ids=[...]`.
+Select neurons by the query's own `cell_type` or by `neuron_ids=[...]`. By default the selection's own
+cross-reference names are blanked as partner names (`mask_self=True`), so a neuron is not
+identified by connections to its own type. The benchmark does the same, which is what the
+calibration assumes.
 
 ### Custom reference groups
 

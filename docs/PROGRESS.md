@@ -18,6 +18,14 @@ Running log so a later session can resume. Newest entry first.
   in every result.
 - LB3 against Shiu sugar/water sets reproduces 6g's calls. The cosines are lower because
   the atlas averages per-neuron profiles; pooling reproduces 6g to 0.002.
+- Final review (fresh reviewer) fixes:
+  - the CLI no longer crashes when a group has no named partners;
+  - `top_k=1` keeps the true margin;
+  - no-cross-reference queries and `partner_names` overrides are uncalibrated;
+  - the selection's own names are masked by default;
+  - out-of-fold thresholds for coverage and false accept;
+  - query provenance is recorded;
+  - the pooled-synapse 6g check is now a golden test.
 - Open:
   - mode B (no labelled partners);
   - whether MaleCNS's FlyWire cross-references used connectivity (would inflate MaleCNS

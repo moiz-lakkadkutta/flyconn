@@ -69,7 +69,7 @@ def run_cmd(
     if res.group is not None:
         g = res.group
         typer.echo(
-            f"group: {g.call} {g.label or g.top_labels[0]} (s1 {g.s1:.3f}, margin {g.margin:.3f}, "
+            f"group: {g.call} {g.label or '-'} (s1 {g.s1:.3f}, margin {g.margin:.3f}, "
             f"agreement {g.agreement:.0%} of {g.n})"
         )
     typer.echo(res.per_neuron["call"].value_counts().to_string())

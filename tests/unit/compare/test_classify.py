@@ -185,3 +185,55 @@ def test_group_only_calibration_leaves_neurons_uncalibrated(male_female: tuple[S
     assert (res.per_neuron["label"] == "T1").all()
     assert res.group is not None and res.group.call == "type" and res.group.p > 0.5
     assert any("Per-neuron calls are uncalibrated" in c for c in res.caveats)
+
+
+def test_top_k_one_keeps_the_true_margin(male_female: tuple[Store, Store]):
+    male, female = male_female
+    atlas = build_atlas(female)
+    one = classify(male, atlas, cell_type="T1", calibration=_cal_for(atlas), top_k=1)
+    five = classify(male, atlas, cell_type="T1", calibration=_cal_for(atlas), top_k=5)
+    assert one.group is not None and five.group is not None
+    assert one.group.margin == pytest.approx(five.group.margin)
+    assert one.group.p == pytest.approx(five.group.p)
+    assert np.allclose(one.per_neuron["margin"], five.per_neuron["margin"])
+    assert len(one.per_neuron["top_labels"].iloc[0]) == 1
+
+
+def test_query_without_cross_reference_is_uncalibrated(male_female: tuple[Store, Store]):
+    _, female = male_female  # FlyWire-like store: no cross-reference values
+    atlas = build_atlas(female)
+    res = classify(female, atlas, cell_type="T1", calibration=_cal_for(atlas))
+    assert not res.calibrated
+    assert "no cross-reference" in res.provenance["partner_names"]
+    assert any("no cross-reference" in c for c in res.caveats)
+
+
+def test_partner_names_override_is_uncalibrated(male_female: tuple[Store, Store]):
+    male, female = male_female
+    atlas = build_atlas(female)
+    meta = male.neurons(columns=["neuron_id", "cell_type"])
+    names = pd.Series(meta["cell_type"].to_numpy(), index=meta["neuron_id"].to_numpy())
+    res = classify(male, atlas, cell_type="T1", partner_names=names, calibration=_cal_for(atlas))
+    assert not res.calibrated
+    assert any("partner_names" in c for c in res.caveats)
+
+
+def test_cell_type_selection_masks_its_own_partner_names(male_female: tuple[Store, Store]):
+    male, female = male_female
+    atlas = build_atlas(female)
+    res = classify(male, atlas, cell_type="T1", calibration=None)
+    assert res.provenance["mask"] == ["T1"]
+    explicit = classify(
+        male, atlas, cell_type="T1", calibration=None, mask_self=False, mask=("T1",)
+    )
+    assert np.allclose(res.per_neuron["s1"], explicit.per_neuron["s1"])
+    unmasked = classify(male, atlas, cell_type="T1", calibration=None, mask_self=False)
+    assert unmasked.provenance["mask"] == []
+
+
+def test_query_provenance_is_recorded(male_female: tuple[Store, Store]):
+    male, female = male_female
+    res = classify(male, build_atlas(female), cell_type="T1", calibration=None)
+    q = res.provenance["query_store"]
+    assert q["dataset"] == "malecns" and "counts" in q and "inputs" in q
+    assert res.provenance["query_matrix"]["dataset"] == "malecns@1.0"

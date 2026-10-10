@@ -104,3 +104,28 @@ def test_bench_writes_metrics(stores: dict[str, Store], tmp_path: Path):
     )
     assert res.exit_code == 0, res.stdout
     assert (tmp_path / "b" / "metrics.json").exists()
+
+
+def test_run_group_without_labelled_partners_does_not_crash(
+    stores: dict[str, Store], tmp_path: Path
+):
+    out = tmp_path / "t8.parquet"
+    res = CliRunner().invoke(
+        app,
+        [
+            "classify",
+            "run",
+            "malecns@1.0",
+            "--reference",
+            "flywire@783",
+            "--type",
+            "T8",
+            "--direction",
+            "out",
+            "--out",
+            str(out),
+            "--uncalibrated",
+        ],
+    )
+    assert res.exit_code == 0, res.stdout
+    assert "group: unknown" in res.stdout

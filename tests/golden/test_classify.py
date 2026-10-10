@@ -35,11 +35,12 @@ MEASURED_TOP1 = {
     "malecns@1.0": {"group": 0.909, "neuron": 0.813},
     "banc@888": {"group": 0.657, "neuron": 0.423},
 }
-# Atlas cosines (mean of per-neuron normalised profiles, run 2026-10-10). GOLDEN_RESULTS 6g
-# pooled synapses across each set instead (sugar 0.44 / 0.65 / 0.92 / 0.86 for LB3a-d);
-# pooling on the same fafb_or_manc vocabulary reproduces 6g to 0.002, so the gap is the
-# averaging (every neuron weighted equally), not the vocabulary or the code.
-LB3_ATLAS_SUGAR = {"LB3a": 0.443, "LB3b": 0.562, "LB3c": 0.811, "LB3d": 0.810}
+# Atlas cosines (mean of per-neuron normalised profiles; the selection's own name "LB3" is
+# blanked as a partner by default, as in the benchmark; run 2026-10-10). GOLDEN_RESULTS 6g
+# pooled synapses without masking (sugar 0.44 / 0.65 / 0.92 / 0.86 for LB3a-d);
+# test_lb3_pooled_synapses_reproduce_6g shows pooling on the same vocabulary reproduces 6g,
+# so the gap is the averaging and the masking, not the vocabulary or the code.
+LB3_ATLAS_SUGAR = {"LB3a": 0.367, "LB3b": 0.429, "LB3c": 0.776, "LB3d": 0.759}
 
 
 def _update(key: str, value: object) -> None:
@@ -131,5 +132,40 @@ def test_lb3_sugar_water_against_shiu_sets():
     assert min(margins, key=margins.__getitem__) == "LB3b"
     for sub, ref in LB3_ATLAS_SUGAR.items():
         assert abs(found[sub]["sugar"] - ref) <= 0.01, (sub, found[sub], ref)  # type: ignore[operator]
-    # per-neuron votes as in 6g: LB3a 0/17, LB3b 8/11, LB3c 17/23 sugar (LB3d 22/26 vs 24/26)
+    # per-neuron votes as in 6g: LB3a 0/17, LB3b 8/11, LB3c 17/23 sugar (LB3d 23/26 vs 24/26)
     assert found["LB3b"]["votes"] == {"sugar_grn": 8, "water_grn": 3}
+
+
+def test_lb3_pooled_synapses_reproduce_6g():
+    """6g pooled synapses per set; on the atlas vocabulary that reproduces its cosines.
+
+    This isolates why the atlas cosines above differ from 6g: averaging per-neuron
+    normalised profiles (atlas) instead of pooling synapses (6g), not the vocabulary.
+    """
+    from flyconn.compare.profiles import partner_counts
+    from flyconn.compare.types import partner_labels
+
+    six_g = {"LB3a": (0.44, 0.87), "LB3b": (0.65, 0.49), "LB3c": (0.92, 0.62), "LB3d": (0.86, 0.55)}
+    fw = ConnectivityMatrix.from_store(Store.open("flywire@783"), min_weight=5)
+    mc = ConnectivityMatrix.from_store(Store.open("malecns@1.0"), min_weight=5)
+    fw_names = partner_labels(fw.meta, "fafb_or_manc").tolist()
+    vocab = sorted({v for v in fw_names if isinstance(v, str)})
+    cf = partner_counts(fw, fw_names, vocab=vocab)
+    cm = partner_counts(mc, partner_labels(mc.meta, "fafb_or_manc").tolist(), vocab=vocab)
+    present = set(fw.neuron_ids.tolist())
+
+    def pooled(counts, idx):  # type: ignore[no-untyped-def]
+        return np.asarray(counts.out[idx].sum(axis=0), dtype=float).ravel()
+
+    ref = {
+        k: pooled(cf, fw.index_of(np.array([i for i in SETS[k] if i in present])))
+        for k in ("sugar_grn", "water_grn")
+    }
+    measured = {}
+    for sub, (sugar, water) in six_g.items():
+        q = pooled(cm, np.flatnonzero(mc.meta["cell_type"].to_numpy() == sub))
+        cos = {k: float(q @ v / (np.linalg.norm(q) * np.linalg.norm(v))) for k, v in ref.items()}
+        measured[sub] = (round(cos["sugar_grn"], 3), round(cos["water_grn"], 3))
+        assert abs(cos["sugar_grn"] - sugar) <= 0.006, (sub, measured[sub])
+        assert abs(cos["water_grn"] - water) <= 0.006, (sub, measured[sub])
+    _update("lb3_pooled_6g_method", measured)

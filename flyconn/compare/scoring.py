@@ -23,6 +23,7 @@ class Scores:
     labels: np.ndarray  # q x k object
     s: np.ndarray  # q x k cosine
     a: np.ndarray  # q x k cosine / label yardstick
+    runner_up: np.ndarray | None = None  # second-best cosine, kept even when k == 1
 
     @property
     def top1(self) -> np.ndarray:
@@ -39,6 +40,8 @@ class Scores:
     @property
     def margin(self) -> np.ndarray:
         """Best minus second-best cosine (the best cosine if the atlas has one label)."""
+        if self.runner_up is not None:
+            return self.s[:, 0] - self.runner_up
         return self.s[:, 0] - self.s[:, 1] if self.s.shape[1] > 1 else self.s[:, 0].copy()
 
 
@@ -60,14 +63,17 @@ def score(
     yard = atlas.neuron_yardstick if level == "neuron" else atlas.group_yardstick
     yard = np.maximum(yard, YARDSTICK_FLOOR)
     k = min(top_k, len(atlas.labels))
+    kk = min(max(top_k, 2), len(atlas.labels))  # always rank the runner-up for the margin
     ct = sp.csr_matrix(atlas.centroids.T)
-    orders: list[np.ndarray] = [np.zeros((0, k), dtype=np.int64)]
-    sims: list[np.ndarray] = [np.zeros((0, k))]
+    orders: list[np.ndarray] = [np.zeros((0, kk), dtype=np.int64)]
+    sims: list[np.ndarray] = [np.zeros((0, kk))]
     for start in range(0, n_rows, chunk):
         block = np.asarray((q[start : start + chunk] @ ct).toarray(), dtype=float)
-        order = np.argsort(-block, axis=1, kind="stable")[:, :k]
+        order = np.argsort(-block, axis=1, kind="stable")[:, :kk]
         orders.append(order)
         sims.append(np.take_along_axis(block, order, axis=1))
     order = np.vstack(orders)
     s = np.vstack(sims)
-    return Scores(labels=atlas.labels[order], s=s, a=s / yard[order])
+    runner_up = s[:, 1].copy() if kk > 1 else None
+    order, s = order[:, :k], s[:, :k]
+    return Scores(labels=atlas.labels[order], s=s, a=s / yard[order], runner_up=runner_up)

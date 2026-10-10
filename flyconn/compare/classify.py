@@ -8,7 +8,7 @@ calibration fitted by the hold-out benchmark, or returned ``uncalibrated`` with 
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -105,6 +105,13 @@ def _calls(scores: Scores, cal: Calibration | None, level: str) -> pd.DataFrame:
     return decide(scores, cal.models[level], cal.thresholds[level])
 
 
+def _has_cross_reference(meta: pd.DataFrame) -> bool:
+    return any(
+        col in meta.columns and bool(meta[col].notna().any())
+        for col in ("fafb_783_cell_type", "manc_121_cell_type")
+    )
+
+
 def classify_matrix(
     m: ConnectivityMatrix,
     atlas: Atlas,
@@ -115,7 +122,9 @@ def classify_matrix(
     calibration: Calibration | Literal["default"] | None = "default",
     partner_names: pd.Series | None = None,
     mask: Sequence[str] = (),
+    mask_self: bool = True,
     top_k: int = 5,
+    query_store_provenance: Mapping[str, Any] | None = None,
 ) -> ClassifyResult:
     """Classify neurons of an already-built query matrix (see :func:`classify`)."""
     if (cell_type is None) == (neuron_ids is None):
@@ -129,13 +138,25 @@ def classify_matrix(
     else:
         idx = np.unique(m.index_of(np.unique(np.asarray(list(neuron_ids or []), dtype=np.int64))))
     vocabulary = str(atlas.params["vocabulary"])
+    no_calibration_reason: str | None = None
     if partner_names is None:
         names = partner_labels(m.meta, vocabulary).tolist()
         names_source = vocabulary
+        if vocabulary == "fafb_or_manc" and not _has_cross_reference(m.meta):
+            names_source = "query cell_type (no cross-reference)"
+            no_calibration_reason = (
+                f"{query_ref} has no cross-reference columns, so partners are named by its "
+                "own cell types (no cross-reference); the calibration assumes cross-referenced "
+                "partner names"
+            )
     else:
         aligned = partner_names.reindex(m.neuron_ids)
         names = [v if isinstance(v, str) else None for v in aligned.tolist()]
         names_source = "override"
+        no_calibration_reason = (
+            "partner_names were supplied, so partner names differ from the cross-referenced "
+            "names the calibration was fitted on"
+        )
     counts_all = partner_counts(m, names, vocab=atlas.vocab.tolist())
     lab, tot = counts_all.labelled_mass(direction=atlas.direction)
     if tot > 0 and lab / tot < MIN_VOCAB_OVERLAP:
@@ -145,11 +166,16 @@ def classify_matrix(
         )
         raise ValueError(msg)
     counts = counts_all.rows(idx)
-    mask_t = tuple(mask)
+    own = {str(names[i]) for i in idx.tolist() if isinstance(names[i], str)} if mask_self else set()
+    mask_t = tuple(sorted({*mask, *own}))
     atl = atlas.masked(mask_t) if mask_t else atlas
     prof = counts.profiles(direction=atlas.direction, mask=mask_t)
     empty = np.asarray(prof.getnnz(axis=1)) == 0
-    cal, cal_caveat = _resolve_calibration(calibration, atl, query_ref)
+    if no_calibration_reason is not None and calibration is not None:
+        cal: Calibration | None = None
+        cal_caveat = f"UNCALIBRATED: {no_calibration_reason}."
+    else:
+        cal, cal_caveat = _resolve_calibration(calibration, atl, query_ref)
 
     ns = score(atl, prof, level="neuron", top_k=top_k)
     calls = _calls(ns, cal, "neuron")
@@ -201,12 +227,22 @@ def classify_matrix(
             f"or one side only: {fb[:10]}"
         )
     if mask_t:
-        caveats.append(f"partner labels masked: {list(mask_t)}")
+        caveats.append(
+            f"partner labels masked: {list(mask_t)}"
+            + (
+                f" (includes the selection's own cross-reference names {sorted(own)}, as in "
+                "the benchmark, so a neuron is not identified by partners of its own type)"
+                if own
+                else ""
+            )
+        )
     if any("hemibrain" in r for r in (query_ref, atlas.reference)):
         caveats.append("hemibrain is a truncated volume: similarities are lowered at its edges.")
 
     prov: dict[str, Any] = {
         "query": query_ref,
+        "query_store": dict(query_store_provenance or {}),
+        "query_matrix": dict(m.provenance),
         "reference": atlas.reference,
         "atlas_params": atlas.params,
         "atlas_params_hash": atlas.params_hash,
@@ -262,6 +298,7 @@ def classify(
     calibration: Calibration | Literal["default"] | None = "default",
     partner_names: pd.Series | None = None,
     mask: Sequence[str] = (),
+    mask_self: bool = True,
     top_k: int = 5,
 ) -> ClassifyResult:
     """Assign reference types to query neurons by partner-type profile.
@@ -269,7 +306,8 @@ def classify(
     Select neurons by ``cell_type`` (the query's own label) or ``neuron_ids``. Partners are
     named with the atlas vocabulary through the query's cross-reference columns, or by
     ``partner_names`` (a Series indexed by neuron id). ``mask`` blanks labels as partner
-    names (as the benchmark does for the held-out type). ``calibration="default"`` loads
+    names; ``mask_self`` (default) also blanks the selection's own cross-reference names, as
+    the benchmark does for the held-out type. ``calibration="default"`` loads
     the shipped calibration for the atlas reference; None returns raw scores.
     """
     m = ConnectivityMatrix.from_store(query, min_weight=int(atlas.params["min_weight"]))
@@ -282,5 +320,7 @@ def classify(
         calibration=calibration,
         partner_names=partner_names,
         mask=mask,
+        mask_self=mask_self,
         top_k=top_k,
+        query_store_provenance=query.provenance,
     )

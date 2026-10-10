@@ -41,8 +41,12 @@ Mode B needs iterative propagation from anchors and is a separate research probl
 - **Only whole-type (group) calls are calibrated.** Per-neuron calls return the best label
   and raw cosine, labelled uncalibrated, with a caveat. In the benchmark, per-neuron
   confidence did not transfer between datasets: leave-one-dataset-out ECE was 0.235
-  (MaleCNS) and 0.237 (BANC), and BANC per-neuron calls with P >= 0.8 were right 74.9 %
+  (MaleCNS) and 0.237 (BANC), and BANC per-neuron calls with P >= 0.8 were right 74.8 % (out of fold)
   of the time. The owner chose this over shipping per-neuron probabilities.
+- **Calls match the benchmark's conditions.** By default `classify` blanks the selection's
+  own cross-reference names as partners, as the benchmark does for the held-out type. A
+  query without cross-reference columns, or with a `partner_names` override, is
+  uncalibrated. `top_k` never changes the margin: the runner-up is always ranked.
 - **No scikit-learn and no NBLAST** (GPL extra, ADR-0006).
 
 ## Alternatives considered
@@ -71,7 +75,7 @@ Mode B needs iterative propagation from anchors and is a separate research probl
 
 ## Evidence
 
-`benchmarks/classify_flywire_783.json` (calibration `da750126359a`),
+`benchmarks/classify_flywire_783.json` (calibration `a5101cd52d80`),
 `tests/golden/test_classify.py`, `docs/GOLDEN_RESULTS.md` §6i. 1,500 types per query,
 closed and open set, 5 type-level folds, 1,000 bootstrap resamples over types. All three golden
 tests run in 179 s on the M4 Pro; the FlyWire and MANC benchmarks together peaked at
@@ -79,10 +83,11 @@ tests run in 179 s on the M4 Pro; the FlyWire and MANC benchmarks together peake
 
 | query (vs FlyWire v783) | level | top-1 (95 % CI) | top-3 | coverage | accuracy covered | ECE (out of fold) | open-set false accept |
 |---|---|---|---|---|---|---|---|
-| MaleCNS v1.0 | group | 0.909 (0.895-0.922) | 0.961 | 0.649 | 0.990 | 0.047 | 0.059 |
-| MaleCNS v1.0 | neuron | 0.813 (0.697-0.904) | 0.899 | uncalibrated | | 0.061 | |
-| BANC v888 | group | 0.657 (0.633-0.680) | 0.799 | 0.306 | 0.941 | 0.050 | 0.044 |
-| BANC v888 | neuron | 0.423 (0.358-0.489) | 0.557 | uncalibrated | | 0.161 | |
+| MaleCNS v1.0 | group | 0.909 (0.895-0.922) | 0.961 | 0.647 | 0.990 | 0.047 | 0.058 |
+| MaleCNS v1.0 | neuron | 0.813 (0.697-0.904) | 0.899 | uncalibrated | | 0.054 | |
+| BANC v888 | group | 0.657 (0.633-0.680) | 0.799 | 0.309 | 0.937 | 0.050 | 0.046 |
+| BANC v888 | neuron | 0.423 (0.358-0.489) | 0.557 | uncalibrated | | 0.158 | |
 
-Pooled group: ECE 0.012, coverage 0.478, accuracy covered 0.974, open-set false accept
-0.052.
+Pooled group: ECE 0.012, coverage 0.479, accuracy covered 0.973, open-set false accept
+0.052. Coverage, accuracy covered and false accept are out of fold (model and
+thresholds chosen without the held-out types); folds are by reference type.

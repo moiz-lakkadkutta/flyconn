@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
@@ -49,6 +49,7 @@ class BenchmarkResult:
     records: pd.DataFrame
     n_types_available: int
     n_comma_excluded: int
+    query_provenance: dict[str, Any] = field(default_factory=dict)
 
 
 def truth_labels(
@@ -143,6 +144,7 @@ def run_benchmark(
         records=pd.DataFrame(rows),
         n_types_available=len(types),
         n_comma_excluded=n_comma,
+        query_provenance=dict(query_matrix.provenance),
     )
 
 
@@ -210,13 +212,17 @@ def fit_calibration(
     rec = _sel(rec, ~_col(rec, "empty", bool))
     closed = _sel(rec, _col(rec, "protocol", object) == "closed").copy()
     open_ = _sel(rec, _col(rec, "protocol", object) == "open").copy()
-    keys = cast("pd.DataFrame", closed[["query", "type"]]).drop_duplicates()
-    keys = keys.reset_index(drop=True)
-    perm = np.random.default_rng(seed).permutation(len(keys))
-    keys["fold"] = perm % n_folds
-    closed = closed.merge(keys, on=["query", "type"], how="left").reset_index(drop=True)
-    for variant in FEATURE_SETS:
-        closed[f"p_{variant}"] = np.nan
+    # folds by reference type, so a type held out from MaleCNS is also held out from BANC
+    types = sorted(set(_col(closed, "type", object).tolist()))
+    perm = np.random.default_rng(seed).permutation(len(types))
+    fold_of = {t: int(f) for t, f in zip(types, perm % n_folds, strict=True)}
+    closed = closed.reset_index(drop=True)
+    open_ = open_.reset_index(drop=True)
+    for df in (closed, open_):
+        df["fold"] = [fold_of.get(str(t), -1) for t in _col(df, "type", object).tolist()]
+        for variant in FEATURE_SETS:
+            df[f"p_{variant}"] = np.nan
+            df[f"call_{variant}"] = ""
 
     def level_of(df: pd.DataFrame, level: str, query: str | None = None) -> pd.DataFrame:
         mask = _col(df, "level", object) == level
@@ -224,46 +230,55 @@ def fit_calibration(
             mask &= _col(df, "query", object) == query
         return _sel(df, mask)
 
-    thresholds: dict[str, Thresholds] = {}
-    for level in LEVELS:
-        c, o = level_of(closed, level), level_of(open_, level)
-        thresholds[level] = Thresholds(
+    def thresholds_for(c: pd.DataFrame, o: pd.DataFrame) -> Thresholds:
+        return Thresholds(
             accept=accept,
             s_floor=choose_s_floor(_col(o, "s1"), max_false_accept),
             delta=choose_delta(_col(c, "margin"), _col(c, "correct")),
         )
 
-    def open_false_accept(o: pd.DataFrame, model: LogisticModel, level: str) -> float:
-        if not len(o):
-            return float("nan")
-        calls = apply_calls(
-            model.predict(_features(o, model.features)), _col(o, "s1"), thresholds[level]
-        )
-        return float((calls == "type").mean())
+    thresholds = {
+        level: thresholds_for(level_of(closed, level), level_of(open_, level)) for level in LEVELS
+    }
 
+    def rate(calls: np.ndarray) -> float:
+        return float((calls == "type").mean()) if len(calls) else float("nan")
+
+    # Out of fold: model AND thresholds are chosen without the held-out types, for both the
+    # closed-set calls (coverage, accuracy) and the open-set calls (false accept).
     variants: dict[str, dict[str, dict[str, Any]]] = {}
     for variant, names in FEATURE_SETS.items():
         variants[variant] = {}
         for level in LEVELS:
             c, o = level_of(closed, level), level_of(open_, level)
-            oof = np.full(len(c), np.nan)
-            folds = _col(c, "fold")
+            cf, of = _col(c, "fold"), _col(o, "fold")
+            p_c, p_o = np.full(len(c), np.nan), np.full(len(o), np.nan)
+            call_c = np.full(len(c), "", dtype=object)
+            call_o = np.full(len(o), "", dtype=object)
             for f in range(n_folds):
-                test = folds == f
-                if test.any() and (~test).any():
-                    model, _ = _fit(_sel(c, ~test), names)
-                    oof[test] = model.predict(_features(_sel(c, test), names))
-            closed.loc[c.index, f"p_{variant}"] = oof
+                tc, to = cf == f, of == f
+                if not tc.any() or not (~tc).any():
+                    continue
+                model, _ = _fit(_sel(c, ~tc), names)
+                thr = thresholds_for(_sel(c, ~tc), _sel(o, ~to))
+                p_c[tc] = model.predict(_features(_sel(c, tc), names))
+                call_c[tc] = apply_calls(p_c[tc], _col(c, "s1")[tc], thr)
+                if to.any():
+                    p_o[to] = model.predict(_features(_sel(o, to), names))
+                    call_o[to] = apply_calls(p_o[to], _col(o, "s1")[to], thr)
+            closed.loc[c.index, f"p_{variant}"] = p_c
+            closed.loc[c.index, f"call_{variant}"] = call_c
+            open_.loc[o.index, f"call_{variant}"] = call_o
             y = _col(c, "correct")
-            full, degenerate = _fit(c, names)
-            calls = apply_calls(oof, _col(c, "s1"), thresholds[level])
-            cov, acc = _coverage(calls, _col(c, "correct", bool))
+            _, degenerate = _fit(c, names)
+            done = call_c != ""
+            cov, acc = _coverage(call_c[done], _col(c, "correct", bool)[done])
             variants[variant][level] = {
-                "ece_oof": ece(oof, y),
-                "brier_oof": brier(oof, y),
+                "ece_oof": ece(p_c, y),
+                "brier_oof": brier(p_c[np.isfinite(p_c)], y[np.isfinite(p_c)]),
                 "coverage": cov,
                 "accuracy_covered": acc,
-                "false_accept_open": open_false_accept(o, full, level),
+                "false_accept_open": rate(call_o[call_o != ""]),
                 "degenerate": degenerate,
             }
 
@@ -301,8 +316,10 @@ def fit_calibration(
         for level in LEVELS:
             c, o = level_of(closed, level, q), level_of(open_, level, q)
             oof = _col(c, f"p_{variant}")
-            calls = apply_calls(oof, _col(c, "s1"), thresholds[level])
-            cov, acc = _coverage(calls, _col(c, "correct", bool))
+            call_c = _col(c, f"call_{variant}", object)
+            call_o = _col(o, f"call_{variant}", object)
+            done = call_c != ""
+            cov, acc = _coverage(call_c[done], _col(c, "correct", bool)[done])
             per_query[q][level] = {
                 "n_types": len(set(_col(c, "type", object).tolist())),
                 "n_records": len(c),
@@ -311,11 +328,12 @@ def fit_calibration(
                 "ece_oof": ece(oof, _col(c, "correct")),
                 "coverage": cov,
                 "accuracy_covered": acc,
-                "false_accept_open": open_false_accept(o, models[level], level),
+                "false_accept_open": rate(call_o[call_o != ""]),
             }
 
     metrics: dict[str, Any] = {
         "variant_selected": variant,
+        "evaluation": "out_of_fold",
         "calibrated_levels": list(calibrate_levels),
         "selection_rule": (
             "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by "
@@ -344,7 +362,11 @@ def fit_calibration(
         thresholds={level: thresholds[level] for level in calibrate_levels},
         fitted_on=queries,
         metrics=metrics,
-        provenance={"atlas": atlas.provenance, "environment": run_environment()},
+        provenance={
+            "atlas": atlas.provenance,
+            "queries": {r.query: r.query_provenance for r in results},
+            "environment": run_environment(),
+        },
     )
 
 
