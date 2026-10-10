@@ -338,8 +338,21 @@ def _robustness(
     if replicate is not None and str(replicate) == dataset:
         msg = f"robustness replicate must differ from the dataset ({dataset})"
         raise ValueError(msg)
-    null_d = cast("dict[str, Any]", dd.get("random_null") or {})
-    n_sets = int(null_d.get("n_sets", 40))
+    null_raw = dd.get("random_null")
+    if null_raw is None or null_raw is True:
+        n_sets = 40
+    elif null_raw is False:
+        n_sets = 0  # `random_null: false` disables the null
+    elif isinstance(null_raw, int):
+        n_sets = null_raw  # `random_null: 0` disables it; a count sets n_sets
+    elif isinstance(null_raw, dict):
+        n_sets = int(cast("dict[str, Any]", null_raw).get("n_sets", 40))
+    else:
+        msg = (
+            "robustness random_null must be true/false, a set count or {n_sets: N}, "
+            f"got {null_raw!r}"
+        )
+        raise ValueError(msg)
     if n_sets < 0:
         msg = "robustness random_null n_sets must be >= 0"
         raise ValueError(msg)

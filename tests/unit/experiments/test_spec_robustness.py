@@ -78,3 +78,18 @@ def test_validation(small_store: Store, block: dict[str, object], match: str):
 def test_needs_silence_each(small_store: Store):
     with pytest.raises(ValueError, match="silence_each"):
         spec_from_dict(_d(small_store, {"primary_readout": "targets"}, sweep={"rate_hz": [10]}))
+
+
+@pytest.mark.parametrize(
+    ("raw", "n"),
+    [(False, 0), (0, 0), ({"n_sets": 0}, 0), (True, 40), (None, 40), ({}, 40), (12, 12)],
+)
+def test_random_null_off_means_no_null(small_store: Store, raw: object, n: int):
+    spec = spec_from_dict(_d(small_store, {"primary_readout": "targets", "random_null": raw}))
+    assert spec.robustness is not None and spec.robustness.random_null_sets == n
+
+
+@pytest.mark.parametrize("raw", ["yes", -1, [3]])
+def test_random_null_bad_value(small_store: Store, raw: object):
+    with pytest.raises(ValueError, match="random_null"):
+        spec_from_dict(_d(small_store, {"primary_readout": "targets", "random_null": raw}))
