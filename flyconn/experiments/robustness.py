@@ -11,11 +11,13 @@ import hashlib
 import json
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
 
+from flyconn.access.handoff import PULL_HINT, attach_lines, load_catalog
+from flyconn.access.lines import LineCatalog
 from flyconn.data.cache import store_dir
 from flyconn.data.pull import pull
 from flyconn.data.registry import get_dataset
@@ -263,6 +265,7 @@ def run_robust_screen(
     out_dir: Path | str,
     store: Store | None = None,
     replicate_store: Store | None = None,
+    catalog: LineCatalog | Literal["auto"] | None = "auto",
 ) -> RobustScreenResult:
     """Run the reference screen and every robustness variant; score hits (ADR-0011).
 
@@ -431,8 +434,89 @@ def run_robust_screen(
             "(conservative); no correction across variants",
         }
     }
+    result = RobustScreenResult(out, spec, hits, eff, null_df, sel, prov)
+    cat = load_catalog() if catalog == "auto" else catalog
+    prov["robustness"]["line_catalog"] = (
+        cat.provenance if cat is not None else f"not looked up ({PULL_HINT})"
+    )
     (out / "provenance.json").write_text(json.dumps(prov, indent=2, default=str))
-    return RobustScreenResult(out, spec, hits, eff, null_df, sel, prov)
+    handoff = write_handoff(result, cat)
+    from flyconn.report.robust_html import render_robust_report
+
+    (out / "report.html").write_text(
+        render_robust_report(result, handoff, catalog_loaded=cat is not None)
+    )
+    return result
+
+
+HANDOFF_COLUMNS = [
+    "label",
+    "tier",
+    "direction",
+    "effect_hz",
+    "ci_low",
+    "ci_high",
+    "q_value",
+    "failed_axes",
+    "untested_axes",
+    "thinly_tested",
+    "replicate",
+    "path_stability",
+    "best_line",
+    "line_quality",
+    "line_specific",
+    "line_match",
+    "lines",
+    "off_target_bodies",
+    "suggested_test",
+]
+
+
+def _stimulus_summary(spec: ExperimentSpec) -> str:
+    return "; ".join(f"{s.select.describe()} at {s.rate_hz:g} Hz" for s in spec.stimulate)
+
+
+def suggested_test(row: pd.Series, spec: ExperimentSpec) -> str:
+    r = spec.robustness
+    readout = r.primary_readout if r else "readout"
+    text = (
+        f"Silence {row['candidate']} (e.g. Kir2.1, GtACR1; examples, not recommendations) under "
+        f"{_stimulus_summary(spec)}; the model predicts {readout} goes {row['direction']} by "
+        f"{abs(float(row['difference'])):.1f} Hz."
+    )
+    if r and r.readout_proxy:
+        text += f" Readout proxy (from the spec): {r.readout_proxy}"
+    return text
+
+
+def write_handoff(result: RobustScreenResult, catalog: LineCatalog | None) -> pd.DataFrame:
+    h = attach_lines(result.hits, catalog) if not result.hits.empty else result.hits.copy()
+    rows = pd.DataFrame(
+        {
+            "label": h.get("candidate", pd.Series(dtype=str)),
+            "tier": h.get("tier"),
+            "direction": h.get("direction"),
+            "effect_hz": h.get("difference"),
+            "ci_low": h.get("ci_low"),
+            "ci_high": h.get("ci_high"),
+            "q_value": h.get("q_value"),
+            "failed_axes": h.get("failed_axes"),
+            "untested_axes": h.get("untested_axes"),
+            "thinly_tested": h.get("thinly_tested"),
+            "replicate": h.get("replicate"),
+            "path_stability": h.get("path_stability"),
+            "best_line": h.get("best_line"),
+            "line_quality": h.get("line_quality"),
+            "line_specific": h.get("line_specific"),
+            "line_match": h.get("line_match"),
+            "lines": h.get("lines"),
+            "off_target_bodies": h.get("off_target_bodies"),
+            "suggested_test": [suggested_test(r, result.spec) for _, r in h.iterrows()],
+        },
+        columns=pd.Index(HANDOFF_COLUMNS),
+    )
+    rows.to_csv(result.out_dir / "handoff.csv", index=False)
+    return rows
 
 
 def _path_stability(
