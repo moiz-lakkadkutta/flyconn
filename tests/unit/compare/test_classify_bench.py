@@ -68,8 +68,11 @@ def test_fit_calibration_metrics_and_thresholds(male_female: tuple[Store, Store]
     cal = fit_calibration([res, res2], atlas, n_folds=2, seed=0, n_boot=50)
     assert cal.fitted_on == ["malecns@1.0", "banc@888"]
     assert cal.variant in {"adjusted", "raw"}
-    assert set(cal.models) == {"neuron", "group"}
-    assert cal.thresholds["neuron"].s_floor >= 0.0
+    # only whole-type (group) calls are calibrated; neuron metrics are still reported
+    assert set(cal.models) == {"group"} and set(cal.thresholds) == {"group"}
+    assert "neuron" in cal.metrics["per_query"]["malecns@1.0"]
+    assert set(cal.metrics["variants"]["raw"]) == {"neuron", "group"}
+    assert cal.thresholds["group"].s_floor >= 0.0
     m = cal.metrics
     assert set(m["per_query"]) == {"malecns@1.0", "banc@888"}
     top1 = m["per_query"]["malecns@1.0"]["group"]["top1"]

@@ -199,7 +199,13 @@ def fit_calibration(
     accept: float = 0.8,
     max_false_accept: float = 0.10,
     n_boot: int = 1000,
+    calibrate_levels: Sequence[str] = ("group",),
 ) -> Calibration:
+    """Fit the logistic calibration (metrics for both levels; models for calibrate_levels).
+
+    Per-neuron calls are not calibrated by default: on MaleCNS and BANC against FlyWire v783
+    their leave-one-dataset-out ECE was 0.23-0.24 (ADR-0010).
+    """
     rec = pd.concat([r.records for r in results], ignore_index=True)
     rec = _sel(rec, ~_col(rec, "empty", bool))
     closed = _sel(rec, _col(rec, "protocol", object) == "closed").copy()
@@ -271,7 +277,7 @@ def fit_calibration(
             )
         )
 
-    variant = "adjusted" if all(no_worse(level) for level in LEVELS) else "raw"
+    variant = "adjusted" if all(no_worse(level) for level in calibrate_levels) else "raw"
     names = FEATURE_SETS[variant]
     models = {level: _fit(level_of(closed, level), names)[0] for level in LEVELS}
 
@@ -310,6 +316,7 @@ def fit_calibration(
 
     metrics: dict[str, Any] = {
         "variant_selected": variant,
+        "calibrated_levels": list(calibrate_levels),
         "selection_rule": (
             "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by "
             f"more than {SELECTION_TOLERANCE} at either level"
@@ -333,8 +340,8 @@ def fit_calibration(
         atlas_params_hash=atlas.params_hash,
         atlas_params=atlas.params,
         variant=variant,
-        models=models,
-        thresholds=thresholds,
+        models={level: models[level] for level in calibrate_levels},
+        thresholds={level: thresholds[level] for level in calibrate_levels},
         fitted_on=queries,
         metrics=metrics,
         provenance={"atlas": atlas.provenance, "environment": run_environment()},

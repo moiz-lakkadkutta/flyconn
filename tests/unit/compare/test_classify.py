@@ -170,3 +170,18 @@ def test_result_independent_of_neuron_order(male_female: tuple[Store, Store]):
     )
     assert a.group is not None and b.group is not None
     assert a.group.s1 == pytest.approx(b.group.s1)
+
+
+def test_group_only_calibration_leaves_neurons_uncalibrated(male_female: tuple[Store, Store]):
+    male, female = male_female
+    atlas = build_atlas(female)
+    cal = _cal_for(atlas)
+    cal.models.pop("neuron")
+    cal.thresholds.pop("neuron")
+    res = classify(male, atlas, cell_type="T1", calibration=cal)
+    assert res.calibrated
+    assert (res.per_neuron["call"] == "uncalibrated").all()
+    assert res.per_neuron["p"].isna().all()
+    assert (res.per_neuron["label"] == "T1").all()
+    assert res.group is not None and res.group.call == "type" and res.group.p > 0.5
+    assert any("Per-neuron calls are uncalibrated" in c for c in res.caveats)

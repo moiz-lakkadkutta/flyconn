@@ -100,7 +100,7 @@ def _resolve_calibration(
 
 
 def _calls(scores: Scores, cal: Calibration | None, level: str) -> pd.DataFrame:
-    if cal is None:
+    if cal is None or level not in cal.models:
         return uncalibrated_calls(scores)
     return decide(scores, cal.models[level], cal.thresholds[level])
 
@@ -172,6 +172,12 @@ def classify_matrix(
     per.loc[empty, "p"] = np.nan
 
     caveats = [*BASE_CAVEATS, cal_caveat]
+    if cal is not None and "neuron" not in cal.models:
+        caveats.append(
+            "Per-neuron calls are uncalibrated (best label and raw cosine only): in the "
+            "benchmark, per-neuron confidence did not transfer between datasets. Use the "
+            "group call for a calibrated confidence."
+        )
     group: GroupCall | None = None
     if cell_type is not None or len(idx) > 1:
         group = _group_call(atl, prof, empty, ns, cal, top_k)
