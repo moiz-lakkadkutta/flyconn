@@ -129,3 +129,55 @@ def test_run_group_without_labelled_partners_does_not_crash(
     )
     assert res.exit_code == 0, res.stdout
     assert "group: unknown" in res.stdout
+
+
+def test_run_rejects_missing_selection_before_building_atlas(
+    stores: dict[str, Store], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import flyconn.compare as compare
+
+    def boom(*a: object, **k: object) -> None:
+        raise AssertionError("atlas built before validating arguments")
+
+    monkeypatch.setattr(compare, "build_atlas", boom)
+    for extra in ([], ["--type", "T1", "--direction", "bth"]):
+        res = CliRunner().invoke(
+            app,
+            [
+                "classify",
+                "run",
+                "malecns@1.0",
+                "--reference",
+                "flywire@783",
+                "--out",
+                str(tmp_path / "x.parquet"),
+                *extra,
+            ],
+        )
+        assert res.exit_code != 0
+        assert not isinstance(res.exception, AssertionError)
+
+
+def test_run_reports_dropped_group_ids(stores: dict[str, Store], tmp_path: Path):
+    female = stores["flywire@783"].neurons(columns=["neuron_id", "cell_type"])
+    groups = {"first": [*female.loc[female["cell_type"] == "T1", "neuron_id"].tolist(), 999999]}
+    gpath = tmp_path / "groups.json"
+    gpath.write_text(json.dumps(groups))
+    res = CliRunner().invoke(
+        app,
+        [
+            "classify",
+            "run",
+            "malecns@1.0",
+            "--reference",
+            "flywire@783",
+            "--type",
+            "T1",
+            "--groups",
+            str(gpath),
+            "--out",
+            str(tmp_path / "g.parquet"),
+        ],
+    )
+    assert res.exit_code == 0, res.stdout
+    assert "1 group id(s) not in flywire@783" in res.stdout

@@ -42,6 +42,10 @@ def run_cmd(
     """Classify query neurons against a reference atlas."""
     from flyconn.compare import build_atlas, classify
 
+    if (cell_type is None) == (ids is None):
+        raise typer.BadParameter("pass exactly one of --type or --ids")
+    if direction not in ("both", "out", "in"):
+        raise typer.BadParameter(f"--direction must be both, out or in, not {direction!r}")
     group_map = json.loads(groups.read_text()) if groups is not None else None
     atlas = build_atlas(
         Store.open(reference),
@@ -50,6 +54,9 @@ def run_cmd(
         direction=direction,  # type: ignore[arg-type]
         on_missing="drop" if group_map is not None else "raise",
     )
+    dropped = int(atlas.provenance.get("group_ids_dropped", 0))
+    if dropped:
+        typer.echo(f"warning: {dropped} group id(s) not in {reference} were dropped")
     res = classify(
         Store.open(query),
         atlas,
@@ -70,7 +77,8 @@ def run_cmd(
         g = res.group
         typer.echo(
             f"group: {g.call} {g.label or '-'} (s1 {g.s1:.3f}, margin {g.margin:.3f}, "
-            f"agreement {g.agreement:.0%} of {g.n})"
+            f"agreement {g.agreement:.0%} of {g.n_with_partners} neurons with named partners, "
+            f"{g.n} selected)"
         )
     typer.echo(res.per_neuron["call"].value_counts().to_string())
     for c in res.caveats:

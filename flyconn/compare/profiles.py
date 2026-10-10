@@ -15,6 +15,7 @@ from functools import cached_property
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 import scipy.sparse as sp
 
 from flyconn.graph.matrix import ConnectivityMatrix
@@ -167,3 +168,28 @@ def partner_counts(
         out_total=np.asarray(w.sum(axis=1), dtype=float).ravel(),
         in_total=np.asarray(w.sum(axis=0), dtype=float).ravel(),
     )
+
+
+XREF_COLUMNS = ("fafb_783_cell_type", "manc_121_cell_type")
+
+
+def vocab_partner_names(meta: pd.DataFrame, vocab: set[str], vocabulary: str) -> list[object]:
+    """Per-neuron partner name: the first cross-reference name that is in ``vocab``.
+
+    Under ``fafb_or_manc`` a neuron may carry both a FlyWire and a MANC name; taking the one
+    the atlas actually uses keeps e.g. descending neurons labelled against a MANC atlas.
+    Without any cross-reference values this falls back to ``partner_labels`` (own types).
+    """
+    from flyconn.compare.types import partner_labels
+
+    cols = [c for c in XREF_COLUMNS if c in meta.columns and bool(meta[c].notna().any())]
+    if vocabulary != "fafb_or_manc" or not cols:
+        return [v if _is_label(v) else None for v in partner_labels(meta, vocabulary).tolist()]
+    out: list[object] = [None] * len(meta)
+    for c in cols:
+        vals = meta[c].astype(object).tolist()
+        out = [
+            o if o is not None else (v if _is_label(v) and v in vocab else None)
+            for o, v in zip(out, vals, strict=True)
+        ]
+    return out

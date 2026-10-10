@@ -72,3 +72,20 @@ def test_row_normalisers():
     x = sp.csr_matrix(np.array([[3.0, 4.0], [0.0, 0.0]]))
     assert np.allclose(l1_rows(x).toarray(), [[3 / 7, 4 / 7], [0, 0]])
     assert np.allclose(l2_rows(x).toarray(), [[0.6, 0.8], [0, 0]])
+
+
+def test_vocab_partner_names_prefers_the_name_in_the_vocabulary():
+    from flyconn.compare.profiles import vocab_partner_names
+
+    meta = pd.DataFrame(
+        {
+            "cell_type": ["a", "b", "c", "d"],
+            "fafb_783_cell_type": ["DNx", "F1", None, None],
+            "manc_121_cell_type": ["DNx_manc", None, "M2", None],
+        }
+    )
+    names = vocab_partner_names(meta, {"DNx_manc", "F1", "M2"}, "fafb_or_manc")
+    assert names == ["DNx_manc", "F1", "M2", None]
+    # without cross-reference values it falls back like partner_labels (own cell_type)
+    bare = pd.DataFrame({"cell_type": ["a", None]})
+    assert vocab_partner_names(bare, {"a"}, "fafb_or_manc") == ["a", None]

@@ -237,3 +237,24 @@ def test_query_provenance_is_recorded(male_female: tuple[Store, Store]):
     q = res.provenance["query_store"]
     assert q["dataset"] == "malecns" and "counts" in q and "inputs" in q
     assert res.provenance["query_matrix"]["dataset"] == "malecns@1.0"
+
+
+def test_neuron_ids_accept_a_numpy_array(male_female: tuple[Store, Store]):
+    male, female = male_female
+    meta = male.neurons(columns=["neuron_id", "cell_type"])
+    ids = meta.loc[meta["cell_type"] == "T2", "neuron_id"].to_numpy()
+    res = classify(male, build_atlas(female), neuron_ids=ids, calibration=None)
+    assert len(res.per_neuron) == len(ids)
+
+
+def test_group_counts_neurons_with_partners_separately(male_female: tuple[Store, Store]):
+    male, female = male_female
+    meta = male.neurons(columns=["neuron_id", "cell_type"])
+    t1 = meta.loc[meta["cell_type"] == "T1", "neuron_id"].tolist()[:3]
+    res = classify(
+        male, build_atlas(female), neuron_ids=[*t1, 901, 902], mask=("T0",), calibration=None
+    )
+    assert res.group is not None
+    assert res.group.n == 5
+    assert res.group.n_with_partners == 3
+    assert res.group.agreement == 1.0

@@ -23,9 +23,8 @@ from flyconn.compare.calibrate import (
     default_calibration,
     uncalibrated_calls,
 )
-from flyconn.compare.profiles import partner_counts
+from flyconn.compare.profiles import partner_counts, vocab_partner_names
 from flyconn.compare.scoring import Scores, score
-from flyconn.compare.types import partner_labels
 from flyconn.data.store import Store
 from flyconn.graph.matrix import ConnectivityMatrix
 from flyconn.provenance import run_environment
@@ -56,6 +55,7 @@ class GroupCall:
     n: int
     top_labels: list[str] = field(default_factory=list)
     top_s: list[float] = field(default_factory=list)
+    n_with_partners: int = 0
 
 
 @dataclass
@@ -136,11 +136,11 @@ def classify_matrix(
             msg = f"no neurons of type {cell_type!r} in {query_ref}"
             raise KeyError(msg)
     else:
-        idx = np.unique(m.index_of(np.unique(np.asarray(list(neuron_ids or []), dtype=np.int64))))
+        idx = np.unique(m.index_of(np.unique(np.asarray(neuron_ids, dtype=np.int64))))
     vocabulary = str(atlas.params["vocabulary"])
     no_calibration_reason: str | None = None
     if partner_names is None:
-        names = partner_labels(m.meta, vocabulary).tolist()
+        names = vocab_partner_names(m.meta, set(atlas.vocab.tolist()), vocabulary)
         names_source = vocabulary
         if vocabulary == "fafb_or_manc" and not _has_cross_reference(m.meta):
             names_source = "query cell_type (no cross-reference)"
@@ -286,6 +286,7 @@ def _group_call(
         n=n,
         top_labels=[str(x) for x in gs.labels[0].tolist()],
         top_s=[float(x) for x in gs.s[0].tolist()],
+        n_with_partners=int((~empty).sum()),
     )
 
 

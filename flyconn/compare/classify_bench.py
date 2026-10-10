@@ -31,9 +31,8 @@ from flyconn.compare.calibrate import (
     ece,
     fit_logistic,
 )
-from flyconn.compare.profiles import partner_counts
+from flyconn.compare.profiles import partner_counts, vocab_partner_names
 from flyconn.compare.scoring import Scores, score
-from flyconn.compare.types import partner_labels
 from flyconn.graph.matrix import ConnectivityMatrix
 from flyconn.provenance import run_environment
 
@@ -104,7 +103,9 @@ def run_benchmark(
     protocols: Sequence[str] = ("closed", "open"),
     top_k: int = 5,
 ) -> BenchmarkResult:
-    names = partner_labels(query_matrix.meta, str(atlas.params["vocabulary"])).tolist()
+    names = vocab_partner_names(
+        query_matrix.meta, set(atlas.vocab.tolist()), str(atlas.params["vocabulary"])
+    )
     counts = partner_counts(query_matrix, names, vocab=atlas.vocab.tolist())
     truth, n_comma = truth_labels(
         query_matrix.meta, truth_column, {str(x) for x in atlas.labels.tolist()}
@@ -337,7 +338,7 @@ def fit_calibration(
         "calibrated_levels": list(calibrate_levels),
         "selection_rule": (
             "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by "
-            f"more than {SELECTION_TOLERANCE} at either level"
+            f"more than {SELECTION_TOLERANCE} at a calibrated level ({', '.join(calibrate_levels)})"
         ),
         "variants": variants,
         "per_query": per_query,
