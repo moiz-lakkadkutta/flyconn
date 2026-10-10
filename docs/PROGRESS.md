@@ -2,6 +2,48 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-10 — M12 zero-shot classification (branch m12-classify)
+
+- Built: `build_atlas` / `classify` / `flyconn classify run|bench`. Partner-type profile
+  centroids with left/right yardsticks; logistic calibration from a hold-out benchmark
+  (ADR-0010; spec and plan in `docs/superpowers/`).
+- Measured (GOLDEN_RESULTS 6i), group top-1:
+  - MaleCNS -> FlyWire 0.909 (CI 0.895-0.922);
+  - BANC -> FlyWire 0.657 (0.633-0.680);
+  - BANC -> MANC 0.749.
+  Per-neuron top-1 is 0.813, 0.423 and 0.545. Shipped pooled group calibration: ECE 0.012,
+  open-set false accept 0.052.
+- Owner decision: only group calls are calibrated. Per-neuron leave-one-dataset-out ECE was
+  0.235 / 0.237; group 0.084 / 0.128, which is above the 0.05 in-sample target and quoted
+  in every result.
+- LB3 against Shiu sugar/water sets reproduces 6g's calls. The cosines are lower because
+  the atlas averages per-neuron profiles; pooling reproduces 6g to 0.002.
+- Final review (fresh reviewer) fixes:
+  - the CLI no longer crashes when a group has no named partners;
+  - `top_k=1` keeps the true margin;
+  - no-cross-reference queries and `partner_names` overrides are uncalibrated;
+  - the selection's own names are masked by default;
+  - out-of-fold thresholds for coverage and false accept;
+  - query provenance is recorded;
+  - the pooled-synapse 6g check is now a golden test.
+- Second review fixes:
+  - partner names take whichever cross-reference name the atlas uses (BANC -> MANC rises
+    from 0.670 to 0.749 group top-1, because DN/AN partners keep their MANC names);
+  - `neuron_ids` accepts arrays;
+  - the git SHA is recorded only for flyconn's own checkout, with a dirty flag;
+  - the CLI validates arguments early and warns about dropped group ids;
+  - group agreement reports how many neurons had named partners.
+- Deferred follow-ups: shared scoring helper for `classify` and `run_benchmark`;
+  open-set benchmark speed (atlas copy per type); FlyWire-vs-FlyWire queries are
+  uncalibrated.
+- Open:
+  - mode B (no labelled partners);
+  - whether MaleCNS's FlyWire cross-references used connectivity (would inflate MaleCNS
+    accuracy);
+  - a dataset-difficulty feature to make calibration transfer;
+  - kNN voting for heterogeneous types;
+  - hemibrain not benchmarked.
+
 ## 2026-10-06 — M11 calibration (branch m11-calibration)
 
 - Nightly heavy-validation failed 2026-10-05 on 2 W5 tests (openpyxl missing: workflow lacked `--extra access`); fixed here (also on branch fix-heavy-ci).
