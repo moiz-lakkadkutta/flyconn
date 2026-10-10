@@ -118,3 +118,24 @@ def fetch_line_off_targets(
 
 def local_cache_path() -> Path:
     return cache_root() / "neuronbridge"
+
+
+def cached_off_target_count(
+    line: str, *, version: str = DEFAULT_VERSION, max_images: int = 50
+) -> int | None:
+    """Distinct EM bodies matched to ``line`` from the local cache only; None if not cached."""
+    root = cache_root() / "neuronbridge" / version / "metadata"
+    meta_path = root / "by_line" / f"{line}.json"
+    if not meta_path.exists():
+        return None
+    meta = json.loads(meta_path.read_text())
+    results: list[dict[str, Any]] = []
+    for img in meta.get("results", [])[:max_images]:
+        cds = img.get("files", {}).get("CDSResults")
+        if not cds:
+            continue
+        p = root / "cdsresults" / cds
+        if not p.exists():
+            return None
+        results.extend(json.loads(p.read_text()).get("results", []))
+    return len(aggregate_cds_matches(results, direction="lm_to_em"))
