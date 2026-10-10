@@ -1,0 +1,210 @@
+{
+ "atlas_params": {
+  "direction": "both",
+  "groups_hash": null,
+  "labels_from": "cell_type",
+  "min_weight": 5,
+  "reference": "flywire@783",
+  "store_hash": "aefdf564c11c32aa",
+  "vocabulary": "fafb_or_manc"
+ },
+ "atlas_params_hash": "758fd4e0e97f127e",
+ "fitted_on": [
+  "malecns@1.0",
+  "banc@888"
+ ],
+ "metrics": {
+  "benchmark": {
+   "banc@888": {
+    "n_comma_excluded": 1022,
+    "n_types_available": 7286
+   },
+   "malecns@1.0": {
+    "n_comma_excluded": 2751,
+    "n_types_available": 6652
+   }
+  },
+  "calibrated_levels": [
+   "group"
+  ],
+  "max_false_accept": 0.1,
+  "n_folds": 5,
+  "per_query": {
+   "banc@888": {
+    "group": {
+     "accuracy_covered": 0.9406593406593406,
+     "coverage": 0.3061911170928668,
+     "ece_oof": 0.05005804489620082,
+     "false_accept_open": 0.04441453566621804,
+     "n_records": 1486,
+     "n_types": 1486,
+     "top1": [
+      0.6567967698519516,
+      0.6332436069986541,
+      0.680349932705249
+     ],
+     "top3": [
+      0.7987886944818304,
+      0.7799461641991925,
+      0.8183041722745625
+     ]
+    },
+    "neuron": {
+     "accuracy_covered": 0.7493455497382199,
+     "coverage": 0.16394849785407725,
+     "ece_oof": 0.161387157653783,
+     "false_accept_open": 0.05193133047210301,
+     "n_records": 9320,
+     "n_types": 1486,
+     "top1": [
+      0.4225321888412017,
+      0.3582205972424268,
+      0.4887028147291305
+     ],
+     "top3": [
+      0.5565450643776824,
+      0.4886401179007669,
+      0.6263049790457548
+     ]
+    }
+   },
+   "malecns@1.0": {
+    "group": {
+     "accuracy_covered": 0.9897225077081192,
+     "coverage": 0.6486666666666666,
+     "ece_oof": 0.04731913458064925,
+     "false_accept_open": 0.059333333333333335,
+     "n_records": 1500,
+     "n_types": 1500,
+     "top1": [
+      0.9093333333333333,
+      0.8946666666666667,
+      0.9220166666666667
+     ],
+     "top3": [
+      0.9613333333333334,
+      0.952,
+      0.9706666666666667
+     ]
+    },
+    "neuron": {
+     "accuracy_covered": 0.9909348441926346,
+     "coverage": 0.5209370964766649,
+     "ece_oof": 0.0612160863837434,
+     "false_accept_open": 0.01752444198487364,
+     "n_records": 27105,
+     "n_types": 1500,
+     "top1": [
+      0.8132816823464305,
+      0.6966990771325086,
+      0.9040100310236832
+     ],
+     "top3": [
+      0.8992067884154215,
+      0.8174277689094792,
+      0.9627411835143957
+     ]
+    }
+   }
+  },
+  "seed": 0,
+  "selection_rule": "adjusted unless raw has lower out-of-fold ECE or higher accuracy-at-coverage by more than 0.005 at either level",
+  "transfer_ece": {
+   "banc@888": {
+    "group": 0.12760723220478598,
+    "neuron": 0.2370194678507534
+   },
+   "malecns@1.0": {
+    "group": 0.08418023027380644,
+    "neuron": 0.2345686292957853
+   }
+  },
+  "variant_selected": "adjusted",
+  "variants": {
+   "adjusted": {
+    "group": {
+     "accuracy_covered": 0.9740896358543417,
+     "brier_oof": 0.1025159499791018,
+     "coverage": 0.478231748158071,
+     "degenerate": false,
+     "ece_oof": 0.011827598239927392,
+     "false_accept_open": 0.05190890823844608
+    },
+    "neuron": {
+     "accuracy_covered": 0.9673440695296524,
+     "brier_oof": 0.1326189311301323,
+     "coverage": 0.42959505833905287,
+     "degenerate": false,
+     "ece_oof": 0.03066061138944911,
+     "false_accept_open": 0.026328071379547013
+    }
+   },
+   "raw": {
+    "group": {
+     "accuracy_covered": 0.9754558204768583,
+     "brier_oof": 0.10233707092832099,
+     "coverage": 0.477561955793704,
+     "degenerate": false,
+     "ece_oof": 0.014087927367585617,
+     "false_accept_open": 0.05190890823844608
+    },
+    "neuron": {
+     "accuracy_covered": 0.9654204414954702,
+     "brier_oof": 0.1328794798077881,
+     "coverage": 0.430308853809197,
+     "degenerate": false,
+     "ece_oof": 0.028520172663354666,
+     "false_accept_open": 0.027014413177762524
+    }
+   }
+  }
+ },
+ "models": {
+  "group": {
+   "coef": [
+    -2.8516238900351056,
+    3.4871074726730624,
+    -0.017433823211931942,
+    13.20506507302646
+   ],
+   "features": [
+    "s1",
+    "a1",
+    "margin"
+   ]
+  }
+ },
+ "provenance": {
+  "atlas": {
+   "group_ids_dropped": 0,
+   "n_labels": 8452,
+   "n_members": 131811,
+   "reference": "flywire@783",
+   "store_provenance": {
+    "counts": {
+     "edge_roi_rows": 3869878,
+     "edges": 2700513,
+     "neurons": 139255
+    }
+   }
+  },
+  "environment": {
+   "flyconn_version": "0.3.0",
+   "git_sha": "9c4f370d241080f97fdbc2b9694ea7aab60f6420",
+   "packages": {
+    "numpy": "2.5.3",
+    "pandas": "2.3.3",
+    "scipy": "1.18.1"
+   }
+  }
+ },
+ "reference": "flywire@783",
+ "thresholds": {
+  "group": {
+   "accept": 0.8,
+   "delta": 0.05,
+   "s_floor": 0.74612369008599
+  }
+ },
+ "variant": "adjusted"
+}
