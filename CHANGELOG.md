@@ -4,6 +4,12 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M13 robustness-audited screens
+- `robustness:` block for `silence_each` specs; `flyconn run SPEC --out DIR` then runs `run_robust_screen` (ADR-0011): a reference sweep plus one sweep per modelling variant (w_syn from the calibration range, sampled NT signs, `network.min_weight` thresholds, a cross-dataset replicate mapped with `match_types`), all silencing the reference candidates; a random-silencing null per size bin and super_class; `extra_candidates` as labelled negative controls. Variant labels holds / weakens / flips; tiers Strong / Conditional / Fragile; the replicate is reported, never graded; no correction across variants. Interrupted runs resume per variant.
+- Spec additions: `params: {w_syn_mv}` and `network.sign_seed` (with `sign_policy: sampled`, which now refuses a store without NT probabilities); `run_sweep(candidates=...)` returns the natural selection for selection stability.
+- Outputs: evidence-card `report.html`, `handoff.csv` (one row per hit with the best Meissner 2025 split-GAL4 line and match method, suggested test), `hits.parquet`, `null.parquet`, `selection_stability.parquet`, `provenance.json`. `flyconn.access.handoff.attach_lines` looks up lines offline; NeuronBridge counts only when cached.
+- Golden run on MaleCNS (`tests/golden/test_robust_screen.py`, GOLDEN_RESULTS 6j): 939 s, 11.8 GB peak RSS; one hit, GNG232 -> MN9, Conditional (fails the NT-sign axis, 5/8). Tutorial `docs/tutorials/robust-screens.md`.
+
 ### M11 calibration
 - `select_w_syn` and a revised `calibrate_w_syn`: per-trial readouts, bootstrap CIs on the readout ratio, interpolated crossing with a bootstrap interval, status calibrated / ambiguous / unresolved (ADR-0009).
 - Positive control on Shiu v630 (`tests/golden/test_shiu_calibration.py`): the onset ratio (50 / 200 Hz) recovers the published w_syn (0.273 mV, CI 0.268-0.279); the literal 80 % rule is unresolved on v630.

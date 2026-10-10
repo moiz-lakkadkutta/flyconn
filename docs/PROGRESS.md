@@ -2,6 +2,13 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-10 — M13 robustness-audited screens (branch m13-robust-screens)
+
+- `robustness:` block for silencing screens, `run_robust_screen`, evidence-card report and `handoff.csv` with split-GAL4 lines (ADR-0011, tutorial `docs/tutorials/robust-screens.md`).
+- Golden MaleCNS run (GOLDEN_RESULTS 6j; 15 sweeps + 80 random-null runs, 939 s, peak RSS 11.8 GB; a same-seed rerun is identical): the reference reproduces 6h exactly. One hit, GNG232 -> MN9 (-14.5 Hz, q 0.003), tier Conditional: holds at w_syn 0.185 / 0.192 / 0.209, at min_weight 3 and 5 and in the FlyWire replicate (-10.8 Hz, not graded), random-null p 0.024, but holds in only 5 of 8 sampled-sign variants (stimulated MN9 ranges 0.2-34.7 Hz across sign samples). No annotated Meissner 2025 line for GNG232. Selection stability 1.0 for every variant. Negative control LC4: effect 0.00 Hz, null p 0.95.
+- Weak checks found, not fixed: the random null is uninformative here (all 40 random 2-neuron central-brain sets give exactly 0 Hz, so any nonzero effect gets p = 1/41); LC4 is silent under LB3 drive, so the control passes trivially; a super_class readout (`descending`) empties the random pool for descending candidates.
+- Not done: a stronger negative control (active but off-route); a paired test across shared Poisson inputs; merge with M12 (not on main yet).
+
 ## 2026-10-06 — M11 calibration (branch m11-calibration)
 
 - Nightly heavy-validation failed 2026-10-05 on 2 W5 tests (openpyxl missing: workflow lacked `--extra access`); fixed here (also on branch fix-heavy-ci).
