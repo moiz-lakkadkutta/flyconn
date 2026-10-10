@@ -21,7 +21,7 @@ target is never reached.
 
 The result is a *protocol outcome*, not a validated calibration: until a
 dataset's readout has been compared with independent data, simulations on it
-stay labelled uncalibrated (``CalibrationResult.summary`` says so).
+are labelled "calibrated by protocol, not validated" at best (ADR-0009).
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ class CalibrationResult:
             f"w_syn = {self.w_syn_mv:.3g} mV{ci_text} gives {self.achieved_fraction:.2f} of the "
             f"saturating readout at the reference rate (target "
             f"{self.provenance.get('target_fraction')}); status: {status}. "
-            "Simulations remain uncalibrated until validated against data."
+            "A protocol outcome, not a validation against data."
         )
 
 
@@ -245,6 +245,6 @@ def calibrate_w_syn(
         "n_trials": n_trials,
         "seed": seed,
         "status": sel.status,
-        "label": "protocol outcome; dataset remains uncalibrated until validated",
+        "label": "protocol outcome; not validated against data",
     }
     return CalibrationResult(sel.w_syn_mv, sel.achieved_fraction, curve, prov, trials, sel)

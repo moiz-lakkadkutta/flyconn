@@ -356,7 +356,7 @@ W3 male (MaleCNS v1.0) vs female, output partners, min_weight 5, 500 permutation
 
 The hemibrain PFL3 within-dataset similarity (0.307) shows the hemibrain left/right null is unreliable for types whose left-side arbors leave the volume (see caveats); EPG and DNa02 are pinned in the golden test, PFL3 and DNp01 were run once (scratch script) and are not tests.
 
-### 6f. Pathway-ranked silencing screen (MaleCNS v1.0, uncalibrated; 2026-10-04)
+### 6f. Pathway-ranked silencing screen (MaleCNS v1.0, w_syn 0.275 mV, uncalibrated; 2026-10-04; rerun at 0.188 mV in 6h)
 
 `examples/specs/w2_sweep_pathway_mn9.yaml`: LB3* GRNs at 100 Hz; candidates on LB3* -> MN9 paths of <= 3 hops (>= 5 synapses and >= 1 % input per hop), grouped by cell type. Exactly six types qualify, the relays found in W1. MN9 in the stimulated condition 41.3 Hz; 10 trials x 300 ms:
 
@@ -399,7 +399,38 @@ MaleCNS v1.0 -> MN9 (2 neurons), seed 1, onset-ratio transfer:
 
 The literal and 100 / 200 transfer rules are ambiguous or unresolved for both stimuli. The LB3c+d onset ratio is not monotonic above the crossing (0.47 at 0.225 mV, 0.26 at 0.25 mV) but stays above the target there.
 
-Independent cross-check: synapses per matched type pair (sum over >= 5-synapse edges / (n_pre x n_post), types matched via MaleCNS `fafb_783_cell_type`, 227,872 shared pairs) are 1.67x (median; geometric mean 1.74) higher in MaleCNS than in FlyWire v783; 1.47x for pairs with >= 5 synapses per neuron pair. Scaling 0.275 mV by these gives 0.165-0.187 mV.
+Sensitivity (`tests/golden/test_malecns_calibration_inputs.py`, grid 0.125-0.25 mV, 10 x 1 s, seed 1): per-neuron sugar call as the stimulus (49 neurons) 0.204 mV (95 % CI 0.199-0.209), calibrated; LB3c+d with probabilistic signs (tbar NT probabilities) 0.189 mV (0.187-0.192), calibrated. Default since 2026-10-10: 0.188 mV, range 0.185-0.209 mV.
+
+Independent cross-check (same test file): synapses per matched type pair (sum over >= 5-synapse edges / (n_pre x n_post), types matched via MaleCNS `fafb_783_cell_type`, 227,872 shared pairs) are 1.67x (median; geometric mean 1.74) higher in MaleCNS than in FlyWire v783; 1.47x for pairs with >= 5 synapses per neuron pair. Scaling 0.275 mV by these gives 0.164-0.187 mV (0.172 at a floor of 1 synapse per neuron pair).
+
+### 6h. MaleCNS experiments at the protocol w_syn (0.188 mV; 2026-10-10)
+
+The three MaleCNS golden experiments rerun after the default switch (ADR-0009; same specs, seeds and trials; CPU float32): W2 190 s, GNG sweep 77 s, pathway screen 61 s. Stimulus is still all LB3* GRNs (sugar + water) at 100 Hz, as in the specs.
+
+W2 (`w2_malecns_lb3_silence_gng232.yaml`, 20 x 0.5 s):
+
+| Readout | Stimulated | GNG232 silenced | Difference (d, q) | At 0.275 mV (M5) |
+|---|---|---|---|---|
+| MN9 | 30.1 Hz | 14.1 Hz | -16.0 (-3.5, 9e-8) | 44.9 -> 23.1 (-21.8) |
+| descending | 1.58 Hz | 0.84 Hz | -0.74 (-5.2) | 3.36 -> 2.65 |
+| motor | 1.26 Hz | 0.45 Hz | -0.81 (-3.5) | 7.56 -> 4.91 |
+
+Controls: degree-preserving rewiring gives MN9 0.0 Hz (as before); sign shuffling still runs away (24.8 M and 13.4 M spikes, 56,613 / 39,441 active neurons vs 203,825 spikes / 1,100 active stimulated).
+
+GNG screen (`w2_sweep_silence_gng.yaml`, 10 x 0.3 s; stimulated MN9 28.3 Hz): MN9 effects with q < 0.05 are GNG232 -14.5 (CI -18.8 to -9.5), GNG054 +14.3, GNG115 +10.8, GNG038 +7.7, GNG452 +7.0. The 10 most active GNG types changed with w_syn (GNG019 and GNG479 dropped out; GNG054, GNG115, GNG228, GNG041, GNG042, GNG229 and GNG232 are in the top 10 now).
+
+Pathway screen (`w2_sweep_pathway_mn9.yaml`, same six relays; stimulated MN9 28.3 Hz):
+
+| Silenced | Route sign | MN9 difference (95 % CI) | q | At 0.275 mV (6f) |
+|---|---|---|---|---|
+| GNG232 | + | -14.5 (-18.8, -9.5) | 0.003 | -11.7, q 0.008 |
+| DNge080 | + | -4.3 (-8.7, 0.3) | 0.26 | -9.2, q 0.008 |
+| DNge051 | - | +2.5 (-2.3, 7.7) | 0.51 | +6.2 |
+| GNG215 | - | -1.7 (-6.7, 3.7) | 0.59 | +1.5 |
+| GNG132 | - | +1.7 (-3.8, 7.3) | 0.51 | +5.7 |
+| GNG130 | - | +0.2 (-5.5, 6.0) | 0.82 | +9.5 |
+
+Robust to the w_syn change: GNG232 silencing lowers MN9 (and the descending and motor groups); rewiring abolishes the response. Not robust: the size and significance of DNge080 and of the inhibitory-route relays, the direction-matches-route-sign pattern (GNG215 flips, n.s.), and which GNG types a top-10 activity screen selects. Screen rankings on MaleCNS should be reported with the w_syn they used.
 
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 

@@ -1,4 +1,4 @@
-# W2 sweep - silencing screen over GNG cell types (MaleCNS v1.0; UNCALIBRATED model).
+# W2 sweep - silencing screen over GNG cell types (MaleCNS v1.0; w_syn calibrated by protocol, not validated; ADR-0009).
 # Background: drive labellar LB3 GRNs (sugar + water group) at 100 Hz, as in the W2 example.
 # Sweep: silence each GNG* cell type one at a time. Candidate types are ranked by their summed
 #   firing rate in the shared stimulated condition and the 10 most active are simulated

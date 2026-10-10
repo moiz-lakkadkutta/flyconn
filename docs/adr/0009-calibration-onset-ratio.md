@@ -1,6 +1,6 @@
 # ADR-0009: Re-calibrate w_syn by transferring v630's onset ratio, with a positive control
 
-Status: Proposed (2026-10-06). Refines ADR-0004's re-calibration protocol.
+Status: Accepted (2026-10-10, owner approved the MaleCNS default). Refines ADR-0004's re-calibration protocol.
 
 ## Context
 
@@ -37,8 +37,11 @@ drove sugar GRNs only, and used 5 x 0.5 s trials.
   by output-partner type profile they resemble FlyWire's sugar GRN set (cosine 0.92 /
   0.86; LB3a resembles the water set, 0.87; LB3b is mixed). Per neuron, 41 of 49 LB3c/d
   neurons are closer to the sugar profile.
-- A protocol outcome is labelled "calibrated by protocol (onset-ratio transfer from v630),
-  not validated against data". It does not change default parameters by itself.
+- A protocol outcome is labelled "calibrated by protocol, not validated against data".
+  It becomes a dataset default only by an entry in `flyconn.sim.CALIBRATIONS`, which
+  `LIFNetwork.from_matrix` applies when no parameters are passed. MaleCNS v1.0 has such an
+  entry (0.188 mV) since 2026-10-10; passing `ShiuParams()` explicitly restores 0.275 mV and
+  the UNCALIBRATED label.
 
 ## Alternatives considered
 
@@ -58,13 +61,17 @@ drove sugar GRNs only, and used 5 x 0.5 s trials.
 - MaleCNS onset-ratio calibration: **w_syn = 0.188 mV (95 % CI 0.185-0.192; support
   0.99)**; the synapse-scaling cross-check predicts 0.165-0.187 mV. With all LB3 as the
   stimulus the outcome is ambiguous, so the stimulus set matters.
-- The confidence interval covers seed noise only. Not covered: the sugar/water split, sign
-  policy, NT model, the 50 Hz choice of reference rate, and whether MN9 in a male CNS
-  should behave like MN9 in FlyWire at all.
-- Whether 0.188 mV becomes the MaleCNS default is a separate decision (it changes every
-  existing MaleCNS simulation number).
+- Sensitivity (`tests/golden/test_malecns_calibration_inputs.py`): probabilistic signs from
+  the tbar-aggregated NT probabilities give 0.189 mV (0.187-0.192); the per-neuron sugar
+  call (49 neurons: 8 LB3b, 17 LB3c, 24 LB3d) instead of the LB3c+d subtypes gives 0.204 mV
+  (0.199-0.209). The recorded range is 0.185-0.209 mV; the stimulus-set choice dominates.
+- Not covered: the 50 Hz choice of reference rate, the MN9 readout, and whether MN9 in a
+  male CNS should behave like MN9 in FlyWire at all.
+- MaleCNS defaults to 0.188 mV (2026-10-10). Every MaleCNS simulation number recorded before
+  that date used 0.275 mV and is kept in the docs labelled as such.
 
 ## Evidence
 
-`benchmarks/shiu_calibration.json`, `benchmarks/malecns_calibration.json`;
+`benchmarks/shiu_calibration.json`, `benchmarks/malecns_calibration.json`,
+`benchmarks/malecns_calibration_inputs.json`;
 `docs/GOLDEN_RESULTS.md` §6g.

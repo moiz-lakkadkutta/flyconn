@@ -7,7 +7,8 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 ### M11 calibration
 - `select_w_syn` and a revised `calibrate_w_syn`: per-trial readouts, bootstrap CIs on the readout ratio, interpolated crossing with a bootstrap interval, status calibrated / ambiguous / unresolved (ADR-0009).
 - Positive control on Shiu v630 (`tests/golden/test_shiu_calibration.py`): the onset ratio (50 / 200 Hz) recovers the published w_syn (0.273 mV, CI 0.268-0.279); the literal 80 % rule is unresolved on v630.
-- MaleCNS calibration rerun on the sugar-like LB3c+LB3d GRNs: 0.188 mV (CI 0.185-0.192); defaults unchanged.
+- MaleCNS calibration rerun on the sugar-like LB3c+LB3d GRNs: 0.188 mV (CI 0.185-0.192); sensitivity 0.185-0.209 mV (per-neuron sugar call 0.204, probabilistic signs 0.189).
+- **Behaviour change:** `LIFNetwork.from_matrix` on MaleCNS v1.0 now defaults to w_syn = 0.188 mV (`flyconn.sim.CALIBRATIONS`, `default_params`) and labels runs "CALIBRATED BY PROTOCOL, not validated against data". Pass `ShiuParams()` for the previous 0.275 mV. MaleCNS simulation numbers change.
 - CI: heavy workflow installs the `access` and `interpret` extras (W5 golden tests need openpyxl).
 
 ## [0.3.0] - 2026-10-04
