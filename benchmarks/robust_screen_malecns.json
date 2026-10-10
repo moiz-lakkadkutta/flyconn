@@ -1,0 +1,8 @@
+{
+ "spec": "w2_robust_pathway_mn9.yaml",
+ "wall_s": 939,
+ "peak_rss_gb": 11.83,
+ "variants": 15,
+ "null_runs": 80,
+ "machine": "M4 Pro, CPU float32"
+}
