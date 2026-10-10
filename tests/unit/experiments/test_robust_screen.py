@@ -256,3 +256,38 @@ def test_null_zero_fraction_and_note(small_store: Store, tmp_path: Path):
         expect = degenerate_null_note(n_zero, len(nulls))
         assert row["random_null_note"] == expect
         assert h.set_index("label").loc[cand, "random_null_note"] == expect
+
+
+@pytest.fixture
+def no_nt_store(small_store: Store, tmp_path: Path) -> Store:
+    """small_store without per-neuron NT probabilities (as before an nt-probs pull)."""
+    neurons, edges = small_store.neurons(), small_store.edges()
+    for col in [c for c in neurons.columns if c.startswith("nt_p_")]:
+        neurons[col] = float("nan")
+    d = tmp_path / "nont"
+    d.mkdir()
+    write_parquet(conform_neurons(neurons), d / "neurons.parquet")
+    write_parquet(conform_edges(edges), d / "edges.parquet")
+    write_provenance(
+        d,
+        dataset="malecns",
+        version="1.0",
+        converter="test",
+        inputs=[],
+        counts={"neurons": len(neurons), "edges": len(edges)},
+    )
+    return Store(d)
+
+
+def test_missing_nt_probabilities_skips_nt_axis(no_nt_store: Store, tmp_path: Path):
+    res = run_robust_screen(
+        spec_from_dict(_d(no_nt_store)), out_dir=tmp_path / "o", store=no_nt_store
+    )
+    assert "nt" not in set(res.effects["axis"])
+    assert len(res.hits) >= 1
+    assert set(res.hits["nt"]) == {"not_run"}
+    assert all("nt" in str(u).split(", ") for u in res.hits["untested_axes"])
+    rob = res.provenance["robustness"]
+    assert rob["nt"] == "not run: flyconn data pull malecns@1.0 --level nt-probs"
+    assert rob["nt_sign_seeds"] == []
+    assert not (tmp_path / "o" / "variants" / "nt_s0").exists()

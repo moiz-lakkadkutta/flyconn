@@ -18,8 +18,9 @@ flyconn data pull flylight_lines@meissner2025      # split-GAL4 lines for the ha
 
 A missing replicate or line table does not stop the run: the replicate axis is reported
 as `not run` and the lines as "not looked up", each with the pull command. A MaleCNS
-store without NT probabilities makes the sampled-sign variants refuse to run rather than
-fall back to argmax signs.
+store without NT probabilities does not stop the run either: the sampled-sign variants
+are skipped (never replaced by argmax signs), the NT axis is reported as `not run`, and
+provenance records `robustness.nt` with the `--level nt-probs` pull command.
 
 ## Writing a `robustness:` block
 

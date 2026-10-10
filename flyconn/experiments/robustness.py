@@ -42,6 +42,7 @@ from flyconn.experiments.spec import (
 )
 from flyconn.experiments.sweep import Candidate, run_sweep
 from flyconn.graph.matrix import ConnectivityMatrix
+from flyconn.graph.signs import has_nt_probabilities
 from flyconn.sim.params import CALIBRATIONS, default_params
 from flyconn.uncertainty.stability import path_stability
 
@@ -313,7 +314,11 @@ def run_robust_screen(
     replicate_labels: dict[str, str] = {}
     rep_prov: dict[str, Any] = {}
 
-    for v in plan[1:]:
+    nt_status = "run"
+    if not has_nt_probabilities(store.neurons()):  # never fall back to argmax signs
+        nt_status = f"not run: flyconn data pull {spec.dataset} --level nt-probs"
+    ran = [v for v in plan if not (v.axis == "nt" and nt_status != "run")]
+    for v in ran[1:]:
         if v.axis == "replicate":
             continue
         loaded = _run_or_load(vdir / v.label, v.spec, store, fixed=cands, compute_natural=True)
@@ -447,11 +452,11 @@ def run_robust_screen(
             "design": "one axis at a time around the calibrated reference (ADR-0011)",
             "plan_hash": plan_hash,
             "variants": [
-                {"axis": v.axis, "label": v.label, "spec_sha256": v.spec.source_sha256}
-                for v in plan
+                {"axis": v.axis, "label": v.label, "spec_sha256": v.spec.source_sha256} for v in ran
             ],
             "w_syn_values": list(w_syn_values(spec)),
-            "nt_sign_seeds": [spec.seed + 2000 + k for k in range(r.nt_samples)],
+            "nt": nt_status,
+            "nt_sign_seeds": [v.spec.network.sign_seed for v in ran if v.axis == "nt"],
             "min_weights": list(r.min_weights),
             "replicate": rep_prov | {"ref": r.replicate},
             "random_null": {
