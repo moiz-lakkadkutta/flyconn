@@ -110,3 +110,18 @@ def replicate_spec(
         sweep=sweep,
     )
     return spec, ""
+
+
+def replicate_exclusions(
+    rspec: ExperimentSpec | None, primary_readout: str, rep: pd.DataFrame
+) -> set[int]:
+    """Replicate stimulus ids plus the primary readout's ids (as the reference screen excludes)."""
+    if rspec is None:
+        return set()
+    out: set[int] = set()
+    for st in rspec.stimulate:
+        out.update(int(i) for i in resolve_selection(st.select, rep))
+    for ro in rspec.readouts:
+        if ro.name == primary_readout:
+            out.update(int(i) for i in resolve_selection(ro.select, rep))
+    return out

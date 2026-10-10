@@ -23,7 +23,12 @@ from flyconn.data.pull import pull
 from flyconn.data.registry import get_dataset
 from flyconn.data.store import Store
 from flyconn.experiments.robust_null import draw_null_sets, null_key, null_p
-from flyconn.experiments.robust_replicate import map_candidates, map_selection, replicate_spec
+from flyconn.experiments.robust_replicate import (
+    map_candidates,
+    map_selection,
+    replicate_exclusions,
+    replicate_spec,
+)
 from flyconn.experiments.robust_scoring import score_hits, variant_label
 from flyconn.experiments.runner import rates_hz, write_table
 from flyconn.experiments.spec import (
@@ -320,12 +325,7 @@ def run_robust_screen(
             type_map = match_types(store, rep_store)
             q_n, rep_n = store.neurons(), rep_store.neurons()
             rspec, why = replicate_spec(rep_v.spec, spec, q_n, rep_n, type_map)
-            excl: set[int] = set()
-            if rspec is not None:
-                for st in rspec.stimulate:
-                    excl.update(int(i) for i in resolve_selection(st.select, rep_n))
-                for ro in rspec.readouts:
-                    excl.update(int(i) for i in resolve_selection(ro.select, rep_n))
+            excl = replicate_exclusions(rspec, primary, rep_n)
             mapped, replicate_labels = map_candidates(
                 cands, rep_n, type_map, sweep.group_by, exclude=excl
             )

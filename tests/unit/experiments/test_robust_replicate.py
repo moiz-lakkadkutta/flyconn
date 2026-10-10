@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from flyconn.experiments.robust_replicate import map_candidates, map_selection, replicate_spec
+from flyconn.experiments.robust_replicate import (
+    map_candidates,
+    map_selection,
+    replicate_exclusions,
+    replicate_spec,
+)
 from flyconn.experiments.spec import Selection, spec_from_dict
 from flyconn.experiments.sweep import Candidate
 
@@ -111,3 +116,25 @@ def test_replicate_spec_unmappable_stimulus():
     orig = _spec("X1")
     out, why = replicate_spec(orig, orig, Q, R, TM)
     assert out is None and why.startswith("not testable")
+
+
+def test_exclusions_cover_stimulus_and_primary_readout_only():
+    d = {
+        "name": "s",
+        "dataset": "malecns@1.0",
+        "stimulate": [{"select": {"cell_type": "LB3*"}, "rate_hz": 100}],
+        "readouts": [
+            {"name": "mn", "select": {"cell_type": "MN9"}},
+            {"name": "desc", "select": {"cell_type": "GNG232"}},
+        ],
+        "sweep": {"silence_each": {"select": {"super_class": "central"}, "group_by": "cell_type"}},
+    }
+    orig = spec_from_dict(d)
+    rspec, _ = replicate_spec(orig, orig, Q, R, TM)
+    excl = replicate_exclusions(rspec, "mn", R)
+    assert excl == {11, 12, 13}  # stimulus LB3 + primary MN9; secondary GNG232 (14) stays
+    cands = [Candidate("GNG232", (4,)), Candidate("MN9", (3,)), Candidate("LB3c", (1,))]
+    mapped, reasons = map_candidates(cands, R, TM, "cell_type", exclude=excl)
+    assert [c.label for c in mapped] == ["GNG232"]
+    assert "MN9" in reasons and "LB3c" in reasons
+    assert replicate_exclusions(None, "mn", R) == set()
