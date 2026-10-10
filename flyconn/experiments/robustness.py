@@ -320,7 +320,15 @@ def run_robust_screen(
             type_map = match_types(store, rep_store)
             q_n, rep_n = store.neurons(), rep_store.neurons()
             rspec, why = replicate_spec(rep_v.spec, spec, q_n, rep_n, type_map)
-            mapped, replicate_labels = map_candidates(cands, rep_n, type_map, sweep.group_by)
+            excl: set[int] = set()
+            if rspec is not None:
+                for st in rspec.stimulate:
+                    excl.update(int(i) for i in resolve_selection(st.select, rep_n))
+                for ro in rspec.readouts:
+                    excl.update(int(i) for i in resolve_selection(ro.select, rep_n))
+            mapped, replicate_labels = map_candidates(
+                cands, rep_n, type_map, sweep.group_by, exclude=excl
+            )
             rep_prov = _replicate_mapping(
                 spec, q_n, rep_n, type_map, cands, mapped, replicate_labels
             )

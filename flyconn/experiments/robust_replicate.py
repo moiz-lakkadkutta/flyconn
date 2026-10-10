@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import replace
 
 import numpy as np
@@ -51,11 +51,18 @@ def map_selection(
 
 
 def map_candidates(
-    candidates: Sequence[Candidate], rep: pd.DataFrame, type_map: pd.DataFrame, group_by: str
+    candidates: Sequence[Candidate],
+    rep: pd.DataFrame,
+    type_map: pd.DataFrame,
+    group_by: str,
+    *,
+    exclude: Collection[int] = frozenset(),
 ) -> tuple[list[Candidate], dict[str, str]]:
+    """Map candidates by type; ``exclude`` (replicate stimulus/readout ids) is dropped from each."""
     if group_by != "cell_type":
         reason = "not testable: candidates not grouped by cell type"
         return [], {c.label: reason for c in candidates}
+    excluded = {int(i) for i in exclude}
     mapped: list[Candidate] = []
     reasons: dict[str, str] = {}
     for c in candidates:
@@ -64,7 +71,11 @@ def map_candidates(
         if len(ids) == 0:
             reasons[c.label] = f"not testable: no replicate type for {c.label}"
             continue
-        mapped.append(Candidate(c.label, tuple(int(i) for i in ids), c.role))
+        kept = tuple(int(i) for i in ids if int(i) not in excluded)
+        if not kept:
+            reasons[c.label] = "not testable: maps only to replicate stimulus/readout neurons"
+            continue
+        mapped.append(Candidate(c.label, kept, c.role))
     return mapped, reasons
 
 

@@ -12,6 +12,7 @@ from flyconn.cli.main import app
 from flyconn.data.store import Store
 from flyconn.experiments.robustness import run_robust_screen
 from flyconn.experiments.spec import spec_from_dict
+from flyconn.sim.params import CALIBRATIONS
 
 HANDOFF_COLS = [
     "label",
@@ -116,3 +117,50 @@ def test_cli_routes_robustness_specs(small_store: Store, tmp_path: Path, monkeyp
     res = CliRunner().invoke(app, ["run", str(p), "--out", str(tmp_path / "o")])
     assert res.exit_code == 0, res.output
     assert seen["name"] == "card" and "robustness screen" in res.output
+
+
+def _row_hit(p: float) -> tuple[pd.Series, pd.Series]:
+    row = pd.Series(
+        {
+            "label": "T1", "tier": "strong", "direction": "down", "effect_hz": -1.0,
+            "ci_low": -2.0, "ci_high": -0.5, "q_value": 0.01, "thinly_tested": False,
+            "replicate": "n/a", "path_stability": float("nan"), "lines": "",
+            "line_match": "none", "suggested_test": "x",
+        }
+    )  # fmt: skip
+    hit = pd.Series(
+        {
+            "w_syn": "holds", "w_syn_detail": "d", "nt": "holds", "nt_holds": "1/1",
+            "nt_flips": "", "min_weight": "holds", "min_weight_detail": "d",
+            "random_null": "not run", "random_null_p": p,
+        }
+    )  # fmt: skip
+    return row, hit
+
+
+def test_null_p_nan_renders_na():
+    from flyconn.report.robust_html import _card  # pyright: ignore[reportPrivateUsage]
+
+    row, hit = _row_hit(float("nan"))
+    html = _card(row, hit, True, ())
+    assert "p n/a" in html and "p nan" not in html
+    row, hit = _row_hit(0.25)
+    assert "p 0.25" in _card(row, hit, True, ())
+
+
+def test_conditional_caveats(small_store: Store):
+    from flyconn.report.robust_html import caveats_for
+
+    d = _d(small_store)
+    cav = " ".join(caveats_for(spec_from_dict(d)))
+    assert "replicate runs" not in cav
+    d["dataset"] = "malecns@1.0"
+    d["robustness"] = {**d["robustness"], "replicate": "flywire@783"}  # type: ignore[dict-item]
+    cav = " ".join(caveats_for(spec_from_dict(d)))
+    assert "malecns@1.0" in CALIBRATIONS
+    assert "malecns@1.0 w_syn calibrated by protocol, not validated (ADR-0009)." in cav
+    assert "replicate runs" in cav
+    d["dataset"] = "other@1"
+    cav = " ".join(caveats_for(spec_from_dict(d)))
+    assert "other@1 runs at Shiu's published w_syn, uncalibrated for this dataset." in cav
+    assert "calibrated by protocol" not in cav

@@ -66,6 +66,19 @@ def test_candidates():
     assert reasons["X1"].startswith("not testable") and reasons["K"].startswith("not testable")
 
 
+def test_candidates_exclude_stimulus_and_readout_neurons():
+    cands = [Candidate("GNG232", (4,)), Candidate("MN9", (3,)), Candidate("LB3c", (1,))]
+    mapped, reasons = map_candidates(cands, R, TM, "cell_type", exclude={11, 12, 13})
+    assert [c.label for c in mapped] == ["GNG232"]
+    assert reasons["MN9"] == "not testable: maps only to replicate stimulus/readout neurons"
+    assert reasons["LB3c"] == "not testable: maps only to replicate stimulus/readout neurons"
+    mapped, _ = map_candidates(cands, R, TM, "cell_type", exclude={13})
+    assert [(c.label, c.neuron_ids) for c in mapped] == [
+        ("GNG232", (14,)),
+        ("LB3c", (11, 12)),
+    ]
+
+
 def test_candidates_need_cell_type_grouping():
     mapped, reasons = map_candidates([Candidate("4", (4,))], R, TM, "neuron")
     assert mapped == [] and "not grouped by cell type" in reasons["4"]

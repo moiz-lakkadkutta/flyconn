@@ -50,3 +50,23 @@ def test_not_looked_up():
 def test_cached_off_targets_never_fetches(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("FLYCONN_CACHE", str(tmp_path))
     assert cached_off_target_count("SS9") is None  # nothing cached -> None, no network
+
+
+def test_specific_line_wins_among_equal_quality(tmp_path: Path):
+    df = pd.DataFrame(
+        {
+            "line": ["AAA_broad", "ZZZ_specific"],
+            "cell_types": [["GNG232", "GNG100"], ["GNG232"]],
+            "quality": [1, 1],
+            "doi": ["d1", "d2"],
+            "first_author_year": ["A 2020", "B 2021"],
+            "genotype": ["g", "g"],
+            "em_body_ids": [[], []],
+        }
+    )
+    write_parquet(pa.Table.from_pandas(df, preserve_index=False), tmp_path / "lines.parquet")
+    (tmp_path / "provenance.json").write_text(json.dumps({"counts": {}}))
+    out = attach_lines(pd.DataFrame({"candidate": ["GNG232"]}), LineCatalog(tmp_path))
+    g = out.iloc[0]
+    assert g["best_line"] == "ZZZ_specific" and bool(g["line_specific"])
+    assert g["lines"].startswith("ZZZ_specific")

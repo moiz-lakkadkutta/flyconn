@@ -61,6 +61,12 @@ def attach_lines(
             cols["lines"].append("")
             cols["off_target_bodies"].append(None)
         else:
+            found = found.sort_values(
+                ["quality", "specific", "line"],
+                ascending=[True, False, True],
+                na_position="last",
+                ignore_index=True,
+            )
             best = found.iloc[0]
             cols["best_line"].append(str(best["line"]))
             cols["line_quality"].append(None if pd.isna(best["quality"]) else int(best["quality"]))
