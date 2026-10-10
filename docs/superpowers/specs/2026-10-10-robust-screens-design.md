@@ -82,10 +82,25 @@ robustness:
                                 #   extension (Shiu et al. 2024)"; never inferred
   w_syn: auto                   # auto | off | [list of mV]
   nt_samples: 8                 # 0 = off
-  min_weights: [3, 5]           # [] = off
+  min_weights: [3, 5]           # network.min_weight values; [] = off
   replicate: flywire@783        # null = off
-  random_null: {n_sets: 20}     # n_sets 0 = off
+  random_null: {n_sets: 40}     # n_sets 0 = off
+  extra_candidates: []          # list of selections, always simulated, labelled `control`
 ```
+
+- **`min_weights`** set `network.min_weight`, the threshold of the simulated network.
+  `sweep.silence_each.pathway.min_weight` is not changed: candidates are fixed by the
+  reference run (section 2.2), so the pathway threshold no longer matters after selection.
+- **`extra_candidates`**
+  - Selections (same grammar as `select`) grouped by `group_by`, appended to the
+    candidate list of the reference run and every variant.
+  - Bypass ranking, eligibility (`path_strength > 0`, activity > 0) and `max_items`.
+  - Labelled `control` in every output and never reported as hits. They exist so a
+    negative control (a type with no stimulus -> readout route) can be screened; under
+    `rank_by: pathway` such a type would otherwise be skipped as "not on a path to the
+    readout".
+  - They join the reference BH family, so q values differ slightly from a run without
+    them. Comparisons with earlier runs use effects and CIs, not q.
 
 - **`w_syn: auto`**
   - Uses the distinct values in `CALIBRATIONS[dataset].ci_mv` together with
@@ -105,37 +120,64 @@ robustness:
   - `minw_3`, `minw_5`
   - `rep_flywire_783`
 - **Fixed candidates:**
-  - Every variant gets the reference run's candidate list as an explicit
-    `silence_each.select` of ids grouped by the reference labels. `rank_by` and
-    `max_items` are dropped, so no variant re-selects.
-  - Requires a small hook in `sweep.py` to accept an explicit candidate table. This is the
-    only change to existing sweep code.
+  - Every variant gets the reference run's candidate table (label -> neuron ids, plus the
+    `extra_candidates`). `rank_by` and `max_items` are dropped, so no variant re-selects.
+  - `sweep.py` gets one new hook, `candidates=` on `run_sweep`. When it is given:
+    - the given table is simulated as is;
+    - `_silence_candidates` still runs with the spec's own ranking settings, and the
+      list it *would* have selected is returned as `natural_selection`.
+  - This is the only change to existing sweep logic. Without `candidates=`, behaviour
+    is unchanged.
+- **Variants run without shared controls:** variants set `controls` to
+  `{degree_preserving_rewire: 0, sign_shuffle: 0, unstimulated_baseline: false}`. Only the
+  reference run keeps the spec's controls. This saves 4 runs per variant.
+- **Derived-spec provenance:**
+  - A variant spec is built with `dataclasses.replace` and then gets:
+    - `raw` regenerated from its own field values;
+    - `source_sha256` = SHA-256 of that canonical JSON;
+    - `parent_sha256` = the original spec's hash.
+  - This matters because `runner.py` writes `spec.raw` and `spec.source_sha256` into
+    provenance. Without regeneration, a 0.209 mV variant would record the reference's
+    parameters.
 
 **Selection stability**
-- Each non-replicate variant also records which candidates its own selection would have
-  picked. This costs no simulation, because selection uses the variant's stimulated run,
-  which is computed anyway.
-- Reported as the Jaccard overlap with the reference list.
+- Each non-replicate variant records `natural_selection` (above). No extra simulation is
+  needed:
+  - `rank_by: activity` uses the variant's stimulated run, which is computed anyway;
+  - `rank_by: pathway` uses the variant's graph (signs, threshold).
+- Reported as the Jaccard overlap with the reference list (extra candidates excluded).
 
 **`run_robust_screen(spec, out_dir, store=None) -> RobustScreenResult`**
 - Runs the variants in sequence. Each writes `out/variants/<label>/` through `run_sweep`.
 - Any variant whose directory holds a complete result (marked by a `done.json` written
   last) is skipped, which is what lets an interrupted run resume.
+- A variant directory without `done.json` (interrupted mid-run) is moved, never deleted,
+  to `variants/.incomplete/<label>-<n>/` before the variant reruns. `prepare` refuses
+  non-empty directories, so without the move the resume would refuse instead.
 - The top-level `out_dir` may already exist only when its `robustness_plan.json` matches
   the current plan hash. Otherwise the existing refuse-to-overwrite rule applies.
 
 **Random-silencing null**
 - For each distinct candidate size n (neurons in the group) and super_class:
-  - draw `n_sets` random sets of n neurons from that super_class, excluding every
-    candidate's neurons;
+  - draw `n_sets` random sets of n neurons from that super_class;
   - silence each set in the reference network;
   - seeds are `spec.seed + 3000 + i`.
+- **Excluded from random sets:**
+  - every candidate's neurons (extra candidates included);
+  - the stimulus neurons;
+  - every readout's neurons.
+  Silencing a readout or stimulus neuron would trivially remove the response and inflate
+  the null.
 - Sizes are binned to the nearest of {1, 2, 4, 8, 16, 32, ...} to bound cost. The bin is
   recorded.
+- **Default `n_sets` is 40.** With 20 sets the smallest attainable one-sided empirical p
+  is 1/21 = 0.048, borderline at 0.05.
 
 **Cross-dataset replicate**
 - Uses `compare.match_types(query, replicate)` to map the stimulus selection, the readouts
   and each candidate type.
+- Mapping needs cell-type labels. When `group_by` is not `cell_type`, every hit's
+  replicate label is `not testable` with reason "candidates not grouped by cell type".
 - Anything unmapped makes that hit's replicate label `not testable` (reason recorded).
 - Runs at the replicate's default params: Shiu's 0.275 mV for FlyWire 783, labelled
   UNCALIBRATED.
@@ -147,8 +189,12 @@ robustness:
 **Reference hit:** a candidate x primary-readout row with q < `report.alpha` (default 0.05,
 BH as in M10) in the reference run.
 
-**Per-variant label** (95 % CI of the variant's effect vs the reference sign; seeds shared,
-so the comparison is paired):
+**Per-variant label** (95 % CI of the variant's effect vs the reference sign).
+- Every condition uses `spec.seed`, so silenced and stimulated runs share their Poisson
+  inputs (common random numbers).
+- The CI is the existing unpaired bootstrap CI of the difference of means, with
+  Mann-Whitney p (`experiments/stats.py`). It is conservative given the shared inputs.
+- A paired test is out of scope for M13.
 
 | label | rule |
 |---|---|
@@ -164,7 +210,7 @@ so the comparison is paired):
 | w_syn | holds at every w_syn value |
 | NT signs | holds in >= 6 of 8 samples (threshold = ceil(0.75 x nt_samples)); any flip is listed |
 | threshold | holds at every min_weight |
-| random null | the reference effect is more extreme, in its own direction, than the 95th percentile of random-set effects for its size bin and super_class |
+| random null | empirical one-sided p < 0.05, where p = (1 + number of random-set effects at least as extreme, in the hit's own direction) / (n_sets + 1), within its size bin and super_class |
 | replicate | holds / weakens / flips / not testable / not run; reported, **never graded** (uncalibrated, possibly sexually dimorphic) |
 
 **Tier**
@@ -178,7 +224,8 @@ so the comparison is paired):
 
 **Path-stability column** (informational, not graded)
 - `uncertainty.path_stability` between the stimulus selection and the primary readout,
-  restricted to paths through the candidate.
+  restricted to paths through the candidate. The `path` column (a tuple of neuron ids)
+  is filtered to paths that contain any of the candidate's ids.
 - Reported as the mean of the paths' sign-stability x threshold-presence.
 
 **No multiple-testing correction across variants.** Variants measure stability; they are
@@ -259,14 +306,26 @@ command.
   - `params.w_syn_mv` changes spike counts vs the default;
   - `sign_seed` is reproducible and rejected without `sampled`;
   - `sampled` on a probability-less store raises.
-- Labels: a table test, plus a `hypothesis` property that negating every effect swaps
-  holds and flips.
+- Labels: a table test, plus two `hypothesis` properties:
+  - negating only the variant effects (and CIs) swaps holds and flips and leaves weakens
+    unchanged;
+  - negating both the reference and the variant leaves every label unchanged.
+- `extra_candidates`:
+  - always simulated, even with `path_strength == 0` under `rank_by: pathway`;
+  - labelled `control`, never in the hit list;
+  - excluded from selection stability.
+- Derived specs: a variant's provenance records its own w_syn, sign seed and min_weight,
+  its own `source_sha256`, and the parent's hash.
+- Variants run no shared controls; the reference run does.
+- Random null: readout and stimulus neurons never appear in a random set.
+- Replicate: `group_by` other than `cell_type` gives `not testable` with its reason.
 - Tiers: every axis-outcome combination maps to exactly one tier; off and not-run axes
   never count as failures.
 - Random null: sets match size bin and super_class, exclude candidates, and are the same
   for the same seed.
 - Resume: interrupting after variant k and rerunning gives an identical result and skips
-  finished variants. A mismatched plan hash refuses.
+  finished variants. A half-written variant directory is moved to
+  `variants/.incomplete/` and rerun. A mismatched plan hash refuses.
 - `attach_lines`: a fake `lines.parquet` covers exact, glob and none, plus missing data
   giving "not looked up".
 - Report and handoff: the columns, the banners, and every card having caveats.
@@ -274,13 +333,16 @@ command.
 **Golden** (`tests/golden/test_robust_screen.py`, spec
 `examples/specs/w2_robust_pathway_mn9.yaml`)
 - The spec is the 6h pathway screen plus a full `robustness:` block.
-- **Negative-control candidate:** one extra cell type with no LB3 -> MN9 route, chosen when
-  writing the spec and recorded there with the path query that confirms it.
+- **Negative-control candidate:** one cell type with no LB3 -> MN9 route, given under
+  `robustness.extra_candidates`. It is chosen when writing the spec and recorded there
+  with the path query that confirms it.
 - Asserts:
   - the output files and schema;
   - the same seed gives identical output;
-  - the negative control is never Strong and fails the random null;
-  - the reference effects match 6h within their CIs.
+  - the negative control is labelled `control`, is not in the hit list, and its
+    random-null p is >= 0.05;
+  - the reference effects of the six 6h relays match 6h within their CIs (effects, not
+    q: the control joins the BH family).
 - Does **not** assert the tiers of GNG232, DNge080 or other relays before the first run.
   Observed tiers are recorded in GOLDEN_RESULTS 6j and then pinned as regression values.
 - Records wall time and peak RSS (16 GB budget; variants run one at a time with one
@@ -299,10 +361,14 @@ command.
 
 ## 6. Risks
 
-- **Cost:** 15 screen runs for MaleCNS (1 reference + 3 w_syn + 8 NT + 2 thresholds +
-  1 replicate) plus the random-null runs. For 10 relays at 10 x 0.3 s
-  this is extrapolated, not measured, at about 25 min on the M4 Pro. Resume makes
-  interruptions cheap. If it is much slower, cut `n_sets` before cutting axes.
+- **Cost:** extrapolated from 6h, not measured. 6h ran 6 relays plus 4 shared runs in
+  61 s, so a silencing run takes about 6 s at 10 x 0.3 s.
+  - Reference: 4 shared runs + about 11 candidates.
+  - 14 variants: 1 stimulated run + about 11 candidates each (no shared controls).
+  - Random null: 40 runs per size bin x super_class; the 6h relays span about 3 bins.
+  - Total: about 15 + 170 + 120 = about 300 runs, roughly 30 min on the M4 Pro.
+  Resume makes interruptions cheap. If it is much slower, cut `n_sets` before cutting
+  axes.
 - **The NT axis needs the 2.65 GB `nt-probs` level** for MaleCNS. Without it the axis is
   `not run`, never silently argmax.
 - **The replicate mapping of the stimulus is non-trivial:** FlyWire types sugar and water
