@@ -21,12 +21,13 @@ from flyconn.data.pull import pull
 from flyconn.data.registry import get_dataset
 from flyconn.data.store import Store
 from flyconn.experiments.robust_null import draw_null_sets, null_key, null_p
-from flyconn.experiments.robust_replicate import map_candidates, replicate_spec
+from flyconn.experiments.robust_replicate import map_candidates, map_selection, replicate_spec
 from flyconn.experiments.robust_scoring import score_hits, variant_label
 from flyconn.experiments.runner import rates_hz, write_table
 from flyconn.experiments.spec import (
     NO_CONTROLS,
     ExperimentSpec,
+    Selection,
     SilenceEachSweep,
     SimParams,
     derive,
@@ -210,6 +211,44 @@ def _reference_differences(reference_rows: pd.DataFrame) -> dict[str, float]:
     }
 
 
+def _replicate_mapping(
+    spec: ExperimentSpec,
+    query: pd.DataFrame,
+    rep: pd.DataFrame,
+    type_map: pd.DataFrame,
+    cands: list[Candidate],
+    mapped: list[Candidate],
+    reasons: dict[str, str],
+) -> dict[str, Any]:
+    """The replicate mapping table for provenance: stimulus, readouts and candidates."""
+
+    def sel_entry(sel: Selection) -> dict[str, Any]:
+        ids, why = map_selection(sel, query, rep, type_map)
+        return {
+            "selection": sel.describe(),
+            "n_replicate_ids": None if ids is None else len(ids),
+            "reason": why,
+        }
+
+    by_label = {c.label: c for c in mapped}
+    candidates: dict[str, dict[str, Any]] = {}
+    for c in cands:
+        m = by_label.get(c.label)
+        if m is None:
+            candidates[c.label] = {"reason": reasons.get(c.label, "not testable")}
+            continue
+        types = sorted(set(type_map.loc[type_map["type_a"] == c.label, "type_b"].astype(str)))
+        candidates[c.label] = {"replicate_types": types, "n_replicate_ids": len(m.neuron_ids)}
+    sources = sorted(set(type_map["source"].astype(str))) if len(type_map) else []
+    return {
+        "type_map_rows": len(type_map),
+        "type_map_source": sources,
+        "stimulus": [sel_entry(st.select) for st in spec.stimulate],
+        "readouts": {ro.name: sel_entry(ro.select) for ro in spec.readouts},
+        "candidates": candidates,
+    }
+
+
 def _effect_label(axis: str, ref_difference: float, d: float, lo: float, hi: float) -> str:
     if axis == "reference":
         return "reference"
@@ -271,6 +310,7 @@ def run_robust_screen(
         if rep_store is None:
             why = f"not run: `flyconn data pull {rep_v.spec.dataset} --level weights` first"
             replicate_labels = {c.label: why for c in cands}
+            rep_prov = {"reason": why}
         else:
             from flyconn.compare.types import match_types  # heavy import (scipy), kept lazy
 
@@ -278,7 +318,10 @@ def run_robust_screen(
             q_n, rep_n = store.neurons(), rep_store.neurons()
             rspec, why = replicate_spec(rep_v.spec, spec, q_n, rep_n, type_map)
             mapped, replicate_labels = map_candidates(cands, rep_n, type_map, sweep.group_by)
-            rep_prov = {"dataset": rep_store.ref, "type_map_rows": len(type_map)}
+            rep_prov = _replicate_mapping(
+                spec, q_n, rep_n, type_map, cands, mapped, replicate_labels
+            )
+            rep_prov = {"dataset": rep_store.ref, **rep_prov, "reason": why}
             if rspec is None:
                 replicate_labels = {c.label: why for c in cands}
             elif mapped:
@@ -298,6 +341,10 @@ def run_robust_screen(
                     replicate_labels[str(cand)] = _effect_label(
                         "replicate", ref_d.get(str(cand), 0.0), float(d), float(lo), float(hi)
                     )
+                seen = set(rows["candidate"].astype(str))
+                for c in mapped:
+                    if c.label not in seen:  # mapped but no row: say so, never the default
+                        replicate_labels[c.label] = "not testable: no replicate result"
 
     neurons = store.neurons()
     null_rows: list[dict[str, Any]] = []

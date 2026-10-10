@@ -130,15 +130,86 @@ def test_changed_plan_refuses(small_store: Store, tmp_path: Path):
         )
 
 
-def test_replicate_axis(small_store: Store, rep_store: Store, tmp_path: Path):
-    ids = small_store.neurons()["neuron_id"].tolist()
-    d = _d(small_store, replicate="flywire@783")
+@pytest.fixture
+def xref_store(small_store: Store, tmp_path: Path) -> Store:
+    """small_store whose fafb_783_cell_type cross-reference equals its own cell_type."""
+    neurons, edges = small_store.neurons(), small_store.edges()
+    neurons["fafb_783_cell_type"] = neurons["cell_type"]
+    d = tmp_path / "xref"
+    d.mkdir()
+    write_parquet(conform_neurons(neurons), d / "neurons.parquet")
+    write_parquet(conform_edges(edges), d / "edges.parquet")
+    write_provenance(
+        d,
+        dataset="malecns",
+        version="1.0",
+        converter="test",
+        inputs=[],
+        counts={"neurons": len(neurons), "edges": len(edges)},
+    )
+    return Store(d)
+
+
+def test_replicate_axis(xref_store: Store, rep_store: Store, tmp_path: Path):
+    ids = xref_store.neurons()["neuron_id"].tolist()
+    d = _d(xref_store, replicate="flywire@783")
     # readouts and stimulus by cell type so they can be mapped
-    types = small_store.neurons().set_index("neuron_id")["cell_type"]
+    types = xref_store.neurons().set_index("neuron_id")["cell_type"]
     d["stimulate"] = [{"select": {"cell_type": str(types[ids[0]])}, "rate_hz": 200}]
     d["readouts"] = [{"name": "targets", "select": {"cell_type": str(types[ids[-1]])}}]
+    out = tmp_path / "o"
     res = run_robust_screen(
-        spec_from_dict(d), out_dir=tmp_path / "o", store=small_store, replicate_store=rep_store
+        spec_from_dict(d), out_dir=out, store=xref_store, replicate_store=rep_store
     )
-    assert all(isinstance(x, str) and x for x in res.hits["replicate"])
-    assert "replicate" in res.provenance["robustness"]
+    rep_rows = res.effects[res.effects["axis"] == "replicate"]
+    assert set(rep_rows["variant"]) == {"rep_flywire_783"}
+    assert (out / "variants" / "rep_flywire_783" / "done.json").exists()
+    rep_prov = res.provenance["robustness"]["replicate"]
+    assert {"dataset", "type_map_rows", "stimulus", "readouts", "candidates", "reason"} <= set(
+        rep_prov
+    )
+    assert rep_prov["type_map_rows"] > 0
+    assert rep_prov["reason"] == ""
+    assert rep_prov["stimulus"][0]["n_replicate_ids"] > 0
+    assert rep_prov["readouts"]["targets"]["n_replicate_ids"] > 0
+    mapped = set(rep_rows["candidate"])
+    assert len(res.hits) >= 1
+    for cand, label in zip(res.hits["candidate"], res.hits["replicate"], strict=True):
+        entry = rep_prov["candidates"][cand]
+        if cand in mapped:
+            assert label in {"holds", "weakens", "flips"}
+            assert entry["replicate_types"] and entry["n_replicate_ids"] > 0
+        else:
+            assert label.startswith("not testable"), label
+            assert entry["reason"].startswith("not testable")
+
+
+def test_replicate_unmapped_is_not_testable(small_store: Store, rep_store: Store, tmp_path: Path):
+    # small_store's fafb_783_cell_type is all null, so no type maps to the replicate
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store, replicate="flywire@783")),
+        out_dir=tmp_path / "o",
+        store=small_store,
+        replicate_store=rep_store,
+    )
+    assert "replicate" not in set(res.effects["axis"])
+    assert all(str(x).startswith("not testable") for x in res.hits["replicate"])
+    assert res.provenance["robustness"]["replicate"]["reason"].startswith("not testable")
+
+
+def test_control_candidate_gets_null_p(small_store: Store, tmp_path: Path):
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store, extra_candidates=[{"cell_type": "T007"}])),
+        out_dir=tmp_path / "o",
+        store=small_store,
+    )
+    ref = res.effects[res.effects["axis"] == "reference"].set_index("candidate")
+    assert ref.loc["T007", "role"] == "control"
+    assert "T007" not in set(res.hits["candidate"])
+    rob = res.provenance["robustness"]
+    assert "T007" in rob["control_null_p"]
+    p = rob["control_null_p"]["T007"]
+    if p is None:
+        assert rob["random_null"]["skipped"], "a None null p must come with a recorded skip"
+    else:
+        assert isinstance(p, float) and 0 < p <= 1
