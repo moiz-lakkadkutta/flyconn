@@ -129,6 +129,18 @@ def _variants_table(
             extra = extra.merge(natural_df[["variant", *cols]], on="variant", how="left")
         return extra
     base = natural_df.assign(role="candidate")
+    # An extra matching an unsimulated ranked row converts that row in place (no duplicates).
+    known = set(base["variant"]) if "variant" in base.columns else set()
+    for c in controls:
+        if c.label in known:
+            m = base["variant"] == c.label
+            base.loc[m, ["role", "simulated", "reason", "n_neurons"]] = [
+                c.role,
+                True,
+                "extra candidate (control)",
+                len(c.neuron_ids),
+            ]
+    extra = cast("pd.DataFrame", extra.loc[~extra["variant"].isin(list(known))])
     return pd.concat([base, extra], ignore_index=True) if not extra.empty else base
 
 

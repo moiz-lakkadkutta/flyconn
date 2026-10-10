@@ -67,6 +67,7 @@ def test_extra_candidates_are_controls(small_store: Store, tmp_path: Path):
     res = run_sweep(spec2, out_dir=tmp_path / "b", store=small_store)
     roles = dict(zip(res.sweep["variant"], res.sweep["role"], strict=True))
     assert roles[types[0]] == "control"
+    assert res.variants["variant"].is_unique
     assert all(roles[n] == "candidate" for n in natural)
 
 
@@ -90,3 +91,24 @@ def test_fixed_not_allowed_for_rate_sweeps(small_store: Store, tmp_path: Path):
     spec = spec_from_dict(_d(small_store, sweep={"rate_hz": [10, 50]}))
     with pytest.raises(ValueError, match="silence_each"):
         run_sweep(spec, out_dir=tmp_path / "a", store=small_store, fixed=[Candidate("x", (1,))])
+
+
+def test_extra_matching_unsimulated_row_converts_it(small_store: Store, tmp_path: Path):
+    spec = spec_from_dict(_d(small_store))
+    natural = run_sweep(spec, out_dir=tmp_path / "a", store=small_store)
+    unsim = natural.variants[~natural.variants["simulated"]]
+    assert not unsim.empty
+    name = str(unsim["variant"].iloc[0])
+    spec2 = spec_from_dict(
+        _d(
+            small_store,
+            robustness={"primary_readout": "targets", "extra_candidates": [{"cell_type": name}]},
+        )
+    )
+    res = run_sweep(spec2, out_dir=tmp_path / "b", store=small_store)
+    assert res.variants["variant"].is_unique
+    row = res.variants[res.variants["variant"] == name]
+    assert len(row) == 1
+    assert row["role"].iloc[0] == "control"
+    assert bool(row["simulated"].iloc[0])
+    assert set(res.sweep.loc[res.sweep["variant"] == name, "role"]) == {"control"}
