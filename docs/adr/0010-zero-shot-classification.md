@@ -75,7 +75,7 @@ Mode B needs iterative propagation from anchors and is a separate research probl
 
 ## Evidence
 
-`benchmarks/classify_flywire_783.json` (calibration `a5101cd52d80`),
+`benchmarks/classify_flywire_783.json` (calibration `2a6f513aec1c`),
 `tests/golden/test_classify.py`, `docs/GOLDEN_RESULTS.md` §6i. 1,500 types per query,
 closed and open set, 5 type-level folds, 1,000 bootstrap resamples over types. All three golden
 tests run in 179 s on the M4 Pro; the FlyWire and MANC benchmarks together peaked at
@@ -85,7 +85,7 @@ tests run in 179 s on the M4 Pro; the FlyWire and MANC benchmarks together peake
 |---|---|---|---|---|---|---|---|
 | MaleCNS v1.0 | group | 0.909 (0.895-0.922) | 0.961 | 0.647 | 0.990 | 0.047 | 0.058 |
 | MaleCNS v1.0 | neuron | 0.813 (0.697-0.904) | 0.899 | uncalibrated | | 0.054 | |
-| BANC v888 | group | 0.657 (0.633-0.680) | 0.799 | 0.309 | 0.937 | 0.050 | 0.046 |
+| BANC v888 | group | 0.657 (0.633-0.680) | 0.798 | 0.309 | 0.937 | 0.050 | 0.046 |
 | BANC v888 | neuron | 0.423 (0.358-0.489) | 0.557 | uncalibrated | | 0.158 | |
 
 Pooled group: ECE 0.012, coverage 0.479, accuracy covered 0.973, open-set false accept

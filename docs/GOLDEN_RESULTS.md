@@ -450,10 +450,10 @@ Protocol:
 |---|---|---|---|---|---|---|---|---|
 | MaleCNS v1.0 | group | 0.909 (0.895-0.922) | 0.961 | 0.647 | 0.990 | 0.047 | 0.084 | 0.058 |
 | MaleCNS v1.0 | neuron | 0.813 (0.697-0.904) | 0.899 | (0.523) | (0.992) | 0.054 | 0.235 | (0.017) |
-| BANC v888 | group | 0.657 (0.633-0.680) | 0.799 | 0.309 | 0.937 | 0.050 | 0.128 | 0.046 |
+| BANC v888 | group | 0.657 (0.633-0.680) | 0.798 | 0.309 | 0.937 | 0.050 | 0.128 | 0.046 |
 | BANC v888 | neuron | 0.423 (0.358-0.489) | 0.557 | (0.166) | (0.748) | 0.158 | 0.237 | (0.056) |
 
-- Pooled group calibration (shipped, `a5101cd52d80`): ECE 0.012, coverage 0.479, accuracy covered 0.973, open-set false accept 0.052.
+- Pooled group calibration (shipped, `2a6f513aec1c`): ECE 0.012, coverage 0.479, accuracy covered 0.973, open-set false accept 0.052.
 - Thresholds: accept P >= 0.8, unknown below cosine 0.746, ambiguous within 0.05 of the
   best.
 - Coverage, accuracy covered and open-set false accept are out of fold: model and
@@ -466,8 +466,8 @@ alone, no transfer test, not shipped):
 
 | level | top-1 (95 % CI) | top-3 | coverage | accuracy covered | ECE out of fold | open-set false accept |
 |---|---|---|---|---|---|---|
-| group | 0.670 (0.647-0.695) | 0.804 | 0.237 | 0.966 | 0.021 | 0.036 |
-| neuron | 0.482 (0.442-0.520) | 0.649 | 0.079 | 0.888 | 0.023 | 0.019 |
+| group | 0.749 (0.726-0.771) | 0.853 | 0.343 | 0.981 | 0.021 | 0.041 |
+| neuron | 0.545 (0.511-0.576) | 0.704 | 0.123 | 0.932 | 0.012 | 0.021 |
 
 LB3 against Shiu's sugar / water GRN sets (custom groups, output partners only,
 uncalibrated):

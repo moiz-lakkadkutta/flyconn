@@ -10,8 +10,8 @@ Running log so a later session can resume. Newest entry first.
 - Measured (GOLDEN_RESULTS 6i), group top-1:
   - MaleCNS -> FlyWire 0.909 (CI 0.895-0.922);
   - BANC -> FlyWire 0.657 (0.633-0.680);
-  - BANC -> MANC 0.670.
-  Per-neuron top-1 is 0.813, 0.423 and 0.482. Shipped pooled group calibration: ECE 0.012,
+  - BANC -> MANC 0.749.
+  Per-neuron top-1 is 0.813, 0.423 and 0.545. Shipped pooled group calibration: ECE 0.012,
   open-set false accept 0.052.
 - Owner decision: only group calls are calibrated. Per-neuron leave-one-dataset-out ECE was
   0.235 / 0.237; group 0.084 / 0.128, which is above the 0.05 in-sample target and quoted
@@ -26,6 +26,16 @@ Running log so a later session can resume. Newest entry first.
   - out-of-fold thresholds for coverage and false accept;
   - query provenance is recorded;
   - the pooled-synapse 6g check is now a golden test.
+- Second review fixes:
+  - partner names take whichever cross-reference name the atlas uses (BANC -> MANC rises
+    from 0.670 to 0.749 group top-1, because DN/AN partners keep their MANC names);
+  - `neuron_ids` accepts arrays;
+  - the git SHA is recorded only for flyconn's own checkout, with a dirty flag;
+  - the CLI validates arguments early and warns about dropped group ids;
+  - group agreement reports how many neurons had named partners.
+- Deferred follow-ups: shared scoring helper for `classify` and `run_benchmark`;
+  open-set benchmark speed (atlas copy per type); FlyWire-vs-FlyWire queries are
+  uncalibrated.
 - Open:
   - mode B (no labelled partners);
   - whether MaleCNS's FlyWire cross-references used connectivity (would inflate MaleCNS

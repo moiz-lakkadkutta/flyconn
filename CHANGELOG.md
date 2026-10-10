@@ -16,7 +16,7 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 - `flyconn classify run` and `flyconn classify bench`.
 - Hold-out benchmark (`flyconn.compare.classify_bench`, GOLDEN_RESULTS 6i), 1,500 types per
   query, labels hidden as partner names:
-  - group top-1 0.909 for MaleCNS -> FlyWire, 0.657 for BANC -> FlyWire, 0.670 for
+  - group top-1 0.909 for MaleCNS -> FlyWire, 0.657 for BANC -> FlyWire, 0.749 for
     BANC -> MANC;
   - pooled group calibration ECE 0.012; leave-one-dataset-out 0.08-0.13;
   - open-set false accept 0.05 (out of fold).
