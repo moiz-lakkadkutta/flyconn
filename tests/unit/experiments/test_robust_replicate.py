@@ -138,3 +138,18 @@ def test_exclusions_cover_stimulus_and_primary_readout_only():
     assert [c.label for c in mapped] == ["GNG232"]
     assert "MN9" in reasons and "LB3c" in reasons
     assert replicate_exclusions(None, "mn", R) == set()
+
+
+def test_query_side_resolve_error_is_not_testable():
+    ids, why = map_selection(Selection(cell_type="NOPE*"), Q, R, TM)
+    assert ids is None and "NOPE" in why
+    ids, why = map_selection(Selection(ids=[999]), Q, R, TM)
+    assert ids is None and "999" in why
+    ids, why = map_selection(Selection(cell_class="x", cell_type="LB3*"), Q, R, TM)
+    assert ids is None and "cell_class" in why  # query table has no cell_class column
+
+
+def test_replicate_spec_query_resolve_error_is_not_testable():
+    orig = _spec("NOPE*")  # matches nothing in the query table: resolve_selection raises
+    out, why = replicate_spec(orig, orig, Q, R, TM)
+    assert out is None and why.startswith("not testable") and "NOPE" in why

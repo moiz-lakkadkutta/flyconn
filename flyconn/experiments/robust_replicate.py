@@ -35,7 +35,10 @@ def map_selection(
             return resolve_selection(sel, rep), ""
         except (ValueError, KeyError) as e:
             return None, f"selection empty in replicate: {e}"
-    ids = resolve_selection(sel, query)
+    try:
+        ids = resolve_selection(sel, query)
+    except (ValueError, KeyError) as e:  # never abort the run over a replicate mapping
+        return None, f"selection failed in the query dataset: {e}"
     ct = query.set_index("neuron_id")["cell_type"].reindex(ids).dropna().astype(str)
     types = sorted(set(ct))
     if not types:
