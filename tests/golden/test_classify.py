@@ -21,6 +21,7 @@ import pytest
 from flyconn.compare import build_atlas, classify
 from flyconn.compare.calibrate import Calibration, calibration_path
 from flyconn.compare.classify_bench import fit_calibration, run_benchmark, write_benchmark
+from flyconn.data.pull import pull
 from flyconn.data.store import Store
 from flyconn.graph.matrix import ConnectivityMatrix
 
@@ -43,6 +44,11 @@ MEASURED_TOP1 = {
 LB3_ATLAS_SUGAR = {"LB3a": 0.367, "LB3b": 0.429, "LB3c": 0.776, "LB3d": 0.759}
 
 
+def _store(ref: str) -> Store:
+    """Pull (download and convert if needed) so the test does not depend on test order."""
+    return Store(pull(ref, level="weights").store_dir)
+
+
 def _update(key: str, value: object) -> None:
     data = json.loads(OUT.read_text()) if OUT.exists() else {}
     data[key] = value
@@ -51,10 +57,10 @@ def _update(key: str, value: object) -> None:
 
 def test_holdout_benchmark_against_flywire(tmp_path: Path):
     t0 = time.time()
-    atlas = build_atlas(Store.open("flywire@783"))
+    atlas = build_atlas(_store("flywire@783"))
     results = []
     for q in ("malecns@1.0", "banc@888"):
-        store = Store.open(q)
+        store = _store(q)
         m = ConnectivityMatrix.from_store(store, min_weight=5)
         results.append(run_benchmark(m, atlas, query_ref=store.ref, max_types=MAX_TYPES, seed=0))
     cal = fit_calibration(results, atlas, n_folds=5, seed=0)
@@ -83,8 +89,8 @@ def test_holdout_benchmark_against_flywire(tmp_path: Path):
 
 
 def test_banc_against_manc_nerve_cord():
-    atlas = build_atlas(Store.open("manc@1.2.1"))
-    store = Store.open("banc@888")
+    atlas = build_atlas(_store("manc@1.2.1"))
+    store = _store("banc@888")
     m = ConnectivityMatrix.from_store(store, min_weight=5)
     res = run_benchmark(
         m,
@@ -108,11 +114,9 @@ def test_banc_against_manc_nerve_cord():
 
 def test_lb3_sugar_water_against_shiu_sets():
     groups = {"sugar_grn": SETS["sugar_grn"], "water_grn": SETS["water_grn"]}
-    atlas = build_atlas(
-        Store.open("flywire@783"), groups=groups, direction="out", on_missing="drop"
-    )
+    atlas = build_atlas(_store("flywire@783"), groups=groups, direction="out", on_missing="drop")
     assert atlas.provenance["group_ids_dropped"] == 1  # 20/21 sugar, 18/18 water in v783
-    malecns = Store.open("malecns@1.0")
+    malecns = _store("malecns@1.0")
     found: dict[str, dict[str, object]] = {}
     for sub in ("LB3a", "LB3b", "LB3c", "LB3d"):
         res = classify(malecns, atlas, cell_type=sub, calibration=None, top_k=2)
@@ -146,8 +150,8 @@ def test_lb3_pooled_synapses_reproduce_6g():
     from flyconn.compare.types import partner_labels
 
     six_g = {"LB3a": (0.44, 0.87), "LB3b": (0.65, 0.49), "LB3c": (0.92, 0.62), "LB3d": (0.86, 0.55)}
-    fw = ConnectivityMatrix.from_store(Store.open("flywire@783"), min_weight=5)
-    mc = ConnectivityMatrix.from_store(Store.open("malecns@1.0"), min_weight=5)
+    fw = ConnectivityMatrix.from_store(_store("flywire@783"), min_weight=5)
+    mc = ConnectivityMatrix.from_store(_store("malecns@1.0"), min_weight=5)
     fw_names = partner_labels(fw.meta, "fafb_or_manc").tolist()
     vocab = sorted({v for v in fw_names if isinstance(v, str)})
     cf = partner_counts(fw, fw_names, vocab=vocab)
