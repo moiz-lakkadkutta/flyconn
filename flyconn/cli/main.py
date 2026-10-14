@@ -5,6 +5,7 @@ from __future__ import annotations
 import typer
 
 import flyconn
+from flyconn.cli.classify import app as classify_app
 from flyconn.cli.data import app as data_app
 
 app = typer.Typer(
@@ -13,6 +14,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(data_app, name="data")
+app.add_typer(classify_app, name="classify")
 
 
 def _version_callback(value: bool) -> None:
