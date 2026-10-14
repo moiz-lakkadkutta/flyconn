@@ -81,7 +81,7 @@ spec has a `robustness:` block (`flyconn.experiments.robustness.run_robust_scree
 
 - A screen costs one reference sweep plus one sweep per variant (14 for the default block
   on MaleCNS) plus the random null; variants run without shared controls to save 4 runs
-  each. Measured on the MaleCNS golden run (15 sweeps plus 80 random-null runs, 7 candidates): 921 s and 12.2 GB peak RSS on an M4 Pro CPU (golden test; GOLDEN_RESULTS 6j), about half the 30 min extrapolated in the design.
+  each. Measured on the MaleCNS golden run (15 sweeps plus 120 random-null runs, 7 candidates): 1,088 s and 12.6 GB peak RSS on an M4 Pro CPU (golden test; GOLDEN_RESULTS 6j), under the 30 min extrapolated in the design.
 - "Strong" means robust within the tested axes, not true. The labels use the unpaired
   bootstrap CI although conditions share Poisson inputs, so they are conservative.
 - The NT axis needs the `nt-probs` level for MaleCNS; without it the axis is not run,
@@ -95,8 +95,10 @@ GOLDEN_RESULTS 6h (the hand check) and 6j (the first audited run;
 `tests/golden/test_robust_screen.py`, `examples/specs/w2_robust_pathway_mn9.yaml`).
 First audited run: one reference hit, GNG232 -> MN9 (-14.5 Hz), Conditional: it holds at
 every w_syn and threshold and in the FlyWire replicate, but in only 5 of 8 sign samples.
-Selection stability is 1.0 for every variant. The same run showed two weak checks that
-this ADR does not yet fix: random 2-neuron central-brain sets never change MN9, so the
-random null passes any nonzero effect at its minimum p (1/41); and the negative control
-LC4 is silent under the stimulus, so it passes trivially (p 0.95). A readout defined by
-a whole super_class also empties the random pool for candidates of that super_class.
+Selection stability is 1.0 for every variant. The same run showed weak checks:
+random 2-neuron central-brain sets never change MN9, so the random null passes any
+nonzero effect at its minimum p (1/41) — the card now flags such a degenerate null but
+the tier still counts it; and the negative control LC4 is silent under the stimulus, so
+it passes trivially (p 0.95), which is not yet fixed. The random pool excludes only the
+stimulus and the primary readout, so a secondary readout defined by a whole super_class
+no longer empties it.
