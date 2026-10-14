@@ -22,6 +22,7 @@ seeds. Benjamini-Hochberg correction runs across *all* variant x readout rows.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -45,6 +46,7 @@ from flyconn.experiments.runner import (
 from flyconn.experiments.spec import (
     ExperimentSpec,
     RateSweep,
+    Selection,
     SilenceEachSweep,
     resolve_selection,
 )
@@ -61,6 +63,8 @@ class SweepResult:
     conditions: pd.DataFrame  # shared runs and variant runs
     readouts: pd.DataFrame  # shared comparisons (stimulated vs baseline / controls)
     provenance: dict[str, Any] = field(default_factory=dict)
+    candidates: list[Candidate] = field(default_factory=list)  # what was simulated, in order
+    natural_selection: list[str] = field(default_factory=list)  # the spec's own ranking
 
 
 _CONDITION_COLUMNS: list[str] = [
@@ -78,6 +82,66 @@ class _Variant:
     stimulate: dict[int, float]
     silence: list[int]
     info: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """One silencing group: its label, its neuron ids and its role in the screen."""
+
+    label: str
+    neuron_ids: tuple[int, ...]
+    role: str = "candidate"
+
+
+def _extra_candidates(
+    ctx: Context, sweep: SilenceEachSweep, extra: Sequence[Selection], taken: set[str]
+) -> list[Candidate]:
+    """Extra selections grouped like the sweep, always simulated, labelled ``control``."""
+    out: list[Candidate] = []
+    for sel in extra:
+        labels = _group_labels(ctx, sweep, resolve_selection(sel, ctx.neurons))
+        for lbl, grp in labels.groupby(labels, sort=True):
+            name = str(lbl)
+            if name in taken:
+                msg = f"extra candidate {name!r} is already a ranked candidate"
+                raise ValueError(msg)
+            taken.add(name)
+            out.append(Candidate(name, tuple(int(i) for i in grp.index), "control"))
+    return out
+
+
+def _variants_table(
+    natural_df: pd.DataFrame, candidates: list[Candidate], *, fixed: bool
+) -> pd.DataFrame:
+    controls = [c for c in candidates if c.role != "candidate"] if not fixed else candidates
+    extra = pd.DataFrame(
+        {
+            "variant": [c.label for c in controls],
+            "role": [c.role for c in controls],
+            "n_neurons": [len(c.neuron_ids) for c in controls],
+            "simulated": True,
+            "reason": "" if fixed else "extra candidate (control)",
+        }
+    )
+    if fixed:
+        cols = [c for c in natural_df.columns if c not in extra.columns]
+        if cols and "variant" in natural_df.columns:
+            extra = extra.merge(natural_df[["variant", *cols]], on="variant", how="left")
+        return extra
+    base = natural_df.assign(role="candidate")
+    # An extra matching an unsimulated ranked row converts that row in place (no duplicates).
+    known = set(base["variant"]) if "variant" in base.columns else set()
+    for c in controls:
+        if c.label in known:
+            m = base["variant"] == c.label
+            base.loc[m, ["role", "simulated", "reason", "n_neurons"]] = [
+                c.role,
+                True,
+                "extra candidate (control)",
+                len(c.neuron_ids),
+            ]
+    extra = cast("pd.DataFrame", extra.loc[~extra["variant"].isin(list(known))])
+    return pd.concat([base, extra], ignore_index=True) if not extra.empty else base
 
 
 def _group_labels(ctx: Context, sweep: SilenceEachSweep, ids: np.ndarray) -> pd.Series:
@@ -220,7 +284,12 @@ def _rate_variants(ctx: Context, sweep: RateSweep) -> tuple[pd.DataFrame, list[_
 
 
 def run_sweep(
-    spec: ExperimentSpec, *, out_dir: Path | str, store: Store | None = None
+    spec: ExperimentSpec,
+    *,
+    out_dir: Path | str,
+    store: Store | None = None,
+    fixed: Sequence[Candidate] | None = None,
+    compute_natural: bool = True,
 ) -> SweepResult:
     """Run a sweep spec; write ``sweep.parquet`` and the usual tables, provenance and report.
 
@@ -241,11 +310,38 @@ def run_sweep(
     by_key = {(c, k): counts for c, k, rep, counts in runs if rep == 0}
     stim_counts = by_key[("stimulated", "none")]
 
+    natural: list[str] = []
+    candidates: list[Candidate] = []
     if isinstance(sweep, SilenceEachSweep):
-        variants_df, variants = _silence_candidates(ctx, sweep, stim_counts)
+        if compute_natural:
+            natural_df, natural_variants = _silence_candidates(ctx, sweep, stim_counts)
+            natural = [v.label for v in natural_variants]
+        else:
+            natural_df, natural_variants = pd.DataFrame({"variant": pd.Series(dtype=str)}), []
+        if fixed is None:
+            candidates = [Candidate(v.label, tuple(v.silence)) for v in natural_variants]
+            extra = spec.robustness.extra_candidates if spec.robustness is not None else ()
+            candidates += _extra_candidates(ctx, sweep, extra, set(natural))
+        else:
+            candidates = list(fixed)
+        variants = [
+            _Variant(
+                label=c.label,
+                stimulate=dict(ctx.background),
+                silence=list(c.neuron_ids),
+                info={"n_silenced": len(c.neuron_ids), "role": c.role},
+            )
+            for c in candidates
+        ]
+        variants_df = _variants_table(natural_df, candidates, fixed=fixed is not None)
         reference = "stimulated"
     else:
+        if fixed is not None:
+            msg = "fixed candidates are only valid for silence_each sweeps"
+            raise ValueError(msg)
         variants_df, variants = _rate_variants(ctx, sweep)
+        for v in variants:
+            v.info["role"] = "candidate"
         reference = "baseline" if ("baseline", "none") in by_key else "stimulated"
     ref_counts = by_key[(reference, "none")]
 
@@ -345,6 +441,8 @@ def run_sweep(
             "select": sweep.select.describe(),
             "group_by": sweep.group_by,
             "max_items": sweep.max_items,
+            "natural_selection": natural,
+            "fixed_candidates": fixed is not None,
             "candidates": len(variants_df),
             "simulated": int(variants_df["simulated"].sum()),
             "ranked_by": (
@@ -369,6 +467,8 @@ def run_sweep(
     write_table(readouts, out / "readouts.parquet")
     write_table(counts_df, out / "counts.parquet")
     write_provenance(prov, out)
-    result = SweepResult(out, sweep.kind, table, variants_df, conditions, readouts, prov)
+    result = SweepResult(
+        out, sweep.kind, table, variants_df, conditions, readouts, prov, candidates, natural
+    )
     (out / "report.html").write_text(render_sweep_report(result, spec, ctx.store))
     return result

@@ -481,6 +481,33 @@ uncalibrated):
 
 The calls agree with 6g, and so do the per-neuron votes except LB3d (23/26 here vs 24/26). The cosines are lower because the atlas averages per-neuron normalised profiles and blanks the selection's own name (`LB3`) as a partner, as the benchmark does; 6g pooled synapses without masking. Pooling on the same vocabulary reproduces 6g's cosines to 0.002 (`test_lb3_pooled_synapses_reproduce_6g`).
 
+### 6j. Robustness-audited pathway screen (ADR-0011; 2026-10-10, rerun 2026-10-14)
+
+`tests/golden/test_robust_screen.py` on `examples/specs/w2_robust_pathway_mn9.yaml`: the 6h pathway screen (LB3* GRNs at 100 Hz, the six LB3* -> MN9 relays, 10 x 0.3 s, seed 0, 0.188 mV, calibrated by protocol, not validated) plus a `robustness:` block: w_syn 0.185 / 0.192 / 0.209 mV, 8 sampled-sign variants (sign seeds 2000-2007), `network.min_weight` 3 and 5, replicate FlyWire 783 (0.275 mV, UNCALIBRATED, not graded), random null 40 sets per size bin, negative control LC4. 15 sweeps plus 120 random-null runs (40 sets in each of 3 size bins); CPU float32, M4 Pro: the committed golden test takes **1,088 s, peak RSS 12.6 GB** (`benchmarks/robust_screen_malecns.json`); `flyconn run` on the same spec takes 1,252 s, 10.2 GB. These are the 2026-10-14 rerun after the final-review fixes (random-null pool now excludes only the stimulus and the primary readout; degenerate-null note). Against the 2026-10-10 runs (four same-seed runs, identical outputs; 15 sweeps plus 80 null runs, 921 s), the only output changes are the newly drawn `descending|2` null bin and the degenerate-null note on GNG232; every hit number below is unchanged.
+
+Every number below is printed by `benchmarks/robust_screen_details.py DIR --paths` on the output of `flyconn run examples/specs/w2_robust_pathway_mn9.yaml --out DIR`.
+
+Negative control: `find_paths(LB3* -> MN9, max_hops=3, min_weight=1)` (78 sources, 2 targets) gives 204,286 paths through 906 neurons; none of LC4 (126 neurons), T4a, Mi1 or LPLC2 is on them. LC4 was used.
+
+The reference run reproduces 6h exactly (GNG232 -14.5, DNge080 -4.3, DNge051 +2.5, GNG215 -1.7, GNG132 +1.7, GNG130 +0.2 Hz, same CIs; q values shift slightly because LC4 joins the BH family, e.g. DNge080 q 0.31). One reference hit (q < 0.05):
+
+| Hit | Tier | MN9 difference (95 % CI), q | w_syn | NT signs | threshold | random null | replicate | path stability | best line |
+|---|---|---|---|---|---|---|---|---|---|
+| GNG232 | **Conditional** (fails NT signs) | -14.5 (-18.8, -9.5), 0.003 | robust (holds at 0.185 / 0.192 / 0.209: -13.8 / -14.2 / -14.8) | fails: holds 5/8, no flips | robust (holds at min_weight 3 / 5: -12.0 / -19.3) | robust, p 0.024 | holds (FlyWire CB0616: -10.8, CI -17.3 to -4.3) | 0.33 | none: no annotated split-GAL4 in Meissner 2025 (`line_match` none) |
+
+GNG232 per sign sample (MN9 difference; stimulated MN9 in that sample): s0 +0.2 (CI -2.3, 2.8; 6.5 Hz) weakens, s1 -14.3 (22.3 Hz), s2 -5.2 (-12.7, -0.5; 11.2 Hz), s3 -6.7 (21.8 Hz), s4 -7.8 (14.0 Hz) hold, s5 -3.0 (-6.7, 0.8; 30.7 Hz) weakens, s6 -7.3 (34.7 Hz) holds, s7 -0.2 (-0.5, 0.0; 0.2 Hz) weakens. Stimulated MN9 is 28.3 Hz with argmax signs and 0.2-34.7 Hz across the eight samples, so sign uncertainty moves the whole MN9 response, not only the GNG232 effect.
+
+Selection stability: the pathway ranking selects the same six relays under every w_syn, sign and threshold variant (Jaccard 1.0 for all 13).
+
+Negative control LC4: effect 0.00 Hz (CI -5.0, 5.3), random-null p 0.95; labelled `control`, not a hit. Pinned as `control_p >= 0.05`.
+
+Non-hits worth noting: DNge080 (reference -4.3, q 0.31) holds at w_syn 0.185 and 0.209, at min_weight 3 and 5, in 2 of 8 sign samples (flips in 2) and in the replicate (-17.8, CI -24.0 to -11.7). The inhibitory-route relays change sign across sign samples (e.g. GNG132 -16.3 and GNG130 -9.2 in s3).
+
+Robust in the model: GNG232 silencing lowers MN9 at every tested w_syn and threshold and in the FlyWire replicate. Not robust: the GNG232 effect under predicted-NT-sign uncertainty (3 of 8 samples lose it; in two of them stimulated MN9 is only 6.5 and 0.2 Hz), and every other relay. Weak checks, recorded as findings rather than tuned:
+- The random null cannot discriminate for GNG232. All 40 random 2-neuron central-brain sets changed MN9 by exactly 0, so any nonzero effect reaches the minimum attainable p (1/41 = 0.024); the card and `handoff.csv` now say so ("degenerate null: 40/40 random sets had no effect"). Of the other bins, 37 of 40 random 128-neuron visual-projection sets (the rest within -0.50 to +0.33 Hz) and 32 of 40 random 2-neuron descending sets (the rest within -0.83 to +1.17 Hz) changed MN9 by exactly 0.
+- The negative control passes trivially: LC4 (126 neurons) fires 0 spikes over 10 trials under LB3 drive in the reference run, so silencing it cannot change anything. A control that is active but off-route would be a stronger test.
+- In the 2026-10-10 runs the random null for the descending relays (DNge080, DNge051) was skipped, because every readout's neurons were excluded from the pool and the `descending` readout covers every descending neuron. Fixed: only the stimulus and the primary readout are excluded, and the `descending|2` bin is now drawn. Neither relay is a hit, so no tier changed.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |

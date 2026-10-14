@@ -53,6 +53,11 @@ def _prob_matrix(neurons: pd.DataFrame) -> np.ndarray | None:
     return probs
 
 
+def has_nt_probabilities(neurons: pd.DataFrame) -> bool:
+    """True when ``neurons`` carries usable per-neuron NT probabilities (``nt_p_*``)."""
+    return _prob_matrix(neurons) is not None
+
+
 def neuron_signs(
     neurons: pd.DataFrame,
     policy: SignPolicy = SignPolicy.ARGMAX,

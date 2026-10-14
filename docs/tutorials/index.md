@@ -22,3 +22,4 @@ One runnable script per anchor workflow (jupytext percent format; open as a note
 - W5 genetic access (exploratory): `examples/w5_driver_lines.py`
 
 - Pathway-ranked silencing screen (relays on routes from the stimulated neurons to a readout): `flyconn run examples/specs/w2_sweep_pathway_mn9.yaml --out runs/screen`
+- Robustness-audited screen with wet-lab handoff (each modelling choice varied one at a time, random-silencing null, split-GAL4 lines): `flyconn run examples/specs/w2_robust_pathway_mn9.yaml --out runs/robust_mn9`; see [Robust screens](robust-screens.md)

@@ -2,6 +2,14 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-14 — M13 robustness-audited screens (branch m13-robust-screens)
+
+- `robustness:` block for silencing screens, `run_robust_screen`, evidence-card report and `handoff.csv` with split-GAL4 lines (ADR-0011, tutorial `docs/tutorials/robust-screens.md`).
+- Golden MaleCNS run (GOLDEN_RESULTS 6j; 15 sweeps + 120 random-null runs, 1,088 s, peak RSS 12.6 GB (2026-10-14 rerun after final-review fixes; hit numbers unchanged from the 2026-10-10 runs); numbers printed by `benchmarks/robust_screen_details.py`): the reference reproduces 6h exactly. One hit, GNG232 -> MN9 (-14.5 Hz, q 0.003), tier Conditional: holds at w_syn 0.185 / 0.192 / 0.209, at min_weight 3 and 5 and in the FlyWire replicate (-10.8 Hz, not graded), random-null p 0.024, but holds in only 5 of 8 sampled-sign variants (stimulated MN9 ranges 0.2-34.7 Hz across sign samples). No annotated Meissner 2025 line for GNG232. Selection stability 1.0 for every variant. Negative control LC4: effect 0.00 Hz, null p 0.95.
+- Final-review fixes: random-null pool excludes only stimulus + primary readout (the `descending|2` bin is now drawn); degenerate null flagged on cards and `handoff.csv`; missing NT probabilities skip the NT axis as `not run` instead of crashing; NaN guards; `random_null: false` disables the null; replicate mapping errors become "not testable".
+- Weak checks still open: the random null is uninformative for GNG232 (40/40 central-brain sets give exactly 0 Hz, p = 1/41), and the tier still counts it (owner decision pending); LC4 is silent under LB3 drive, so the control passes trivially.
+- Not done: a stronger negative control (active but off-route); a paired test across shared Poisson inputs; null-set seeds depend on the candidate list; plan hash omits the store checksum.
+
 ## 2026-10-10 — M12 zero-shot classification (branch m12-classify)
 
 - Built: `build_atlas` / `classify` / `flyconn classify run|bench`. Partner-type profile

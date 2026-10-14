@@ -39,6 +39,14 @@ def run_cmd(
         f"running {spec.name}{kind} on {spec.dataset}: "
         f"{spec.trials} trials x {spec.duration_ms:g} ms"
     )
+    if spec.robustness is not None:
+        from flyconn.experiments import robustness as rob
+
+        res = rob.run_robust_screen(spec, out_dir=out)
+        tiers = res.hits["tier"].value_counts().to_dict() if not res.hits.empty else {}
+        typer.echo(f"robustness screen: {len(res.hits)} reference hits; tiers {tiers}")
+        typer.echo(f"model prediction; report: {res.out_dir / 'report.html'}")
+        return
     if spec.sweep is not None:
         sweep = run_sweep(spec, out_dir=out)
         n_var = int(sweep.variants["simulated"].sum())
