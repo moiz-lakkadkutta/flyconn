@@ -5,8 +5,27 @@ on:
     - cron: "0 3 * * 1"
 jobs:
   golden:
+    # Sharded: the calibration protocol tests alone take ~3.5 h on a hosted runner
+    # (2026-10-12 run: MaleCNS calibration 2 h 11 min, Shiu control 55 min, inputs 33 min).
+    name: golden (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: core
+            args: >-
+              -m "golden or benchmark or brian" --benchmark-json=benchmarks/latest.json
+              --ignore=tests/golden/test_shiu_calibration.py
+              --ignore=tests/golden/test_malecns_calibration.py
+              --ignore=tests/golden/test_malecns_calibration_inputs.py
+          - shard: calibration-shiu-inputs
+            args: >-
+              -m golden tests/golden/test_shiu_calibration.py
+              tests/golden/test_malecns_calibration_inputs.py
+          - shard: calibration-malecns
+            args: -m golden tests/golden/test_malecns_calibration.py
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -17,4 +36,4 @@ jobs:
           path: .cache/data
           key: flyconn-data-${{ hashFiles('flyconn/data/registry/*.yaml') }}
       - run: uv sync --group dev --group brian --extra sim --extra interpret --extra access
-      - run: uv run pytest -m "golden or benchmark or brian" --benchmark-json=benchmarks/latest.json
+      - run: uv run pytest ${{ matrix.args }}
