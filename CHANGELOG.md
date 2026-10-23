@@ -4,6 +4,14 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-23
+
+Milestones M11-M13. **Behaviour change:** MaleCNS v1.0 simulations default to the calibrated w_syn (see M11).
+
+### CI
+- Heavy validation split into three parallel jobs (`core`, `calibration-shiu-inputs`, `calibration-malecns`); the single job had hit the 240 min limit. First run on main: 53 golden passed, longest job 2 h 07 min. Classify golden tests pull their own datasets.
+- Actions moved to Node 24 releases (checkout v5, setup-uv v7, cache v5, upload-artifact v6, download-artifact v7, upload-pages-artifact v5, deploy-pages v5); Linux runners pinned to `ubuntu-24.04` so golden numbers do not move with the `ubuntu-latest` migration.
+
 ### M13 robustness-audited screens
 - `robustness:` block for `silence_each` specs; `flyconn run SPEC --out DIR` then runs `run_robust_screen` (ADR-0011): a reference sweep plus one sweep per modelling variant (w_syn from the calibration range, sampled NT signs, `network.min_weight` thresholds, a cross-dataset replicate mapped with `match_types`), all silencing the reference candidates; a random-silencing null per size bin and super_class; `extra_candidates` as labelled negative controls. Variant labels holds / weakens / flips; tiers Strong / Conditional / Fragile; the replicate is reported, never graded; no correction across variants. Interrupted runs resume per variant.
 - Spec additions: `params: {w_syn_mv}` and `network.sign_seed` (with `sign_policy: sampled`, which now refuses a store without NT probabilities); `run_sweep(candidates=...)` returns the natural selection for selection stability.
