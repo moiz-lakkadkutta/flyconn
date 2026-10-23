@@ -8,7 +8,7 @@ jobs:
     # Sharded: the calibration protocol tests alone take ~3.5 h on a hosted runner
     # (2026-10-12 run: MaleCNS calibration 2 h 11 min, Shiu control 55 min, inputs 33 min).
     name: golden (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
       fail-fast: false
@@ -27,11 +27,11 @@ jobs:
           - shard: calibration-malecns
             args: -m golden tests/golden/test_malecns_calibration.py
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: .cache/data
           key: flyconn-data-${{ hashFiles('flyconn/data/registry/*.yaml') }}
