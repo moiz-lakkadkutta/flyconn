@@ -2,6 +2,15 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-23 — heavy-validation sharded (merged fix-heavy-shards)
+
+- `heavy.yml` now runs three parallel jobs: `core` (all golden/benchmark/brian except the
+  calibration protocol tests), `calibration-shiu-inputs`, `calibration-malecns`. The single
+  job had hit the 240 min limit on 2026-10-12 and 2026-10-19.
+- Branch run 38533242778 (pre-M13 base): 52 golden passed, longest job 2h21m.
+- First post-merge run on main (includes M13 `test_robust_screen.py` in `core`): 39947157360.
+- `test_classify.py` golden tests now pull their own datasets.
+
 ## 2026-10-14 — M13 robustness-audited screens (branch m13-robust-screens)
 
 - `robustness:` block for silencing screens, `run_robust_screen`, evidence-card report and `handoff.csv` with split-GAL4 lines (ADR-0011, tutorial `docs/tutorials/robust-screens.md`).
