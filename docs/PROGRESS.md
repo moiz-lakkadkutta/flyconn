@@ -8,7 +8,8 @@ Running log so a later session can resume. Newest entry first.
   calibration protocol tests), `calibration-shiu-inputs`, `calibration-malecns`. The single
   job had hit the 240 min limit on 2026-10-12 and 2026-10-19.
 - Branch run 38533242778 (pre-M13 base): 52 golden passed, longest job 2h21m.
-- First post-merge run on main (includes M13 `test_robust_screen.py` in `core`): 39947157360.
+- First post-merge run on main (includes M13 `test_robust_screen.py` in `core`): 39947157360,
+  green: core 47 passed (2h07m), calibration-shiu-inputs 5 (1h05m), calibration-malecns 1 (1h32m).
 - `test_classify.py` golden tests now pull their own datasets.
 
 ## 2026-10-14 — M13 robustness-audited screens (branch m13-robust-screens)
