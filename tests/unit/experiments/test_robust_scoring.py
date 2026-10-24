@@ -61,7 +61,7 @@ def test_axis_outcomes():
     assert null_outcome(0.05) == "fails"
 
 
-outcome = st.sampled_from(["robust", "fails", "not_run"])
+outcome = st.sampled_from(["robust", "fails", "not_run", "uninformative"])
 
 
 @given(w=outcome, n=outcome, m=outcome, r=outcome)
@@ -70,7 +70,7 @@ def test_every_combination_has_one_tier(w: str, n: str, m: str, r: str):
     t, thin = tier(oc)  # type: ignore[arg-type]
     fails = sum(v == "fails" for v in oc.values())
     assert t == ("Strong" if fails == 0 else "Conditional" if fails == 1 else "Fragile")
-    assert thin == (sum(v != "not_run" for v in oc.values()) < 2)
+    assert thin == (sum(v in ("robust", "fails") for v in oc.values()) < 2)
 
 
 def _effects() -> pd.DataFrame:
@@ -127,3 +127,24 @@ def test_score_hits_skips_nan_difference_reference():
     eff.loc[(eff["axis"] == "reference") & (eff["candidate"] == "B"), "difference"] = float("nan")
     hits = score_hits(eff, alpha=0.05, null_p={}, replicate={})
     assert list(hits["candidate"]) == ["A"]
+
+
+def test_degenerate_null_is_uninformative():
+    assert null_outcome(1 / 41, degenerate=True) == "uninformative"
+    assert null_outcome(0.5, degenerate=True) == "uninformative"
+    assert null_outcome(float("nan"), degenerate=True) == "not_run"
+    assert null_outcome(1 / 41) == "robust"
+
+
+def test_score_hits_degenerate_null_not_counted():
+    hits = score_hits(
+        _effects(),
+        alpha=0.05,
+        null_p={"A": 1 / 41, "B": 0.3},
+        replicate={},
+        null_degenerate={"A": True},
+    )
+    a = hits.set_index("candidate").loc["A"]
+    assert a["random_null"] == "uninformative"
+    assert "random_null" not in a["failed_axes"] and "random_null" not in a["untested_axes"]
+    assert a["uninformative_axes"] == "random_null"

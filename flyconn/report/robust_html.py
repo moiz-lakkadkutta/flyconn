@@ -63,6 +63,11 @@ def _null_text(hit: pd.Series) -> str:
     skipped = str(hit.get("random_null_skipped", "") or "")
     if skipped:
         return f"{_e(hit['random_null'])} (skipped: {_e(skipped)})"
+    if hit["random_null"] == "uninformative":
+        return (
+            f"uninformative (p {_p(hit['random_null_p'])}; most random sets changed "
+            "nothing, so the null cannot discriminate; not counted in the tier)"
+        )
     return f"{_e(hit['random_null'])} (p {_p(hit['random_null_p'])})"
 
 

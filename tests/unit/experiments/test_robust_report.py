@@ -24,6 +24,7 @@ HANDOFF_COLS = [
     "q_value",
     "failed_axes",
     "untested_axes",
+    "uninformative_axes",
     "thinly_tested",
     "random_null_note",
     "replicate",
@@ -198,3 +199,20 @@ def test_degenerate_null_note_on_card():
     assert note in _card(row, hit, True, ())
     row["random_null_note"] = ""
     assert "degenerate null" not in _card(row, hit, True, ())
+
+
+def test_uninformative_null_renders_reason():
+    from flyconn.report.robust_html import _null_text  # pyright: ignore[reportPrivateUsage]
+
+    hit = pd.Series(
+        {
+            "random_null": "uninformative",
+            "random_null_p": 1 / 41,
+            "random_null_skipped": "",
+            "random_null_note": "degenerate null: 40/40 random sets had no effect; "
+            "p cannot go below 1/41 and is weak evidence",
+        }
+    )
+    text = _null_text(hit)
+    assert text.startswith("uninformative (p 0.024")
+    assert "not counted in the tier" in text

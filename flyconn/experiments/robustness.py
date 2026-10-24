@@ -472,13 +472,24 @@ def run_robust_screen(
             strict=True,
         )
     ]
-    hits = score_hits(eff, alpha=spec.report.alpha, null_p=null_by_cand, replicate=replicate_labels)
-    hits["path_stability"] = _path_stability(spec, store, hits, cands)
-    hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
     zero = {
         str(k): (int((g == 0).sum()), len(g))
         for k, g in null_df.groupby("key")["difference"]  # pyright: ignore[reportUnknownVariableType]
     }
+    degenerate = {
+        c.label: bool(degenerate_null_note(*zero.get(key_by_cand[c.label], (0, 0))))
+        for c in cands
+        if c.role == "candidate"
+    }
+    hits = score_hits(
+        eff,
+        alpha=spec.report.alpha,
+        null_p=null_by_cand,
+        replicate=replicate_labels,
+        null_degenerate=degenerate,
+    )
+    hits["path_stability"] = _path_stability(spec, store, hits, cands)
+    hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
     nz = [zero.get(key_by_cand[str(c)], (0, 0)) for c in hits["candidate"]]
     hits["random_null_zero_frac"] = [z / n if n else float("nan") for z, n in nz]
     hits["random_null_note"] = [degenerate_null_note(z, n) for z, n in nz]
@@ -508,7 +519,8 @@ def run_robust_screen(
                 "seeds": sorted({int(x) for x in null_df["seed"]}),
                 "keys_drawn": sorted({str(x) for x in null_df["key"]}),
                 "skipped": skipped,
-                "p_rule": "(1 + #null at least as extreme) / (n_sets + 1) < 0.05",
+                "p_rule": "(1 + #null at least as extreme) / (n_sets + 1) < 0.05; "
+                "uninformative (not counted in the tier) when >= 50% of sets have effect 0",
             },
             "extra_candidates": [s.describe() for s in r.extra_candidates],
             "control_null_p": control_null_p,
@@ -541,6 +553,7 @@ HANDOFF_COLUMNS = [
     "q_value",
     "failed_axes",
     "untested_axes",
+    "uninformative_axes",
     "thinly_tested",
     "random_null_note",
     "replicate",
@@ -585,6 +598,7 @@ def write_handoff(result: RobustScreenResult, catalog: LineCatalog | None) -> pd
             "q_value": h.get("q_value"),
             "failed_axes": h.get("failed_axes"),
             "untested_axes": h.get("untested_axes"),
+            "uninformative_axes": h.get("uninformative_axes"),
             "thinly_tested": h.get("thinly_tested"),
             "random_null_note": h.get("random_null_note"),
             "replicate": h.get("replicate"),

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 Label = Literal["holds", "weakens", "flips"]
-Outcome = Literal["robust", "fails", "not_run"]
+Outcome = Literal["robust", "fails", "not_run", "uninformative"]
 GRADED_AXES: tuple[str, ...] = ("w_syn", "nt", "min_weight", "random_null")
 TIER_ORDER: dict[str, int] = {"Strong": 0, "Conditional": 1, "Fragile": 2}
 _SWEEP_AXES: tuple[str, ...] = ("w_syn", "nt", "min_weight")
@@ -46,18 +46,24 @@ def axis_outcome(axis: str, labels: Sequence[Label]) -> Outcome:
     return "robust" if n_holds == len(labels) else "fails"
 
 
-def null_outcome(p: float | None) -> Outcome:
-    """Verdict of the random-null axis from its empirical p-value."""
+def null_outcome(p: float | None, *, degenerate: bool = False) -> Outcome:
+    """Verdict of the random-null axis from its empirical p-value.
+
+    A degenerate null (most random sets changed nothing) cannot discriminate: it scores
+    ``uninformative``, which the tier counts as neither a pass nor a fail (M14 D1).
+    """
     if p is None or (isinstance(p, float) and math.isnan(p)):
         return "not_run"
+    if degenerate:
+        return "uninformative"
     return "robust" if p < NULL_ALPHA else "fails"
 
 
 def tier(outcomes: Mapping[str, Outcome]) -> tuple[str, bool]:
-    """(tier, thinly_tested) from graded axis outcomes."""
+    """(tier, thinly_tested) from graded axis outcomes; uninformative axes neither pass nor fail."""
     graded = [outcomes.get(a, "not_run") for a in GRADED_AXES]
     fails = sum(o == "fails" for o in graded)
-    ran = sum(o != "not_run" for o in graded)
+    ran = sum(o in ("robust", "fails") for o in graded)
     name = "Strong" if fails == 0 else "Conditional" if fails == 1 else "Fragile"
     return name, ran < 2
 
@@ -68,6 +74,7 @@ def score_hits(
     alpha: float,
     null_p: Mapping[str, float | None],
     replicate: Mapping[str, str],
+    null_degenerate: Mapping[str, bool] | None = None,
 ) -> pd.DataFrame:
     """One row per reference hit (candidate, q < alpha, nonzero effect) with verdicts and tier."""
     ref = effects[
@@ -77,6 +84,7 @@ def score_hits(
         & effects["difference"].notna()
         & (effects["difference"] != 0)
     ]
+    degen = null_degenerate or {}
     rows: list[dict[str, Any]] = []
     for _, r in ref.iterrows():
         cand = str(r["candidate"])
@@ -107,13 +115,16 @@ def score_hits(
             else:
                 row[f"{axis}_detail"] = detail
         p = null_p.get(cand)
-        outcomes["random_null"] = null_outcome(p)
+        outcomes["random_null"] = null_outcome(p, degenerate=bool(degen.get(cand, False)))
         row["random_null"] = outcomes["random_null"]
         row["random_null_p"] = float("nan") if p is None else float(p)
         row["replicate"] = replicate.get(cand, "not run")
         row["tier"], row["thinly_tested"] = tier(outcomes)
         row["failed_axes"] = ", ".join(a for a in GRADED_AXES if outcomes[a] == "fails")
         row["untested_axes"] = ", ".join(a for a in GRADED_AXES if outcomes[a] == "not_run")
+        row["uninformative_axes"] = ", ".join(
+            a for a in GRADED_AXES if outcomes[a] == "uninformative"
+        )
         rows.append(row)
     cols = [
         "candidate",
@@ -136,6 +147,7 @@ def score_hits(
         "thinly_tested",
         "failed_axes",
         "untested_axes",
+        "uninformative_axes",
     ]
     out = pd.DataFrame(rows, columns=pd.Index(cols))
     if out.empty:
