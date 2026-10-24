@@ -216,3 +216,12 @@ def test_uninformative_null_renders_reason():
     text = _null_text(hit)
     assert text.startswith("uninformative (p 0.024")
     assert "not counted in the tier" in text
+
+
+def test_report_lists_controls_with_informative_flag(small_store: Store, tmp_path: Path):
+    d = _d(small_store)
+    d["robustness"] = {**d["robustness"], "extra_candidates": [{"cell_type": "T007"}]}  # type: ignore[dict-item]
+    run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    html = (tmp_path / "o" / "report.html").read_text()
+    assert "<h2>Negative controls</h2>" in html
+    assert "T007" in html

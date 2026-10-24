@@ -41,3 +41,6 @@ robustness:
   random_null: {n_sets: 40}
   extra_candidates:
     - {cell_type: "LC4"}
+  # M14: plus one automatic control that fires under LB3 drive but is on no LB3 -> MN9
+  # route (<=3 hops, min_weight 1); LC4 is kept to show a silent control is flagged uninformative.
+  negative_controls: 1

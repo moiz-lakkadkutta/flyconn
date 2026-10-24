@@ -117,6 +117,7 @@ class RobustScreenResult:
     effects: pd.DataFrame  # every candidate x variant on the primary readout, with label
     null: pd.DataFrame  # key, index, seed, n_neurons, difference
     selection_stability: pd.DataFrame  # variant, axis, jaccard
+    controls: pd.DataFrame = field(default_factory=pd.DataFrame)  # negative controls (M14 D4)
     provenance: dict[str, Any] = field(default_factory=dict[str, Any])
 
 
@@ -295,6 +296,49 @@ def _active_ids(ref_dir: Path) -> set[int]:
     return {int(i) for i in c.loc[m, "neuron_id"]}
 
 
+CONTROL_COLUMNS = [
+    "candidate",
+    "source",
+    "stimulated_rate_hz",
+    "difference",
+    "ci_low",
+    "ci_high",
+    "null_p",
+    "informative",
+]
+
+
+def _control_summary(
+    ref_dir: Path,
+    ref: _Loaded,
+    cands: list[Candidate],
+    primary: str,
+    control_null_p: dict[str, float | None],
+) -> pd.DataFrame:
+    """One row per negative control; informative only if it fires under the stimulus."""
+    sweep_prov = json.loads((ref_dir / "provenance.json").read_text()).get("sweep", {})
+    auto = set(sweep_prov.get("negative_controls", {}).get("chosen", []))
+    rows = ref.sweep.loc[ref.sweep["readout"] == primary].set_index("variant")
+    out: list[dict[str, Any]] = []
+    for c in cands:
+        if c.role != "control":
+            continue
+        rate = float(rows.loc[c.label, "stimulated_rate_hz"])
+        out.append(
+            {
+                "candidate": c.label,
+                "source": "auto" if c.label in auto else "extra",
+                "stimulated_rate_hz": rate,
+                "difference": float(rows.loc[c.label, "difference"]),
+                "ci_low": float(rows.loc[c.label, "ci_low"]),
+                "ci_high": float(rows.loc[c.label, "ci_high"]),
+                "null_p": control_null_p.get(c.label),
+                "informative": rate > 0,
+            }
+        )
+    return pd.DataFrame(out, columns=pd.Index(CONTROL_COLUMNS))
+
+
 DEGENERATE_NULL_FRACTION = 0.5
 
 
@@ -320,8 +364,9 @@ def run_robust_screen(
 
     Writes ``robustness_plan.json``, ``variants/<label>/`` (each with ``done.json`` written
     last, so a rerun into the same directory resumes), ``variants/null/``, ``hits.parquet``
-    (the effects table), ``null.parquet``, ``selection_stability.parquet`` and
-    ``provenance.json``. A changed spec refuses to reuse an output directory.
+    (the effects table), ``null.parquet``, ``selection_stability.parquet``,
+    ``controls.parquet`` and ``provenance.json``. A changed spec refuses to reuse an
+    output directory.
     """
     r = spec.robustness
     sweep = spec.sweep
@@ -495,9 +540,11 @@ def run_robust_screen(
     hits["random_null_note"] = [degenerate_null_note(z, n) for z, n in nz]
 
     sel = pd.DataFrame(stability, columns=pd.Index(["variant", "axis", "jaccard"]))
+    controls = _control_summary(vdir / "reference", ref, cands, primary, control_null_p)
     write_table(eff, out / "hits.parquet")
     write_table(null_df, out / "null.parquet")
     write_table(sel, out / "selection_stability.parquet")
+    write_table(controls, out / "controls.parquet")
     ref_prov: dict[str, Any] = json.loads((vdir / "reference" / "provenance.json").read_text())
     prov = ref_prov | {
         "robustness": {
@@ -524,11 +571,12 @@ def run_robust_screen(
             },
             "extra_candidates": [s.describe() for s in r.extra_candidates],
             "control_null_p": control_null_p,
+            "control_summary": controls.to_dict(orient="records"),
             "statistics": f"{spec.report.statistics} (see sweep provenance); "
             "no correction across variants",
         }
     }
-    result = RobustScreenResult(out, spec, hits, eff, null_df, sel, prov)
+    result = RobustScreenResult(out, spec, hits, eff, null_df, sel, controls, prov)
     cat = load_catalog() if catalog == "auto" else catalog
     prov["robustness"]["line_catalog"] = (
         cat.provenance if cat is not None else f"not looked up ({PULL_HINT})"

@@ -155,6 +155,7 @@ class RobustnessOptions:
     random_null_sets: int = 40
     random_null_pool: str = "active"  # "active" | "all" (M14 D2)
     extra_candidates: tuple[Selection, ...] = ()
+    negative_controls: int = 1  # automatic active off-route controls (M14 D4)
 
 
 Sweep = SilenceEachSweep | RateSweep
@@ -290,6 +291,7 @@ _ROBUSTNESS_KEYS = (
     "replicate",
     "random_null",
     "extra_candidates",
+    "negative_controls",
 )
 
 
@@ -370,6 +372,10 @@ def _robustness(
     ):
         msg = "robustness extra_candidates must be a list of selection mappings"
         raise ValueError(msg)
+    nc_raw = dd.get("negative_controls", 1)
+    if not isinstance(nc_raw, int) or isinstance(nc_raw, bool) or nc_raw < 0:
+        msg = f"robustness negative_controls must be an int >= 0, got {nc_raw!r}"
+        raise ValueError(msg)
     proxy = dd.get("readout_proxy")
     return RobustnessOptions(
         primary_readout=str(primary),
@@ -381,6 +387,7 @@ def _robustness(
         random_null_sets=n_sets,
         random_null_pool=pool,
         extra_candidates=tuple(_selection(x) for x in cast("list[Any]", extras_raw)),
+        negative_controls=nc_raw,
     )
 
 

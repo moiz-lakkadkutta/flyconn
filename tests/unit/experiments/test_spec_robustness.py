@@ -119,3 +119,14 @@ def test_random_null_pool_option(small_store: Store):
     assert rob is not None and rob.random_null_pool == "all"
     with pytest.raises(ValueError, match="random_null pool must be 'active' or 'all'"):
         spec_from_dict(_d(small_store, {**base, "random_null": {"pool": "silent"}}))
+
+
+def test_negative_controls_option(small_store: Store):
+    base = {"primary_readout": "targets"}
+    rob = spec_from_dict(_d(small_store, base)).robustness
+    assert rob is not None and rob.negative_controls == 1
+    rob = spec_from_dict(_d(small_store, {**base, "negative_controls": 0})).robustness
+    assert rob is not None and rob.negative_controls == 0
+    for bad in (-1, True, 1.5):
+        with pytest.raises(ValueError, match="negative_controls must be an int >= 0"):
+            spec_from_dict(_d(small_store, {**base, "negative_controls": bad}))

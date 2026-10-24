@@ -115,6 +115,69 @@ def _extra_candidates(
     return out
 
 
+MIN_CONTROL_RATE_HZ = 1.0
+
+
+def _off_route_controls(
+    ctx: Context,
+    sweep: SilenceEachSweep,
+    primary: str,
+    stim_counts: np.ndarray,
+    n: int,
+    taken: set[str],
+) -> tuple[list[Candidate], dict[str, Any]]:
+    """Up to ``n`` groups that fire under the stimulus but are on no stimulus -> primary path.
+
+    "Off-route" means no neuron of the group lies on any path of <= max_hops hops at
+    min_weight 1 (pathway.max_hops, else 3). Ranked by summed stimulated rate, ties by
+    label. Such a control can change the readout only through longer or weaker routes,
+    so a large effect is a warning about the model, not a hit (M14 D4).
+    """
+    info: dict[str, Any] = {"requested": n, "chosen": [], "reason": "off"}
+    if n == 0:
+        return [], info
+    max_hops = sweep.pathway.max_hops if sweep.pathway is not None else 3
+    sources = sorted(ctx.background)
+    targets = ctx.readout_ids[primary].tolist()
+    paths = find_paths(ctx.matrix, sources, targets, max_hops=max_hops, min_weight=1)
+    on_route = {int(i) for p in paths["path"] for i in p}
+    blocked = set(sources) | {int(i) for i in targets}
+    ids = np.asarray(
+        [i for i in resolve_selection(sweep.select, ctx.neurons).tolist() if i not in blocked],
+        dtype=np.int64,
+    )
+    labels = _group_labels(ctx, sweep, ids)
+    rate = stim_counts.mean(axis=0) / ctx.seconds
+    df = pd.DataFrame(
+        {
+            "neuron_id": labels.index.to_numpy(dtype=np.int64),
+            "group": labels.to_numpy(),
+            "rate": rate[ctx.net.index_of(labels.index.tolist())],
+        }
+    )
+    df["on_route"] = df["neuron_id"].isin(list(on_route))
+    g = (
+        df.groupby("group", sort=True)
+        .agg(rate=("rate", "sum"), on_route=("on_route", "any"))
+        .reset_index()
+    )
+    keep = ~g["on_route"] & (g["rate"] >= MIN_CONTROL_RATE_HZ) & ~g["group"].isin(list(taken))
+    g = cast("pd.DataFrame", g.loc[keep])
+    g = g.sort_values(["rate", "group"], ascending=[False, True], kind="stable").head(n)
+    members = df.groupby("group")["neuron_id"].apply(list).to_dict()
+    out = [
+        Candidate(str(lbl), tuple(int(i) for i in members[lbl]), "control") for lbl in g["group"]
+    ]
+    info |= {
+        "chosen": [c.label for c in out],
+        "reason": "" if out else "no active off-route group",
+        "max_hops": max_hops,
+        "min_rate_hz": MIN_CONTROL_RATE_HZ,
+        "n_paths_checked": len(paths),
+    }
+    return out, info
+
+
 def _variants_table(
     natural_df: pd.DataFrame, candidates: list[Candidate], *, fixed: bool
 ) -> pd.DataFrame:
@@ -317,6 +380,7 @@ def run_sweep(
 
     natural: list[str] = []
     candidates: list[Candidate] = []
+    nc_info: dict[str, Any] = {"requested": 0, "chosen": [], "reason": "off"}
     if isinstance(sweep, SilenceEachSweep):
         if compute_natural:
             natural_df, natural_variants = _silence_candidates(ctx, sweep, stim_counts)
@@ -327,14 +391,32 @@ def run_sweep(
             candidates = [Candidate(v.label, tuple(v.silence)) for v in natural_variants]
             extra = spec.robustness.extra_candidates if spec.robustness is not None else ()
             candidates += _extra_candidates(ctx, sweep, extra, set(natural))
+            rob = spec.robustness
+            if rob is not None and rob.negative_controls > 0:
+                auto, nc_info = _off_route_controls(
+                    ctx,
+                    sweep,
+                    rob.primary_readout,
+                    stim_counts,
+                    rob.negative_controls,
+                    {c.label for c in candidates},
+                )
+                candidates += auto
         else:
             candidates = list(fixed)
+        stim_rate = stim_counts.mean(axis=0) / ctx.seconds
         variants = [
             _Variant(
                 label=c.label,
                 stimulate=dict(ctx.background),
                 silence=list(c.neuron_ids),
-                info={"n_silenced": len(c.neuron_ids), "role": c.role},
+                info={
+                    "n_silenced": len(c.neuron_ids),
+                    "role": c.role,
+                    "stimulated_rate_hz": float(
+                        stim_rate[ctx.net.index_of(list(c.neuron_ids))].sum()
+                    ),
+                },
             )
             for c in candidates
         ]
@@ -450,6 +532,7 @@ def run_sweep(
             "max_items": sweep.max_items,
             "natural_selection": natural,
             "fixed_candidates": fixed is not None,
+            "negative_controls": nc_info,
             "candidates": len(variants_df),
             "simulated": int(variants_df["simulated"].sum()),
             "ranked_by": (

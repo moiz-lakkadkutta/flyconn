@@ -346,3 +346,76 @@ def test_active_pool_counts_neurons_that_fired(small_store: Store, tmp_path: Pat
     m = (counts["condition"] == "stimulated") & (counts["control"] == "none")
     fired = set(counts.loc[m & (counts["count"] > 0), "neuron_id"].astype(int))
     assert rn["pool"] == "active" and rn["n_active"] == len(fired) > 0
+
+
+@pytest.fixture
+def offroute_store(small_store: Store, tmp_path: Path) -> Store:
+    """small_store plus one neuron, TOFF, driven hard by every stimulus neuron, with no outputs.
+
+    It fires under the stimulus and lies on no stimulus -> readout path at any hop count.
+    The synthetic network is too dense for such a group to occur by chance.
+    """
+    neurons, edges = small_store.neurons(), small_store.edges()
+    ids = neurons["neuron_id"].tolist()
+    x = int(ids[10])  # neither stimulus (ids[:8]) nor readout (ids[-10:])
+    neurons.loc[neurons["neuron_id"] == x, "cell_type"] = "TOFF"
+    edges = edges[(edges["pre"] != x) & (edges["post"] != x)]
+    drive = edges.iloc[[0] * 8].copy()
+    drive["pre"] = ids[:8]
+    drive["post"] = x
+    drive["weight"] = 50
+    edges = pd.concat([edges, drive], ignore_index=True)
+    d = tmp_path / "offroute"
+    d.mkdir()
+    write_parquet(conform_neurons(neurons), d / "neurons.parquet")
+    write_parquet(conform_edges(edges), d / "edges.parquet")
+    write_provenance(
+        d,
+        dataset="malecns",
+        version="1.0",
+        converter="test",
+        inputs=[],
+        counts={"neurons": len(neurons), "edges": len(edges)},
+    )
+    return Store(d)
+
+
+def test_auto_negative_control_is_active_and_off_route(offroute_store: Store, tmp_path: Path):
+    from flyconn.graph.matrix import ConnectivityMatrix
+    from flyconn.graph.paths import find_paths
+
+    # ask for two: TOFF is the only off-route group, so exactly one may be chosen
+    spec = spec_from_dict(_d(offroute_store, negative_controls=2))
+    res = run_robust_screen(spec, out_dir=tmp_path / "o", store=offroute_store)
+    nc = res.provenance["sweep"]["negative_controls"]
+    assert nc["requested"] == 2 and nc["chosen"] == ["TOFF"], nc
+    ctl = res.controls.set_index("candidate").loc["TOFF"]
+    assert ctl["source"] == "auto" and ctl["stimulated_rate_hz"] >= 1.0 and ctl["informative"]
+    n = offroute_store.neurons()
+    ids = set(n.loc[n["cell_type"] == "TOFF", "neuron_id"].astype(int))
+    stim = [int(i) for i in spec.stimulate[0].select.ids or ()]
+    targets = [int(i) for i in spec.readouts[0].select.ids or ()]
+    m = ConnectivityMatrix.from_store(offroute_store, min_weight=1)
+    paths = find_paths(m, stim, targets, max_hops=3, min_weight=1)
+    on_route = {int(i) for p in paths["path"] for i in p}
+    assert not ids & on_route
+
+
+def test_no_off_route_group_is_recorded_not_crash(small_store: Store, tmp_path: Path):
+    d = _d(small_store, negative_controls=1)
+    readout_ids = d["readouts"][0]["select"]["ids"]  # type: ignore[index]
+    d["sweep"] = {
+        "silence_each": {"select": {"ids": readout_ids[:2]}, "group_by": "neuron", "max_items": 2}
+    }
+    # the only selectable neurons are readout neurons, which are excluded: nothing eligible
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    nc = res.provenance["sweep"]["negative_controls"]
+    assert nc["chosen"] == [] and nc["reason"] == "no active off-route group"
+
+
+def test_silent_extra_control_is_flagged(small_store: Store, tmp_path: Path):
+    d = _d(small_store, extra_candidates=[{"cell_type": "T007"}], negative_controls=0)
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    row = res.controls.set_index("candidate").loc["T007"]
+    assert row["source"] == "extra"
+    assert bool(row["informative"]) == (row["stimulated_rate_hz"] > 0)
