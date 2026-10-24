@@ -16,3 +16,4 @@ Template: Context → Decision → Alternatives considered → Consequences → 
 | [0008](0008-malecns-nt-uncertainty.md) | MaleCNS NT uncertainty from the per-presynapse file | Accepted |
 | [0009](0009-calibration-onset-ratio.md) | Re-calibrate w_syn by the onset ratio, with a positive control | Accepted |
 | [0011](0011-robustness-audited-screens.md) | Robustness-audited silencing screens, one axis at a time | Accepted |
+| [0012](0012-robustness-hardening.md) | Hardening robustness screens: informative nulls and controls, paired statistics | Accepted |

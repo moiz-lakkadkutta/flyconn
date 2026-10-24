@@ -83,7 +83,8 @@ spec has a `robustness:` block (`flyconn.experiments.robustness.run_robust_scree
   on MaleCNS) plus the random null; variants run without shared controls to save 4 runs
   each. Measured on the MaleCNS golden run (15 sweeps plus 120 random-null runs, 7 candidates): 1,088 s and 12.6 GB peak RSS on an M4 Pro CPU (golden test; GOLDEN_RESULTS 6j), under the 30 min extrapolated in the design.
 - "Strong" means robust within the tested axes, not true. The labels use the unpaired
-  bootstrap CI although conditions share Poisson inputs, so they are conservative.
+  bootstrap CI although conditions share Poisson inputs, so they are conservative
+  (superseded for robustness screens by ADR-0012: paired).
 - The NT axis needs the `nt-probs` level for MaleCNS; without it the axis is not run,
   never silently argmax.
 - Line suggestions are lookups in curated text (match method recorded); NeuronBridge

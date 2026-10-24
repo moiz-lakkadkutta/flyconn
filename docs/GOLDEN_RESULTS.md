@@ -508,6 +508,58 @@ Robust in the model: GNG232 silencing lowers MN9 at every tested w_syn and thres
 - The negative control passes trivially: LC4 (126 neurons) fires 0 spikes over 10 trials under LB3 drive in the reference run, so silencing it cannot change anything. A control that is active but off-route would be a stronger test.
 - In the 2026-10-10 runs the random null for the descending relays (DNge080, DNge051) was skipped, because every readout's neurons were excluded from the pool and the `descending` readout covers every descending neuron. Fixed: only the stimulus and the primary readout are excluded, and the `descending|2` bin is now drawn. Neither relay is a hit, so no tier changed.
 
+### 6k. Hardened robustness screens, all-LB3 and sugar-only (ADR-0012; 2026-10-24)
+
+`flyconn run` on `examples/specs/w2_robust_pathway_mn9.yaml` (6j's spec plus `negative_controls: 1`) and on `examples/specs/w2_robust_pathway_mn9_sugar.yaml` (identical except the stimulus is `LB3[cd]`, the 49 LB3c + LB3d GRNs that the MaleCNS calibration used; ADR-0009). M14 defaults:
+- paired statistics (trial-bootstrap CI, Wilcoxon p);
+- the random null drawn from neurons that fire in the stimulated run;
+- one automatic off-route control;
+- degenerate nulls scored uninformative.
+
+Same 0.188 mV (calibrated by protocol, not validated), 10 x 0.3 s, seed 0. CPU float32, M4 Pro. Every number is printed by `benchmarks/robust_screen_details.py DIR [--paths]`.
+
+| Run | Golden test | `flyconn run` (`/usr/bin/time`) | Sweeps + null runs |
+|---|---|---|---|
+| all LB3 (78 GRNs), `tests/golden/test_robust_screen.py` | **1,591 s, 10.3 GB** (`benchmarks/robust_screen_malecns.json`) | 2,029 s, 11.2 GB | 15 + 120 |
+| sugar-only (49 GRNs), `tests/golden/test_robust_screen_sugar.py` | **1,175 s** by pytest's clock, 10.9 GB | 1,300 s, 12.4 GB | 15 + 120 |
+
+- The sugar golden test printed 2,026 s from `time.time()` against pytest's 1,175 s. The laptop probably slept during the run, which `time.time()` counts.
+- The all-LB3 golden test agrees on both clocks. Against 6j (1,088 s) it is about 46 % slower. The automatic control adds one silenced candidate to each of the 15 sweeps, and the reference run makes one more `find_paths` call at min_weight 1. The split between those causes was not measured. The number of null runs is unchanged at 120.
+
+**All LB3.** Reference effects match 6h/6j to the 0.1 Hz digit: GNG232 -14.5, DNge080 -4.3, DNge051 +2.5, GNG215 -1.7, GNG132 +1.7, GNG130 +0.2 Hz. Paired statistics barely change the CIs at 10 trials:
+- GNG232: (-19.0, -9.7) paired vs (-18.8, -9.5) unpaired;
+- DNge080: (-8.3, 0.3) vs (-8.7, 0.3).
+
+They do raise GNG232's q from 0.003 to 0.016. With 10 trials the exact two-sided Wilcoxon p cannot go below 2/1024 = 0.002, and BH multiplies it over 16 candidate x readout rows. The trial count, not the pairing, limits the q values here.
+
+| Hit | Tier | MN9 difference (95 % CI), q | w_syn | NT signs | threshold | random null | replicate |
+|---|---|---|---|---|---|---|---|
+| GNG232 | **Conditional** (fails NT signs) | -14.5 (-19.0, -9.7), 0.016 | holds at 0.185 / 0.192 / 0.209 (-13.8 / -14.2 / -14.8) | holds 5/8, no flips | holds at 3 / 5 (-12.0 / -19.3) | robust, p 0.024, **informative**: 4/40 central-brain sets had effect 0, range -8.8 to +5.5 Hz | holds (FlyWire CB0616 -10.8, CI -16.2 to -6.3) |
+
+- **The random null now discriminates.** In 6j, 40 of 40 random central-brain pairs changed MN9 by exactly 0. Drawn from the 986 neurons that fire under LB3 drive, 4 of 40 do, and the rest span -8.8 to +5.5 Hz. GNG232's -14.5 Hz is beyond all 40, so p stays 1/41 but now means something.
+- Other bins: descending|2 has 2 of 40 zero (range -5.2 to +7.5 Hz) and motor|4 has 22 of 40 zero. The visual_projection|128 bin (LC4's) is skipped: only 18 visual-projection neurons fire, fewer than the set size of 128.
+- **Negative controls.**
+  - LC4 fires 0 spikes, so it is reported **uninformative**. Its null was not run (bin skipped).
+  - The automatic control is MN11D: 3 neurons, 138.7 Hz summed under LB3 drive, and on none of the 204,286 LB3* -> MN9 paths (3 hops, min_weight 1). Silencing it changes MN9 by +1.3 Hz (CI -1.3, 3.8; random-null p 0.073).
+  - This is the first control that fires and could have failed.
+- Selection stability 1.0 for all 13 variants. Stimulated MN9 is 28.3 Hz (argmax) and 0.2-34.7 Hz across sign samples, as in 6j.
+
+**Sugar-only (LB3c + LB3d).** Stimulated MN9 is 33.0 Hz (all LB3: 28.3 Hz). Two hits:
+
+| Hit | Tier | MN9 difference (95 % CI), q | w_syn | NT signs | threshold | random null | replicate |
+|---|---|---|---|---|---|---|---|
+| GNG232 | **Conditional** (fails NT signs) | -20.7 (-24.0, -16.8), 0.005 | holds at 0.185 / 0.192 / 0.209 (-17.0 / -20.2 / -19.0) | holds 5/8, no flips | holds at 3 / 5 (-18.0 / -13.3) | robust, p 0.024 (0/40 central-brain sets at 0; -8.2 to +4.3 Hz) | holds (CB0616 -10.8) |
+| DNge080 | **Conditional** (fails NT signs) | -14.2 (-18.0, -10.3), 0.005 | holds at 0.185 / 0.192 / 0.209 (-12.3 / -17.8 / -16.5) | holds 2/8, no flips | holds at 3 / 5 (-12.3 / -12.2) | robust, p 0.024 (0/40 descending sets at 0; -6.2 to +5.2 Hz) | holds (DNge080 -17.8, CI -23.7 to -11.7) |
+
+- DNge080 is a hit only under the sugar-only stimulus. With all LB3 it is -4.3 Hz (q 0.21). Driving the water-like LB3a/b as well dilutes its effect on MN9.
+- The automatic control is Tr flexor MN: 35 leg motor neurons, 278.7 Hz summed, on none of the 139,657 LB3[cd] -> MN9 paths. Its effect is -0.7 Hz (CI -1.7, 0.0; random-null p 0.63). It has no FlyWire replicate type ("not testable").
+
+**Weak checks, recorded as findings rather than tuned:**
+- **The sugar-only replicate is not sugar-only.** `match_types` maps both `LB3*` and `LB3[cd]` to the same 131 FlyWire GRNs, so the FlyWire replicate runs are identical in both screens (stimulated MN9 91.7 Hz; GNG232 -10.8). A sugar-only replicate needs a FlyWire sugar-GRN selection, e.g. Shiu's sugar set (6g). Pinned in `tests/golden/test_robust_screen_sugar.py` so a better mapping shows up.
+- **NT-sign uncertainty remains the failing axis for both hits.** Sample s7 silences MN9 itself: stimulated MN9 is 0.2 Hz in both screens.
+- **Some bins are too small for the active pool.** The visual_projection|128 bin cannot be drawn from active neurons, so LC4 has no null p.
+- **Off-route only within 3 hops.** MN11D and Tr flexor MN have no LB3 -> MN9 route within 3 hops at min_weight 1. Longer routes exist in principle.
+
 ## 7. Known inconsistencies between sources (do not "fix" tests to the wrong one)
 
 | Item | Values | Decision |

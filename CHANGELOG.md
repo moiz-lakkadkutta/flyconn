@@ -4,6 +4,22 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+### M14 scientific hardening
+- **Behaviour change for robustness specs** (ADR-0012). Defaults change to:
+  - paired statistics;
+  - an activity-matched random-null pool;
+  - one automatic negative control;
+  - degenerate nulls scored `uninformative`;
+  - null seeds keyed by bin.
+
+  Output directories from 0.4.0 do not resume. Plain experiments and sweeps are unchanged.
+- `report.statistics: paired | unpaired` (`flyconn.experiments.stats.compare_paired`): per-trial differences against the stimulated run (trial k shares Poisson seed stream k), trial-bootstrap 95 % CI, Wilcoxon signed-rank p. Valid only with a sweep; the default when a `robustness:` block is present.
+- `random_null: {pool: active | all}`: sets are drawn from neurons that fire in the reference stimulated run (default) or from all neurons of the super_class (M13).
+- The random-null axis scores `uninformative` when at least half its sets have effect 0. The tier counts it as neither a pass nor a fail. New `uninformative_axes` column in hits and `handoff.csv`.
+- `robustness.negative_controls: N` (default 1): adds the most active groups with no neuron on a stimulus -> primary-readout path within `max_hops` at min_weight 1. Every control is reported in `controls.parquet` and the report, with `informative` = fires under the stimulus. Sweep rows gain `stimulated_rate_hz`.
+- Null-set seeds use `crc32(key)`, so adding a candidate no longer reshuffles other bins. The plan hash includes each store's fingerprint (ref, level, input checksums), recorded as `robustness.store_fingerprints`.
+- New example `examples/specs/w2_robust_pathway_mn9_sugar.yaml` (LB3c + LB3d only, the MaleCNS calibration stimulus). `w2_robust_pathway_mn9.yaml` gains `negative_controls: 1`. Golden results in GOLDEN_RESULTS 6k.
+
 ## [0.4.0] - 2026-10-23
 
 Milestones M11-M13. **Behaviour change:** MaleCNS v1.0 simulations default to the calibrated w_syn (see M11).
