@@ -153,6 +153,7 @@ class RobustnessOptions:
     min_weights: tuple[int, ...] = (3, 5)
     replicate: str | None = "flywire@783"
     random_null_sets: int = 40
+    random_null_pool: str = "active"  # "active" | "all" (M14 D2)
     extra_candidates: tuple[Selection, ...] = ()
 
 
@@ -340,6 +341,7 @@ def _robustness(
         msg = f"robustness replicate must differ from the dataset ({dataset})"
         raise ValueError(msg)
     null_raw = dd.get("random_null")
+    pool = "active"
     if null_raw is None or null_raw is True:
         n_sets = 40
     elif null_raw is False:
@@ -347,7 +349,9 @@ def _robustness(
     elif isinstance(null_raw, int):
         n_sets = null_raw  # `random_null: 0` disables it; a count sets n_sets
     elif isinstance(null_raw, dict):
-        n_sets = int(cast("dict[str, Any]", null_raw).get("n_sets", 40))
+        nd = cast("dict[str, Any]", null_raw)
+        n_sets = int(nd.get("n_sets", 40))
+        pool = str(nd.get("pool", "active"))
     else:
         msg = (
             "robustness random_null must be true/false, a set count or {n_sets: N}, "
@@ -356,6 +360,9 @@ def _robustness(
         raise ValueError(msg)
     if n_sets < 0:
         msg = "robustness random_null n_sets must be >= 0"
+        raise ValueError(msg)
+    if pool not in ("active", "all"):
+        msg = f"robustness random_null pool must be 'active' or 'all', got {pool!r}"
         raise ValueError(msg)
     extras_raw = dd.get("extra_candidates") or []
     if not isinstance(extras_raw, list) or not all(
@@ -372,6 +379,7 @@ def _robustness(
         min_weights=tuple(mw),
         replicate=str(replicate) if replicate is not None else None,
         random_null_sets=n_sets,
+        random_null_pool=pool,
         extra_candidates=tuple(_selection(x) for x in cast("list[Any]", extras_raw)),
     )
 

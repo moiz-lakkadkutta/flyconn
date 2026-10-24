@@ -72,9 +72,9 @@ def rep_store(tmp_path: Path) -> Store:
 
 
 def test_outputs_and_axes(small_store: Store, tmp_path: Path):
-    res = run_robust_screen(
-        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
-    )
+    # pool "all" so every null bin is drawn on the small synthetic store
+    d = _d(small_store, random_null={"n_sets": 3, "pool": "all"})
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
     out = tmp_path / "o"
     for f in (
         "robustness_plan.json",
@@ -218,7 +218,8 @@ def test_control_candidate_gets_null_p(small_store: Store, tmp_path: Path):
 def test_secondary_readout_does_not_empty_null_pool(small_store: Store, tmp_path: Path):
     # a super_class-wide secondary readout covers every neuron; the null pool excludes
     # only stimulus and primary-readout neurons, so sets are still drawn (spec 2.2)
-    d = _d(small_store)
+    # pool "all": this test is about exclusions; the synthetic active pool is too small
+    d = _d(small_store, random_null={"n_sets": 3, "pool": "all"})
     d["readouts"] = [*d["readouts"], {"name": "wide", "select": {"super_class": "*"}}]  # type: ignore[misc]
     res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
     assert len(res.null) > 0
@@ -334,3 +335,14 @@ def test_fingerprints_in_provenance(small_store: Store, tmp_path: Path):
     )
     fp = res.provenance["robustness"]["store_fingerprints"]
     assert fp == {small_store.ref: store_fingerprint(small_store)}
+
+
+def test_active_pool_counts_neurons_that_fired(small_store: Store, tmp_path: Path):
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    rn = res.provenance["robustness"]["random_null"]
+    counts = pd.read_parquet(tmp_path / "o" / "variants" / "reference" / "counts.parquet")
+    m = (counts["condition"] == "stimulated") & (counts["control"] == "none")
+    fired = set(counts.loc[m & (counts["count"] > 0), "neuron_id"].astype(int))
+    assert rn["pool"] == "active" and rn["n_active"] == len(fired) > 0

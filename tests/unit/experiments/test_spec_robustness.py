@@ -107,3 +107,15 @@ def test_statistics_defaults_and_validation(small_store: Store):
     no_sweep = {k: v for k, v in plain.items() if k != "sweep"}
     with pytest.raises(ValueError, match="report statistics: paired needs a sweep"):
         spec_from_dict({**no_sweep, "report": {"statistics": "paired"}})
+
+
+def test_random_null_pool_option(small_store: Store):
+    base = {"primary_readout": "targets"}
+    rob = spec_from_dict(_d(small_store, base)).robustness
+    assert rob is not None and rob.random_null_pool == "active"
+    rob = spec_from_dict(
+        _d(small_store, {**base, "random_null": {"n_sets": 5, "pool": "all"}})
+    ).robustness
+    assert rob is not None and rob.random_null_pool == "all"
+    with pytest.raises(ValueError, match="random_null pool must be 'active' or 'all'"):
+        spec_from_dict(_d(small_store, {**base, "random_null": {"pool": "silent"}}))

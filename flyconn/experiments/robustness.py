@@ -288,6 +288,13 @@ def _effect_label(axis: str, ref_difference: float, d: float, lo: float, hi: flo
     return variant_label(ref_difference, d, lo, hi)
 
 
+def _active_ids(ref_dir: Path) -> set[int]:
+    """Neurons with at least one spike in the reference stimulated run (counts.parquet)."""
+    c = pd.read_parquet(ref_dir / "counts.parquet")
+    m = (c["condition"] == "stimulated") & (c["control"] == "none") & (c["count"] > 0)
+    return {int(i) for i in c.loc[m, "neuron_id"]}
+
+
 DEGENERATE_NULL_FRACTION = 0.5
 
 
@@ -407,6 +414,7 @@ def run_robust_screen(
     null_rows: list[dict[str, Any]] = []
     null_by_cand: dict[str, float | None] = {}
     skipped: dict[str, str] = {}
+    pool_ids: set[int] | None = None
     if r.random_null_sets > 0:
         # stimulus + primary readout only, as the reference screen and replicate exclude
         excluded = set(rates_hz(spec.stimulate, neurons)) | {
@@ -415,8 +423,9 @@ def run_robust_screen(
             if ro.name == primary
             for i in resolve_selection(ro.select, neurons)
         }
+        pool_ids = _active_ids(vdir / "reference") if r.random_null_pool == "active" else None
         sets, skipped = draw_null_sets(
-            neurons, cands, excluded, n_sets=r.random_null_sets, seed=spec.seed
+            neurons, cands, excluded, n_sets=r.random_null_sets, seed=spec.seed, pool_ids=pool_ids
         )
         if sets:
             null_spec = derive(
@@ -494,6 +503,8 @@ def run_robust_screen(
             "replicate": rep_prov | {"ref": r.replicate},
             "random_null": {
                 "n_sets": r.random_null_sets,
+                "pool": r.random_null_pool,
+                "n_active": None if pool_ids is None else len(pool_ids),
                 "seeds": sorted({int(x) for x in null_df["seed"]}),
                 "keys_drawn": sorted({str(x) for x in null_df["key"]}),
                 "skipped": skipped,

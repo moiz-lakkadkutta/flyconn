@@ -80,3 +80,15 @@ def test_sets_of_a_key_do_not_depend_on_other_candidates():
     )
     key = null_key(n, (31, 32))
     assert [s for s in alone if s.key == key] == [s for s in more if s.key == key]
+
+
+def test_pool_ids_restricts_and_skip_names_active_pool():
+    n = _neurons()
+    active = {10, 11, 12, 13, 14}
+    sets, _ = draw_null_sets(n, [Candidate("A", (1, 2))], set(), n_sets=6, seed=0, pool_ids=active)
+    assert sets and all(set(s.neuron_ids) <= active for s in sets)
+    sets, skipped = draw_null_sets(
+        n, [Candidate("B", (1, 2, 3, 4))], set(), n_sets=3, seed=0, pool_ids={10, 11}
+    )
+    assert sets == []
+    assert skipped["central|4"] == "pool of 2 active central neurons is smaller than the set size 4"
