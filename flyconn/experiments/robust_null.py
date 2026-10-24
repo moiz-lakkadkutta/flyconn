@@ -7,6 +7,7 @@ super_class. Sets never contain candidate, stimulus or primary-readout neurons.
 from __future__ import annotations
 
 import math
+import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -51,7 +52,7 @@ def draw_null_sets(
     )
     sets: list[NullSet] = []
     skipped: dict[str, str] = {}
-    for k_idx, key in enumerate(keys):
+    for key in keys:
         sc, bin_s = key.split("|")
         size = int(bin_s)
         pool_df = neurons[neurons["super_class"].astype(str) == sc]
@@ -63,7 +64,8 @@ def draw_null_sets(
             continue
         for i in range(n_sets):
             s = seed + 3000 + i
-            rng = np.random.default_rng([s, k_idx])
+            # keyed by the key text, so adding a candidate never reshuffles other keys' sets
+            rng = np.random.default_rng([s, zlib.crc32(key.encode())])
             ids = tuple(int(x) for x in np.sort(rng.choice(pool, size=size, replace=False)))
             sets.append(NullSet(key, i, s, ids))
     return sets, skipped

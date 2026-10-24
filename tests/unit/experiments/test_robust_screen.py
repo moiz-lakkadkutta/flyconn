@@ -312,3 +312,25 @@ def test_provenance_records_seeds_actually_used(small_store: Store, tmp_path: Pa
     assert rn["seeds"] == sorted({int(s) for s in res.null["seed"]})
     assert rn["keys_drawn"] == sorted({str(k) for k in res.null["key"]})
     assert not set(rn["keys_drawn"]) & set(rn["skipped"])
+
+
+def test_changed_store_refuses_resume(small_store: Store, tmp_path: Path):
+    from flyconn.experiments.robustness import store_fingerprint
+
+    spec = spec_from_dict(_d(small_store))
+    run_robust_screen(spec, out_dir=tmp_path / "o", store=small_store)
+    before = store_fingerprint(small_store)
+    small_store.provenance["inputs"] = [{"name": "x", "sha256": "0" * 64, "bytes": 1}]
+    assert store_fingerprint(small_store) != before
+    with pytest.raises(FileExistsError, match="different robustness plan"):
+        run_robust_screen(spec, out_dir=tmp_path / "o", store=small_store)
+
+
+def test_fingerprints_in_provenance(small_store: Store, tmp_path: Path):
+    from flyconn.experiments.robustness import store_fingerprint
+
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    fp = res.provenance["robustness"]["store_fingerprints"]
+    assert fp == {small_store.ref: store_fingerprint(small_store)}

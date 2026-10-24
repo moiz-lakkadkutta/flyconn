@@ -127,10 +127,22 @@ class _Loaded:
     natural: list[str]
 
 
-def _plan_hash(spec: ExperimentSpec, plan: list[Variant]) -> str:
+def store_fingerprint(store: Store) -> str:
+    """SHA-256 of a store's dataset ref, level and input checksums (its provenance.json)."""
+    prov = store.provenance
+    payload = {
+        "ref": store.ref,
+        "level": prov.get("level"),
+        "inputs": sorted(str(i.get("sha256", "")) for i in prov.get("inputs", [])),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _plan_hash(spec: ExperimentSpec, plan: list[Variant], fingerprints: dict[str, str]) -> str:
     payload = {
         "spec": spec.source_sha256,
         "variants": [(v.label, v.spec.source_sha256) for v in plan],
+        "stores": fingerprints,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -313,10 +325,17 @@ def run_robust_screen(
         msg = "a robustness screen needs a silence_each sweep"
         raise ValueError(msg)
     plan = plan_variants(spec)
-    plan_hash = _plan_hash(spec, plan)
+    store = store or Store(pull(spec.dataset, level="weights").store_dir)
+    rep_v = next((v for v in plan if v.axis == "replicate"), None)
+    rep_store = None
+    if rep_v is not None:
+        rep_store = replicate_store or _replicate_store(rep_v.spec.dataset)
+    fingerprints = {store.ref: store_fingerprint(store)}
+    if rep_store is not None:
+        fingerprints[rep_store.ref] = store_fingerprint(rep_store)
+    plan_hash = _plan_hash(spec, plan, fingerprints)
     out = Path(out_dir)
     _open_out(out, plan_hash)
-    store = store or Store(pull(spec.dataset, level="weights").store_dir)
     vdir = out / "variants"
     vdir.mkdir(exist_ok=True)
     primary = r.primary_readout
@@ -341,9 +360,7 @@ def run_robust_screen(
             {"variant": v.label, "axis": v.axis, "jaccard": _jaccard(ref.natural, loaded.natural)}
         )
 
-    rep_v = next((v for v in plan if v.axis == "replicate"), None)
     if rep_v is not None:
-        rep_store = replicate_store or _replicate_store(rep_v.spec.dataset)
         if rep_store is None:
             why = f"not run: `flyconn data pull {rep_v.spec.dataset} --level weights` first"
             replicate_labels = {c.label: why for c in cands}
@@ -466,6 +483,7 @@ def run_robust_screen(
         "robustness": {
             "design": "one axis at a time around the calibrated reference (ADR-0011)",
             "plan_hash": plan_hash,
+            "store_fingerprints": fingerprints,
             "variants": [
                 {"axis": v.axis, "label": v.label, "spec_sha256": v.spec.source_sha256} for v in ran
             ],

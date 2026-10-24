@@ -68,3 +68,15 @@ def test_null_p_ignores_nan_nulls_and_nan_effect():
     assert null_p(-10.0, [-1.0, float("nan"), -20.0]) == 2 / 3
     assert math.isnan(null_p(float("nan"), [-1.0, -2.0]))
     assert math.isnan(null_p(-10.0, [float("nan")] * 3))
+
+
+def test_sets_of_a_key_do_not_depend_on_other_candidates():
+    n = _neurons()
+    # D's key "descending|2" sorts after B's "central|1", and B's neuron is not descending,
+    # so adding B changes nothing about D's pool: only a seed tied to key order could differ
+    alone, _ = draw_null_sets(n, [Candidate("D", (31, 32))], set(), n_sets=4, seed=0)
+    more, _ = draw_null_sets(
+        n, [Candidate("D", (31, 32)), Candidate("B", (1,))], set(), n_sets=4, seed=0
+    )
+    key = null_key(n, (31, 32))
+    assert [s for s in alone if s.key == key] == [s for s in more if s.key == key]
