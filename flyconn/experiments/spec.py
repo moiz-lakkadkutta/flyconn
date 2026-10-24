@@ -90,6 +90,7 @@ class Controls:
 class ReportOptions:
     top_neurons: int = 30
     alpha: float = 0.05
+    statistics: str = "unpaired"  # "paired" | "unpaired"; paired only with a sweep (M14 D3)
 
 
 @dataclass(frozen=True)
@@ -435,6 +436,14 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
         sweep=sweep,
         readout_names=[r.name for r in readouts],
     )
+    stat_default = "paired" if robustness is not None else "unpaired"
+    statistics = str(rep.get("statistics", stat_default))
+    if statistics not in ("paired", "unpaired"):
+        msg = f"report statistics must be 'paired' or 'unpaired', got {statistics!r}"
+        raise ValueError(msg)
+    if statistics == "paired" and sweep is None:
+        msg = "report statistics: paired needs a sweep (variants share the stimulated seeds)"
+        raise ValueError(msg)
     return ExperimentSpec(
         name=str(d["name"]),
         dataset=str(d["dataset"]),
@@ -456,7 +465,9 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
             int(ctl.get("sign_shuffle", 5)),
             bool(ctl.get("unstimulated_baseline", True)),
         ),
-        report=ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05))),
+        report=ReportOptions(
+            int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05)), statistics
+        ),
         sweep=sweep,
         params=SimParams(float(w_raw) if w_raw is not None else None),
         robustness=robustness,

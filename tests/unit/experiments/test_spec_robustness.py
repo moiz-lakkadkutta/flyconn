@@ -93,3 +93,17 @@ def test_random_null_off_means_no_null(small_store: Store, raw: object, n: int):
 def test_random_null_bad_value(small_store: Store, raw: object):
     with pytest.raises(ValueError, match="random_null"):
         spec_from_dict(_d(small_store, {"primary_readout": "targets", "random_null": raw}))
+
+
+def test_statistics_defaults_and_validation(small_store: Store):
+    rob = _d(small_store, {"primary_readout": "targets"})
+    assert spec_from_dict(rob).report.statistics == "paired"
+    rob_unpaired = {**rob, "report": {"statistics": "unpaired"}}
+    assert spec_from_dict(rob_unpaired).report.statistics == "unpaired"
+    plain = _d(small_store, None)  # robustness: None
+    assert spec_from_dict(plain).report.statistics == "unpaired"
+    with pytest.raises(ValueError, match="report statistics must be 'paired' or 'unpaired'"):
+        spec_from_dict({**rob, "report": {"statistics": "welch"}})
+    no_sweep = {k: v for k, v in plain.items() if k != "sweep"}
+    with pytest.raises(ValueError, match="report statistics: paired needs a sweep"):
+        spec_from_dict({**no_sweep, "report": {"statistics": "paired"}})

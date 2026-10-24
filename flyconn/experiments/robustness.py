@@ -483,8 +483,8 @@ def run_robust_screen(
             },
             "extra_candidates": [s.describe() for s in r.extra_candidates],
             "control_null_p": control_null_p,
-            "statistics": "unpaired bootstrap CI and Mann-Whitney p; common random inputs "
-            "(conservative); no correction across variants",
+            "statistics": f"{spec.report.statistics} (see sweep provenance); "
+            "no correction across variants",
         }
     }
     result = RobustScreenResult(out, spec, hits, eff, null_df, sel, prov)

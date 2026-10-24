@@ -50,7 +50,12 @@ from flyconn.experiments.spec import (
     SilenceEachSweep,
     resolve_selection,
 )
-from flyconn.experiments.stats import benjamini_hochberg, bootstrap_mean_ci, compare_groups
+from flyconn.experiments.stats import (
+    benjamini_hochberg,
+    bootstrap_mean_ci,
+    compare_groups,
+    compare_paired,
+)
 from flyconn.graph.paths import find_paths
 
 
@@ -345,6 +350,8 @@ def run_sweep(
         reference = "baseline" if ("baseline", "none") in by_key else "stimulated"
     ref_counts = by_key[(reference, "none")]
 
+    paired = spec.report.statistics == "paired"
+    compare = compare_paired if paired else compare_groups
     readout_neurons = np.unique(np.concatenate(list(ctx.readout_ids.values())))
     readout_idx = ctx.net.index_of(readout_neurons.tolist())
     rows: list[dict[str, Any]] = []
@@ -387,7 +394,7 @@ def run_sweep(
             test = ctx.group_rates(counts, ids)
             ref = ctx.group_rates(ref_counts, ids)
             lo, hi = bootstrap_mean_ci(test, seed=spec.seed)
-            r = compare_groups(test, ref, seed=spec.seed)
+            r = compare(test, ref, seed=spec.seed)
             rows.append(
                 {
                     "sweep_kind": sweep.kind,
@@ -459,6 +466,13 @@ def run_sweep(
         "sweep": sweep_prov,
         "n_variants_simulated": len(variants),
         "multiple_comparisons": "Benjamini-Hochberg across all variant x readout rows",
+        "statistics": (
+            "paired: per-trial differences vs the reference run (shared Poisson seed "
+            "streams), trial-bootstrap 95% CI, Wilcoxon signed-rank p"
+            if paired
+            else "unpaired: bootstrap 95% CI, Mann-Whitney p (conservative given shared "
+            "Poisson seed streams)"
+        ),
     }
     out = ctx.out
     write_table(table, out / "sweep.parquet")

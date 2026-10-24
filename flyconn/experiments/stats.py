@@ -55,6 +55,42 @@ def compare_groups(
     }
 
 
+def compare_paired(
+    test: np.ndarray, control: np.ndarray, *, seed: int = 0, n_boot: int = 2000
+) -> dict[str, float]:
+    """Per-trial paired difference: trial k of both conditions shares Poisson seed stream k.
+
+    CI is a bootstrap over trials of the mean per-trial difference; p is Wilcoxon
+    signed-rank (1.0 when every difference is zero). ``cohens_d`` keeps the unpaired,
+    pooled-s.d. definition of :func:`compare_groups` so effect sizes compare across modes.
+    """
+    test = np.asarray(test, dtype=float)
+    control = np.asarray(control, dtype=float)
+    if test.shape != control.shape:
+        msg = f"paired comparison needs equal trial counts, got {len(test)} and {len(control)}"
+        raise ValueError(msg)
+    diff = test - control
+    rng = np.random.default_rng(seed)
+    boots = diff[rng.integers(0, len(diff), size=(n_boot, len(diff)))].mean(axis=1)
+    if not np.any(diff):
+        p = 1.0
+    else:
+        p = float(cast("Any", sps.wilcoxon(diff, alternative="two-sided")).pvalue)
+    d = cohens_d(test, control)
+    d = float(np.clip(d, -10, 10)) if np.isfinite(d) else float(np.sign(d) * 10)
+    return {
+        "mean_test": float(test.mean()),
+        "mean_control": float(control.mean()),
+        "difference": float(diff.mean()),
+        "ci_low": float(np.percentile(boots, 2.5)),
+        "ci_high": float(np.percentile(boots, 97.5)),
+        "p_value": p,
+        "cohens_d": d,
+        "n_test": len(test),
+        "n_control": len(control),
+    }
+
+
 def bootstrap_mean_ci(
     x: np.ndarray, *, seed: int = 0, n_boot: int = 2000, level: float = 0.95
 ) -> tuple[float, float]:

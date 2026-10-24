@@ -220,9 +220,9 @@ And replace the `report=ReportOptions(...)` line (~459) with a value computed be
 ```
 
 ```python
-        report=ReportOptions(
-            int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05)), statistics
-        ),
+report = (
+    ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05)), statistics),
+)
 ```
 
 In `flyconn/experiments/sweep.py`, import `compare_paired` alongside `compare_groups`, and in `run_sweep` before the variant loop:
@@ -645,9 +645,7 @@ def tier(outcomes: Mapping[str, Outcome]) -> tuple[str, bool]:
 In `score_hits`, add the parameter `null_degenerate: Mapping[str, bool] | None = None`, and set `degen = null_degenerate or {}` at the top. Replace `outcomes["random_null"] = null_outcome(p)` with `null_outcome(p, degenerate=bool(degen.get(cand, False)))`. After `untested_axes` add:
 
 ```python
-        row["uninformative_axes"] = ", ".join(
-            a for a in GRADED_AXES if outcomes[a] == "uninformative"
-        )
+row["uninformative_axes"] = ", ".join(a for a in GRADED_AXES if outcomes[a] == "uninformative")
 ```
 
 Insert `"uninformative_axes"` into `cols` after `"untested_axes"`.
@@ -905,22 +903,20 @@ Initialise `nc_info` before the `if isinstance(sweep, SilenceEachSweep):` block,
 Add the group's stimulated rate to each silence variant's `info`:
 
 ```python
-        stim_rate = stim_counts.mean(axis=0) / ctx.seconds
-        variants = [
-            _Variant(
-                label=c.label,
-                stimulate=dict(ctx.background),
-                silence=list(c.neuron_ids),
-                info={
-                    "n_silenced": len(c.neuron_ids),
-                    "role": c.role,
-                    "stimulated_rate_hz": float(
-                        stim_rate[ctx.net.index_of(list(c.neuron_ids))].sum()
-                    ),
-                },
-            )
-            for c in candidates
-        ]
+stim_rate = stim_counts.mean(axis=0) / ctx.seconds
+variants = [
+    _Variant(
+        label=c.label,
+        stimulate=dict(ctx.background),
+        silence=list(c.neuron_ids),
+        info={
+            "n_silenced": len(c.neuron_ids),
+            "role": c.role,
+            "stimulated_rate_hz": float(stim_rate[ctx.net.index_of(list(c.neuron_ids))].sum()),
+        },
+    )
+    for c in candidates
+]
 ```
 
 For replicate and null runs (`fixed` from another dataset), `ctx` is that run's own context. The rate is therefore that run's own stimulated rate, which is what the column means.
@@ -928,32 +924,40 @@ For replicate and null runs (`fixed` from another dataset), `ctx` is that run's 
 `robustness.py`: add the field `controls: pd.DataFrame = field(default_factory=pd.DataFrame)` to `RobustScreenResult`, after `selection_stability`, so every positional construction must be updated. Then build it after `ref_d` and `control_null_p`:
 
 ```python
-    auto_labels = set(
-        json.loads((vdir / "reference" / "provenance.json").read_text())["sweep"]
-        .get("negative_controls", {})
-        .get("chosen", [])
-    )
-    ref_rows = ref.sweep.loc[ref.sweep["readout"] == primary].set_index("variant")
-    controls = pd.DataFrame(
+auto_labels = set(
+    json.loads((vdir / "reference" / "provenance.json").read_text())["sweep"]
+    .get("negative_controls", {})
+    .get("chosen", [])
+)
+ref_rows = ref.sweep.loc[ref.sweep["readout"] == primary].set_index("variant")
+controls = pd.DataFrame(
+    [
+        {
+            "candidate": c.label,
+            "source": "auto" if c.label in auto_labels else "extra",
+            "stimulated_rate_hz": float(ref_rows.loc[c.label, "stimulated_rate_hz"]),
+            "difference": float(ref_rows.loc[c.label, "difference"]),
+            "ci_low": float(ref_rows.loc[c.label, "ci_low"]),
+            "ci_high": float(ref_rows.loc[c.label, "ci_high"]),
+            "null_p": control_null_p.get(c.label),
+            "informative": float(ref_rows.loc[c.label, "stimulated_rate_hz"]) > 0,
+        }
+        for c in cands
+        if c.role == "control"
+    ],
+    columns=pd.Index(
         [
-            {
-                "candidate": c.label,
-                "source": "auto" if c.label in auto_labels else "extra",
-                "stimulated_rate_hz": float(ref_rows.loc[c.label, "stimulated_rate_hz"]),
-                "difference": float(ref_rows.loc[c.label, "difference"]),
-                "ci_low": float(ref_rows.loc[c.label, "ci_low"]),
-                "ci_high": float(ref_rows.loc[c.label, "ci_high"]),
-                "null_p": control_null_p.get(c.label),
-                "informative": float(ref_rows.loc[c.label, "stimulated_rate_hz"]) > 0,
-            }
-            for c in cands
-            if c.role == "control"
-        ],
-        columns=pd.Index(
-            ["candidate", "source", "stimulated_rate_hz", "difference", "ci_low", "ci_high",
-             "null_p", "informative"]
-        ),
-    )
+            "candidate",
+            "source",
+            "stimulated_rate_hz",
+            "difference",
+            "ci_low",
+            "ci_high",
+            "null_p",
+            "informative",
+        ]
+    ),
+)
 ```
 
 Pass `controls` into `RobustScreenResult(out, spec, hits, eff, null_df, sel, controls, prov)`. Add `"control_summary": controls.to_dict(orient="records"),` to the robustness provenance. Write `write_table(controls, out / "controls.parquet")` next to the other tables, and add `controls.parquet` to the docstring's file list.
@@ -961,10 +965,10 @@ Pass `controls` into `RobustScreenResult(out, spec, hits, eff, null_df, sel, con
 `robust_html.py`: before `"<h2>Not hits and controls</h2>"`, insert:
 
 ```python
-        "<h2>Negative controls</h2>",
-        "<p class='note'>A control is informative only if it fires under the stimulus; "
-        "a silent control cannot change any run, so passing it says nothing.</p>",
-        _table(result.controls),
+("<h2>Negative controls</h2>",)
+"<p class='note'>A control is informative only if it fires under the stimulus; "
+("a silent control cannot change any run, so passing it says nothing.</p>",)
+(_table(result.controls),)
 ```
 
 `examples/specs/w2_robust_pathway_mn9.yaml`: add `negative_controls: 1` under `robustness:` after `extra_candidates`. Add this comment above it: `# M14: plus one automatic control that fires under LB3 drive but is on no LB3 -> MN9 route (<=3 hops, min_weight 1); LC4 is kept to show a silent control is flagged uninformative.`
