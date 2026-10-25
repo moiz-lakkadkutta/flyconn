@@ -12,7 +12,7 @@ import pytest
 from flyconn.data.convert.common import write_parquet, write_provenance
 from flyconn.data.schema import conform_edges, conform_neurons
 from flyconn.data.store import Store
-from flyconn.experiments.robustness import run_robust_screen
+from flyconn.experiments.robustness import run_robust_screen, store_fingerprint
 from flyconn.experiments.spec import spec_from_dict
 from flyconn.testing import synthetic_connectome
 
@@ -419,3 +419,72 @@ def test_silent_extra_control_is_flagged(small_store: Store, tmp_path: Path):
     row = res.controls.set_index("candidate").loc["T007"]
     assert row["source"] == "extra"
     assert bool(row["informative"]) == (row["stimulated_rate_hz"] > 0)
+
+
+def test_off_route_does_not_depend_on_path_enumeration(
+    offroute_store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # find_paths stops at max_paths; a truncated enumeration would call on-route groups
+    # off-route, so the control choice must come from reachability, not enumerated paths
+    import flyconn.experiments.sweep as sweep_mod
+
+    def boom(*_a: object, **_k: object) -> None:
+        raise AssertionError("off-route must not enumerate paths")
+
+    monkeypatch.setattr(sweep_mod, "find_paths", boom)
+    spec = spec_from_dict(_d(offroute_store, negative_controls=2))
+    res = run_robust_screen(spec, out_dir=tmp_path / "o", store=offroute_store)
+    assert res.provenance["sweep"]["negative_controls"]["chosen"] == ["TOFF"]
+
+
+def _replicate_spec_dict(store: Store) -> dict[str, object]:
+    ids = store.neurons()["neuron_id"].tolist()
+    d = _d(store, replicate="flywire@783")
+    types = store.neurons().set_index("neuron_id")["cell_type"]
+    d["stimulate"] = [{"select": {"cell_type": str(types[ids[0]])}, "rate_hz": 200}]
+    d["readouts"] = [{"name": "targets", "select": {"cell_type": str(types[ids[-1]])}}]
+    return d
+
+
+def test_pulling_replicate_later_resumes(
+    xref_store: Store, rep_store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # first run: replicate store not cached, so the replicate is "not run: pull ... first";
+    # after the user pulls it, the same directory must resume, not refuse
+    import flyconn.experiments.robustness as rmod
+
+    monkeypatch.setattr(rmod, "_replicate_store", lambda _ref: None)  # pyright: ignore[reportUnknownLambdaType]
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    first = run_robust_screen(spec, out_dir=out, store=xref_store)
+    assert "not run" in first.provenance["robustness"]["replicate"]["reason"]
+    done = (out / "variants" / "reference" / "done.json").stat().st_mtime_ns
+    again = run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert (out / "variants" / "reference" / "done.json").stat().st_mtime_ns == done
+    assert "replicate" in set(again.effects["axis"])
+
+
+def test_changed_replicate_store_reruns_only_the_replicate(
+    xref_store: Store, rep_store: Store, tmp_path: Path
+):
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    rep_store.provenance["inputs"] = [{"name": "x", "sha256": "1" * 64, "bytes": 1}]
+    res = run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert (out / "variants" / ".incomplete" / "rep_flywire_783-1").exists()
+    fp = res.provenance["robustness"]["store_fingerprints"]
+    assert fp[rep_store.ref] == store_fingerprint(rep_store)
+
+
+def test_same_replicate_store_resumes_replicate(
+    xref_store: Store, rep_store: Store, tmp_path: Path
+):
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    done = out / "variants" / "rep_flywire_783" / "done.json"
+    before = done.stat().st_mtime_ns
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert done.stat().st_mtime_ns == before
+    assert not (out / "variants" / ".incomplete").exists()

@@ -524,13 +524,13 @@ Same 0.188 mV (calibrated by protocol, not validated), 10 x 0.3 s, seed 0. CPU f
 | sugar-only (49 GRNs), `tests/golden/test_robust_screen_sugar.py` | **1,175 s** by pytest's clock, 10.9 GB | 1,300 s, 12.4 GB | 15 + 120 |
 
 - The sugar golden test printed 2,026 s from `time.time()` against pytest's 1,175 s. The laptop probably slept during the run, which `time.time()` counts.
-- The all-LB3 golden test agrees on both clocks. Against 6j (1,088 s) it is about 46 % slower. The automatic control adds one silenced candidate to each of the 15 sweeps, and the reference run makes one more `find_paths` call at min_weight 1. The split between those causes was not measured. The number of null runs is unchanged at 120.
+- The all-LB3 golden test agrees on both clocks. Against 6j (1,088 s) it is about 46 % slower. The automatic control adds one silenced candidate to each of the 15 sweeps; nothing else was measured as a cause. The golden runs used path enumeration to find the on-route set. Since the review fix it comes from reachability (`nodes_on_paths`): 0.3 s on MaleCNS, and the same 906 / 841 on-route neurons, so the same controls. The number of null runs is unchanged at 120.
 
 **All LB3.** Reference effects match 6h/6j to the 0.1 Hz digit: GNG232 -14.5, DNge080 -4.3, DNge051 +2.5, GNG215 -1.7, GNG132 +1.7, GNG130 +0.2 Hz. Paired statistics barely change the CIs at 10 trials:
 - GNG232: (-19.0, -9.7) paired vs (-18.8, -9.5) unpaired;
 - DNge080: (-8.3, 0.3) vs (-8.7, 0.3).
 
-They do raise GNG232's q from 0.003 to 0.016. With 10 trials the exact two-sided Wilcoxon p cannot go below 2/1024 = 0.002, and BH multiplies it over 16 candidate x readout rows. The trial count, not the pairing, limits the q values here.
+They do raise GNG232's q from 0.003 to 0.016. With 10 trials the exact two-sided Wilcoxon p cannot go below 2/1024 = 0.002, and BH multiplies it over 16 candidate x readout rows. So pairing raised q at this trial count: unpaired Mann-Whitney gave q 0.003 at the same 10 trials. More trials would lower the floor (2^(1-n)). Sweeps now record it as `q_floor` and warn when it reaches alpha; here it is 16 x 2^-9 = 0.031.
 
 | Hit | Tier | MN9 difference (95 % CI), q | w_syn | NT signs | threshold | random null | replicate |
 |---|---|---|---|---|---|---|---|

@@ -129,3 +129,17 @@ def test_paired_statistics_recorded_and_used(small_store: Store, tmp_path: Path)
     assert pd_.provenance["statistics"].startswith("paired")
     assert list(up.sweep["difference"]) == pytest.approx(list(pd_.sweep["difference"]))
     assert list(up.sweep["p_value"]) != list(pd_.sweep["p_value"])
+
+
+def test_paired_q_floor_recorded_and_warned(small_store: Store, tmp_path: Path):
+    # 3 trials: the exact Wilcoxon p cannot go below 2 / 2**3 = 0.25, and BH over the
+    # 2 variant x 1 readout rows makes the smallest attainable q 0.5 >= alpha 0.05
+    d = _d(small_store, report={"statistics": "paired"})
+    with pytest.warns(UserWarning, match="smallest attainable q is 0.5"):
+        res = run_sweep(spec_from_dict(d), out_dir=tmp_path / "p", store=small_store)
+    assert res.provenance["q_floor"] == pytest.approx(0.5)
+
+
+def test_unpaired_records_no_q_floor(small_store: Store, tmp_path: Path):
+    res = run_sweep(spec_from_dict(_d(small_store)), out_dir=tmp_path / "u", store=small_store)
+    assert res.provenance["q_floor"] is None

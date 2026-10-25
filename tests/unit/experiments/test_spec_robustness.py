@@ -130,3 +130,12 @@ def test_negative_controls_option(small_store: Store):
     for bad in (-1, True, 1.5):
         with pytest.raises(ValueError, match="negative_controls must be an int >= 0"):
             spec_from_dict(_d(small_store, {**base, "negative_controls": bad}))
+
+
+def test_unknown_report_and_random_null_keys_are_refused(small_store: Store):
+    # a typo must not silently select different statistics or a different null pool
+    base = {"primary_readout": "targets"}
+    with pytest.raises(ValueError, match=r"unknown report key\(s\) \['statistic'\]"):
+        spec_from_dict({**_d(small_store, base), "report": {"statistic": "unpaired"}})
+    with pytest.raises(ValueError, match=r"unknown random_null key\(s\) \['pol'\]"):
+        spec_from_dict(_d(small_store, {**base, "random_null": {"pol": "all"}}))

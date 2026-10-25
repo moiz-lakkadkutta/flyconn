@@ -37,27 +37,35 @@ For robustness screens (specs with a `robustness:` block):
   95 % CI and a Wilcoxon signed-rank p. The difference itself is unchanged, because the mean
   of per-trial differences equals the difference of means. `cohens_d` keeps the unpaired
   pooled-s.d. definition. Plain experiments and sweeps stay unpaired; `paired` without a
-  sweep is refused.
+  sweep is refused. With n trials the exact Wilcoxon p cannot go below 2^(1-n), so sweeps
+  record `q_floor` (rows x 2^(1-n)) and warn when it reaches alpha.
 - **D4. An off-route active negative control.** `robustness.negative_controls: N` (default
   1) adds the N groups with the highest summed stimulated rate (≥ 1 Hz) that have no neuron
-  on any stimulus -> primary-readout path of ≤ `max_hops` hops at min_weight 1. Every
+  on any stimulus -> primary-readout path of ≤ `max_hops` hops at min_weight 1. The on-route
+  set comes from reachability (distance from stimulus plus distance to readout ≤ max_hops,
+  `flyconn.graph.paths.nodes_on_paths`), not from path enumeration, which truncates. Every
   control, automatic or from `extra_candidates`, is reported in `controls.parquet` with
   `informative = fires under the stimulus`. A silent control is reported as uninformative.
 - **D5. Null seeds keyed by the key text** (`crc32(key)`), not by its index among keys.
-- **D6. The plan hash includes a fingerprint of each store** (dataset ref, level, sorted
-  input SHA-256 from `provenance.json`), for the main and the replicate store.
+- **D6. Store fingerprints guard resumes.** A fingerprint is the dataset ref, level and
+  sorted input SHA-256 from `provenance.json`.
+  - The plan hash includes the main store's fingerprint.
+  - The replicate variant directory records its own fingerprint (`store_fingerprint.txt`)
+    and is moved aside and rerun if the replicate store changes.
+  - So pulling the replicate after a first run resumes instead of refusing.
 
 ## Consequences
 
 - Robustness screens from 0.4.0 are not comparable number-for-number. p values and CIs
   change (paired), null sets change (D2, D5), and a control is added (D4). GOLDEN_RESULTS
   6k reports the M14 golden runs against 6j.
-- M13 output directories do not resume under M14: the spec's canonical form and the plan
-  hash both changed.
+- M13 output directories do not resume under M14: the plan hash now includes the store
+  fingerprint, so an M13 `robustness_plan.json` never matches.
 - D1 can make a hit thinly tested that was not before. D2 can leave a bin not run on
   datasets where few neurons of a super_class are active.
-- D4 adds one `find_paths` call at min_weight 1 to the reference run (204,286 paths on
-  MaleCNS for LB3* -> MN9 at 3 hops). "Off-route" means none within `max_hops`: a control can
+- D4 adds two BFS passes at min_weight 1 to the reference run (0.3 s on MaleCNS for
+  LB3* -> MN9 at 3 hops; 906 on-route neurons, the same set the 204,286 enumerated paths
+  cover). "Off-route" means none within `max_hops`: a control can
   still act through longer routes, so a large control effect is a warning about the model,
   not a hit.
 - "Strong" still means robust within the tested axes, not true.

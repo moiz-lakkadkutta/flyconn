@@ -352,6 +352,10 @@ def _robustness(
         n_sets = null_raw  # `random_null: 0` disables it; a count sets n_sets
     elif isinstance(null_raw, dict):
         nd = cast("dict[str, Any]", null_raw)
+        unknown_null = sorted(set(nd) - {"n_sets", "pool"})
+        if unknown_null:
+            msg = f"unknown random_null key(s) {unknown_null}; expected some of ['n_sets', 'pool']"
+            raise ValueError(msg)
         n_sets = int(nd.get("n_sets", 40))
         pool = str(nd.get("pool", "active"))
     else:
@@ -424,6 +428,13 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     net = d.get("network") or {}
     ctl = d.get("controls") or {}
     rep = d.get("report") or {}
+    unknown_report = sorted(set(rep) - {"top_neurons", "alpha", "statistics"})
+    if unknown_report:
+        msg = (
+            f"unknown report key(s) {unknown_report}; expected some of "
+            "['top_neurons', 'alpha', 'statistics']"
+        )
+        raise ValueError(msg)
     trials = int(d.get("trials", 30))
     if trials < 1:
         msg = "trials must be >= 1"

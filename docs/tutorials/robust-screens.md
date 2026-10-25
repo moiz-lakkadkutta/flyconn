@@ -67,7 +67,11 @@ A robustness spec also defaults to `report: {statistics: paired}` (ADR-0012); wr
 - `statistics: paired` compares each variant with the stimulated run trial by trial.
   Trial k of every condition uses Poisson seed stream k, so the pairing is exact: the CI
   is a bootstrap over trials of the mean per-trial difference and p is Wilcoxon
-  signed-rank. The difference itself equals the unpaired one.
+  signed-rank. The difference itself equals the unpaired one. With n trials the
+  Wilcoxon p cannot go below 2^(1-n). With BH over many rows, few trials can make every
+  q exceed alpha. The sweep records the smallest attainable q as `q_floor` in
+  `provenance.json` and warns when it reaches alpha. At 10 trials this happens above 25
+  variant x readout rows; raise `trials` or use `statistics: unpaired`.
 - Every variant silences the reference run's candidates. Whether a variant would have
   selected the same candidates is reported as selection stability.
 

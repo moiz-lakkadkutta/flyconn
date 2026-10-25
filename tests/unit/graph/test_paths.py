@@ -137,3 +137,18 @@ def test_reachability_pruning_matches_brute_force_on_random_graph():
     slow = brute_force_paths(m, sources, targets, max_hops=3, min_weight=5)
     assert set(fast["path"]) == set(slow)
     assert len(fast) == len(slow)
+
+
+def test_nodes_on_paths_covers_every_enumerated_path_without_enumerating():
+    from flyconn.graph.paths import nodes_on_paths
+
+    m = _toy()
+    assert nodes_on_paths(m, [1], [3], max_hops=1) == {1, 3}
+    assert nodes_on_paths(m, [1], [3], max_hops=2) == {1, 2, 3}
+    assert nodes_on_paths(m, [1], [3], max_hops=3) == {1, 2, 3, 4}
+    # never smaller than the union of enumerated paths, even when enumeration truncates
+    p = find_paths(m, sources=[1], targets=[3], max_hops=3, max_paths=1)
+    assert p.attrs["truncated"]
+    assert {i for path in p["path"] for i in path} <= nodes_on_paths(m, [1], [3], max_hops=3)
+    # min_weight drops weak edges: 1 -> 3 (4 synapses) goes at min_weight 5
+    assert nodes_on_paths(m, [1], [3], max_hops=1, min_weight=5) == {1}

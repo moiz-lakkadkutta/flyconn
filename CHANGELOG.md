@@ -17,7 +17,10 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 - `random_null: {pool: active | all}`: sets are drawn from neurons that fire in the reference stimulated run (default) or from all neurons of the super_class (M13).
 - The random-null axis scores `uninformative` when at least half its sets have effect 0. The tier counts it as neither a pass nor a fail. New `uninformative_axes` column in hits and `handoff.csv`.
 - `robustness.negative_controls: N` (default 1): adds the most active groups with no neuron on a stimulus -> primary-readout path within `max_hops` at min_weight 1. Every control is reported in `controls.parquet` and the report, with `informative` = fires under the stimulus. Sweep rows gain `stimulated_rate_hz`.
-- Null-set seeds use `crc32(key)`, so adding a candidate no longer reshuffles other bins. The plan hash includes each store's fingerprint (ref, level, input checksums), recorded as `robustness.store_fingerprints`.
+- Null-set seeds use `crc32(key)`, so adding a candidate no longer reshuffles other bins. The plan hash includes the main store's fingerprint (ref, level, input checksums). The replicate variant checks its own (`store_fingerprint.txt`), so pulling the replicate later resumes. Both are recorded as `robustness.store_fingerprints`.
+- Paired sweeps record `q_floor` (the smallest attainable BH q, rows x 2^(1-trials)) and warn when it reaches alpha.
+- `flyconn.graph.paths.nodes_on_paths`: neurons within `max_hops` of both ends, by reachability. The off-route control uses it, so it never depends on truncated path enumeration.
+- Unknown keys under `report:` and `random_null:` are refused (a typo could silently select different statistics or a different null pool).
 - New example `examples/specs/w2_robust_pathway_mn9_sugar.yaml` (LB3c + LB3d only, the MaleCNS calibration stimulus). `w2_robust_pathway_mn9.yaml` gains `negative_controls: 1`. Golden results in GOLDEN_RESULTS 6k.
 
 ## [0.4.0] - 2026-10-23

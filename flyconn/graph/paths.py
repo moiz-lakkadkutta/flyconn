@@ -143,6 +143,35 @@ def _frame(rows: list[dict[str, object]], label: str | None) -> pd.DataFrame:
     return df.sort_values(["strength", "hops"], ascending=[False, True], ignore_index=True)
 
 
+def nodes_on_paths(
+    m: ConnectivityMatrix,
+    sources: Sequence[int],
+    targets: Sequence[int],
+    *,
+    max_hops: int = 3,
+    min_weight: int = 1,
+    min_edge_fraction: float = 0.0,
+) -> set[int]:
+    """Neuron ids with dist(sources -> id) + dist(id -> targets) <= ``max_hops``.
+
+    A superset of the nodes on the simple paths :func:`find_paths` would enumerate (it
+    also admits nodes reachable only by walks that revisit a node), computed by two BFS
+    passes instead of enumeration, so it is never truncated by ``max_paths``.
+    """
+    if max_hops < 1:
+        msg = "max_hops must be >= 1"
+        raise ValueError(msg)
+    src_idx = m.index_of(np.asarray(list(sources)))
+    tgt_arr = m.index_of(np.asarray(list(targets)))
+    w, _ = _filtered(m, min_weight, min_edge_fraction)
+    from_source = _bfs_distances(w, src_idx, max_hops)
+    to_target = _bfs_distances(sp.csr_matrix(w.T), tgt_arr, max_hops)
+    on_path = (from_source + to_target) <= max_hops
+    on_path[src_idx] = True
+    on_path[tgt_arr] = from_source[tgt_arr] <= max_hops
+    return {int(i) for i in m.neuron_ids[on_path]}
+
+
 def find_paths(
     m: ConnectivityMatrix,
     sources: Sequence[int],

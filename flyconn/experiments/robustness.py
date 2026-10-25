@@ -174,6 +174,23 @@ def _open_out(out: Path, plan_hash: str) -> None:
     plan_file.write_text(json.dumps({"hash": plan_hash}, indent=1))
 
 
+def _move_aside(d: Path) -> None:
+    """Move a variant directory to ``.incomplete/<name>-<n>`` (never deletes)."""
+    inc = d.parent / ".incomplete"
+    inc.mkdir(exist_ok=True)
+    n = 1
+    while (inc / f"{d.name}-{n}").exists():
+        n += 1
+    d.rename(inc / f"{d.name}-{n}")
+
+
+def _check_variant_store(d: Path, fingerprint: str) -> None:
+    """Move ``d`` aside unless it was run on the store with this fingerprint."""
+    f = d / "store_fingerprint.txt"
+    if d.exists() and (not f.exists() or f.read_text() != fingerprint):
+        _move_aside(d)
+
+
 def _run_or_load(
     d: Path,
     spec: ExperimentSpec,
@@ -193,12 +210,7 @@ def _run_or_load(
             pd.read_parquet(d / "sweep.parquet"), cands, [str(x) for x in meta["natural"]]
         )
     if d.exists():
-        inc = d.parent / ".incomplete"
-        inc.mkdir(exist_ok=True)
-        n = 1
-        while (inc / f"{d.name}-{n}").exists():
-            n += 1
-        d.rename(inc / f"{d.name}-{n}")
+        _move_aside(d)
     res = run_sweep(spec, out_dir=d, store=store, fixed=fixed, compute_natural=compute_natural)
     meta = {
         "candidates": [[c.label, list(c.neuron_ids), c.role] for c in res.candidates],
@@ -382,10 +394,12 @@ def run_robust_screen(
     rep_store = None
     if rep_v is not None:
         rep_store = replicate_store or _replicate_store(rep_v.spec.dataset)
+    # The plan hash covers the main store only: the replicate store may be pulled after a
+    # first run, and its variant directory records (and checks) its own fingerprint.
     fingerprints = {store.ref: store_fingerprint(store)}
+    plan_hash = _plan_hash(spec, plan, fingerprints)
     if rep_store is not None:
         fingerprints[rep_store.ref] = store_fingerprint(rep_store)
-    plan_hash = _plan_hash(spec, plan, fingerprints)
     out = Path(out_dir)
     _open_out(out, plan_hash)
     vdir = out / "variants"
@@ -434,8 +448,12 @@ def run_robust_screen(
             if rspec is None:
                 replicate_labels = {c.label: why for c in cands}
             elif mapped:
+                _check_variant_store(vdir / rep_v.label, fingerprints[rep_store.ref])
                 loaded = _run_or_load(
                     vdir / rep_v.label, rspec, rep_store, fixed=mapped, compute_natural=False
+                )
+                (vdir / rep_v.label / "store_fingerprint.txt").write_text(
+                    fingerprints[rep_store.ref]
                 )
                 rows = _primary_rows("replicate", rep_v.label, loaded, primary)
                 effects.append(rows)

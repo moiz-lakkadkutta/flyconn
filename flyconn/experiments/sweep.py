@@ -22,6 +22,7 @@ seeds. Benjamini-Hochberg correction runs across *all* variant x readout rows.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -56,7 +57,7 @@ from flyconn.experiments.stats import (
     compare_groups,
     compare_paired,
 )
-from flyconn.graph.paths import find_paths
+from flyconn.graph.paths import find_paths, nodes_on_paths
 
 
 @dataclass
@@ -128,10 +129,12 @@ def _off_route_controls(
 ) -> tuple[list[Candidate], dict[str, Any]]:
     """Up to ``n`` groups that fire under the stimulus but are on no stimulus -> primary path.
 
-    "Off-route" means no neuron of the group lies on any path of <= max_hops hops at
-    min_weight 1 (pathway.max_hops, else 3). Ranked by summed stimulated rate, ties by
-    label. Such a control can change the readout only through longer or weaker routes,
-    so a large effect is a warning about the model, not a hit (M14 D4).
+    "Off-route" means no neuron of the group is within reach of both ends: dist(stimulus ->
+    neuron) + dist(neuron -> readout) > max_hops at min_weight 1 (pathway.max_hops, else 3).
+    Computed by reachability, never by path enumeration, which truncates at max_paths.
+    Ranked by summed stimulated rate, ties by label. Such a control can change the readout
+    only through longer or weaker routes, so a large effect is a warning about the model,
+    not a hit (M14 D4).
     """
     info: dict[str, Any] = {"requested": n, "chosen": [], "reason": "off"}
     if n == 0:
@@ -139,8 +142,7 @@ def _off_route_controls(
     max_hops = sweep.pathway.max_hops if sweep.pathway is not None else 3
     sources = sorted(ctx.background)
     targets = ctx.readout_ids[primary].tolist()
-    paths = find_paths(ctx.matrix, sources, targets, max_hops=max_hops, min_weight=1)
-    on_route = {int(i) for p in paths["path"] for i in p}
+    on_route = nodes_on_paths(ctx.matrix, sources, targets, max_hops=max_hops, min_weight=1)
     blocked = set(sources) | {int(i) for i in targets}
     ids = np.asarray(
         [i for i in resolve_selection(sweep.select, ctx.neurons).tolist() if i not in blocked],
@@ -173,7 +175,7 @@ def _off_route_controls(
         "reason": "" if out else "no active off-route group",
         "max_hops": max_hops,
         "min_rate_hz": MIN_CONTROL_RATE_HZ,
-        "n_paths_checked": len(paths),
+        "n_on_route_neurons": len(on_route),
     }
     return out, info
 
@@ -512,6 +514,19 @@ def run_sweep(
         )
         table = table.sort_values(["readout", "rank"], kind="stable").reset_index(drop=True)
 
+    q_floor: float | None = None
+    if paired and not table.empty:
+        # exact two-sided Wilcoxon p >= 2 / 2**n; BH's best rank-1 q is n_rows times that
+        q_floor = min(1.0, len(table) * 2.0 ** (1 - spec.trials))
+        if q_floor >= spec.report.alpha:
+            warnings.warn(
+                f"paired statistics with {spec.trials} trials and {len(table)} variant x "
+                f"readout rows: the smallest attainable q is {q_floor:.3g} >= alpha "
+                f"{spec.report.alpha}, so no variant can be significant; raise trials or use "
+                "report statistics: unpaired",
+                UserWarning,
+                stacklevel=2,
+            )
     vc = pd.DataFrame(variant_conditions, columns=pd.Index(_CONDITION_COLUMNS))
     variants_df = variants_df.merge(
         vc.assign(variant=[v.label for v in variants])[
@@ -549,6 +564,7 @@ def run_sweep(
         "sweep": sweep_prov,
         "n_variants_simulated": len(variants),
         "multiple_comparisons": "Benjamini-Hochberg across all variant x readout rows",
+        "q_floor": q_floor,
         "statistics": (
             "paired: per-trial differences vs the reference run (shared Poisson seed "
             "streams), trial-bootstrap 95% CI, Wilcoxon signed-rank p"
