@@ -17,7 +17,7 @@ Running log so a later session can resume. Newest entry first.
   - **Sugar-only:** two hits, GNG232 (-20.7 Hz) and DNge080 (-14.2 Hz), both Conditional on NT signs. DNge080 was diluted by the water GRNs in the all-LB3 screen. Auto control: Tr flexor MN, -0.7 Hz.
   - **Cost:** golden tests took 1,591 s / 10.3 GB (all LB3; M13: 1,088 s) and 1,175 s / 10.9 GB (sugar-only); `flyconn run` took 2,029 s / 11.2 GB and 1,300 s / 12.4 GB.
 - Paired statistics did not help at 10 trials: the exact Wilcoxon p floors at 0.002, so GNG232's q rose from 0.003 to 0.016. More trials, not pairing, would tighten q.
-- Sugar golden test runs in its own `robust-sugar` heavy shard (fourth job) to keep every job under 240 min. Both robustness golden tests now pull `--level nt-probs` themselves: in heavy run 40178026092 the sugar test ran in a shard that had only pulled `--level weights`, so the NT axis was skipped and GNG232 scored Strong instead of Conditional.
+- Sugar golden test runs in its own `robust-sugar` heavy shard (fourth job) to keep every job under 240 min. Both robustness golden tests now pull the MaleCNS NT probabilities and the FlyWire v783 replicate themselves. Without them the axes are skipped: heavy run 40178026092 skipped NT (GNG232 scored Strong instead of Conditional), and run 40282254552 skipped the replicate.
 - Open:
   - the sugar-only FlyWire replicate is not sugar-only (`match_types` maps LB3c/d to the same 131 GRNs as LB3*; use Shiu's sugar set);
   - LC4's visual_projection|128 null bin cannot be drawn from active neurons;

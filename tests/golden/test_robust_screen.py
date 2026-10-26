@@ -30,8 +30,9 @@ SIX_H = {
 
 
 def test_robust_screen_malecns(tmp_path: Path):
-    # The nt axis needs per-body NT probabilities; without them it is skipped, not run.
+    # Without these pulls the nt and replicate axes are skipped, not run.
     pull("malecns@1.0", level="nt-probs")
+    pull("flywire@783", level="weights")
     spec = load_spec(SPEC)
     t0 = time.time()
     res = run_robust_screen(spec, out_dir=tmp_path / "robust")
