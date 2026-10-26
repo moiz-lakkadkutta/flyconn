@@ -22,6 +22,7 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 - `flyconn.graph.paths.nodes_on_paths`: neurons within `max_hops` of both ends, by reachability. The off-route control uses it, so it never depends on truncated path enumeration.
 - Unknown keys under `report:` and `random_null:` are refused (a typo could silently select different statistics or a different null pool).
 - New example `examples/specs/w2_robust_pathway_mn9_sugar.yaml` (LB3c + LB3d only, the MaleCNS calibration stimulus). `w2_robust_pathway_mn9.yaml` gains `negative_controls: 1`. Golden results in GOLDEN_RESULTS 6k.
+- Heavy validation gains a fourth job, `robust-sugar`, for the sugar-only robustness golden test. Both robustness golden tests pull MaleCNS `--level nt-probs` themselves instead of relying on test order.
 
 ## [0.4.0] - 2026-10-23
 

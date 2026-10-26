@@ -25,7 +25,8 @@ jobs:
             args: >-
               -m golden tests/golden/test_shiu_calibration.py
               tests/golden/test_malecns_calibration_inputs.py
-              tests/golden/test_robust_screen_sugar.py
+          - shard: robust-sugar
+            args: -m golden tests/golden/test_robust_screen_sugar.py
           - shard: calibration-malecns
             args: -m golden tests/golden/test_malecns_calibration.py
     steps:

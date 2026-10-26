@@ -1,8 +1,8 @@
 """Golden: sugar-only (LB3c + LB3d) robustness screen on MaleCNS (ADR-0012; GOLDEN_RESULTS 6k).
 
 Same screen as test_robust_screen.py, stimulating only the GRN types that match the
-MaleCNS calibration stimulus (ADR-0009). Runs in the calibration-shiu-inputs CI shard to
-keep the core shard under its time limit.
+MaleCNS calibration stimulus (ADR-0009). Runs in its own robust-sugar CI shard to
+keep every shard under its time limit.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from flyconn.data.pull import pull
 from flyconn.experiments.robustness import run_robust_screen
 from flyconn.experiments.spec import load_spec
 
@@ -24,6 +25,8 @@ SPEC = ROOT / "examples" / "specs" / "w2_robust_pathway_mn9_sugar.yaml"
 
 
 def test_robust_screen_malecns_sugar(tmp_path: Path):
+    # The nt axis needs per-body NT probabilities; without them it is skipped, not run.
+    pull("malecns@1.0", level="nt-probs")
     spec = load_spec(SPEC)
     t0 = time.time()
     res = run_robust_screen(spec, out_dir=tmp_path / "robust_sugar")

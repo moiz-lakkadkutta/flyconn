@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from flyconn.data.pull import pull
 from flyconn.experiments.robustness import run_robust_screen
 from flyconn.experiments.spec import load_spec
 
@@ -29,6 +30,8 @@ SIX_H = {
 
 
 def test_robust_screen_malecns(tmp_path: Path):
+    # The nt axis needs per-body NT probabilities; without them it is skipped, not run.
+    pull("malecns@1.0", level="nt-probs")
     spec = load_spec(SPEC)
     t0 = time.time()
     res = run_robust_screen(spec, out_dir=tmp_path / "robust")
