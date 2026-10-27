@@ -1,0 +1,36 @@
+# M14 sugar-only variant of w2_robust_pathway_mn9.yaml (MaleCNS v1.0; w_syn 0.188 mV,
+# calibrated by protocol on LB3c+LB3d, not validated; ADR-0009, ADR-0011, ADR-0012).
+# Stimulus: LB3c + LB3d only (sugar-like by output-partner profile, PROGRESS 2026-10-06),
+# matching the calibration stimulus; the all-LB3 spec also drives water-like LB3a/LB3b.
+name: w2_robust_pathway_mn9_sugar
+dataset: malecns@1.0
+network: {min_weight: 1, sign_policy: argmax}
+stimulate:
+  - select: {cell_type: "LB3[cd]"}
+    rate_hz: 100
+sweep:
+  silence_each:
+    rank_by: pathway
+    pathway: {readout: MN9, max_hops: 3, min_weight: 5, min_edge_fraction: 0.01}
+    group_by: cell_type
+    max_items: 10
+readouts:
+  - name: MN9
+    select: {cell_type: "MN9"}
+  - name: descending
+    select: {super_class: descending}
+duration_ms: 300
+trials: 10
+seed: 0
+device: cpu
+dtype: float32
+controls: {degree_preserving_rewire: 1, sign_shuffle: 1, unstimulated_baseline: true}
+robustness:
+  primary_readout: MN9
+  readout_proxy: "MN9 motor neurons drive proboscis extension (Shiu et al. 2024, Nature 634:210)"
+  w_syn: auto
+  nt_samples: 8
+  min_weights: [3, 5]
+  replicate: flywire@783
+  random_null: {n_sets: 40}
+  negative_controls: 1

@@ -37,9 +37,14 @@ robustness:
   min_weights: [3, 5]           # network.min_weight variants; [] = off
   replicate: flywire@783        # null = off
   random_null: {n_sets: 40}     # random sets per size bin and super_class; 0 = off
+                                # pool: active (default) | all
   extra_candidates:             # always simulated, labelled `control`, never hits
     - {cell_type: "LC4"}
+  negative_controls: 1          # automatic active off-route controls; 0 = off
 ```
+
+A robustness spec also defaults to `report: {statistics: paired}` (ADR-0012); write
+`statistics: unpaired` to get the M13 behaviour.
 
 - `w_syn: auto` uses the dataset's calibration CI ends and sensitivity range
   (`flyconn.sim.CALIBRATIONS`). A dataset without a calibration entry needs an explicit
@@ -51,6 +56,22 @@ robustness:
   uses LC4; the path query that confirms it has no LB3* -> MN9 route is in the spec's
   header comment. Controls join the reference BH family, so q values differ slightly
   from the same screen without them; compare effects and CIs instead.
+- A control only tests something if it fires under the stimulus: silencing a silent
+  neuron cannot change any run. LC4 fires no spike under LB3 drive, so it passes
+  trivially. `negative_controls: N` adds the N most active groups (summed stimulated rate
+  at least 1 Hz) with no neuron on any stimulus -> primary-readout path within the
+  pathway's `max_hops` (else 3) at min_weight 1. "No route within max_hops" is not "no
+  influence": longer routes remain, so a large effect of such a control is a warning about
+  the model. Every control is listed in `controls.parquet` and the report, with
+  `informative` = fires under the stimulus.
+- `statistics: paired` compares each variant with the stimulated run trial by trial.
+  Trial k of every condition uses Poisson seed stream k, so the pairing is exact: the CI
+  is a bootstrap over trials of the mean per-trial difference and p is Wilcoxon
+  signed-rank. The difference itself equals the unpaired one. With n trials the
+  Wilcoxon p cannot go below 2^(1-n). With BH over many rows, few trials can make every
+  q exceed alpha. The sweep records the smallest attainable q as `q_floor` in
+  `provenance.json` and warns when it reaches alpha. At 10 trials this happens above 25
+  variant x readout rows; raise `trials` or use `statistics: unpaired`.
 - Every variant silences the reference run's candidates. Whether a variant would have
   selected the same candidates is reported as selection stability.
 
@@ -76,7 +97,8 @@ Outputs:
 | `hits.parquet` | every candidate x variant on the primary readout, with its label |
 | `null.parquet` | the random-silencing effects (key, seed, set size, difference) |
 | `selection_stability.parquet` | Jaccard overlap of each variant's natural selection with the reference |
-| `provenance.json` | spec hash, dataset checksums, every variant's w_syn / sign seed / threshold, null seeds and bins, replicate mapping, line-table checksum, package versions, git SHA |
+| `controls.parquet` | every negative control: source (auto / extra), stimulated rate, effect and CI, null p, informative |
+| `provenance.json` | spec hash, store fingerprints (also in the plan hash), dataset checksums, every variant's w_syn / sign seed / threshold, null seeds and bins, replicate mapping, line-table checksum, package versions, git SHA |
 
 ## Reading `handoff.csv`
 
@@ -84,9 +106,10 @@ One row per **reference hit**: a candidate whose primary-readout effect has q < 
 the reference run. Columns:
 
 - `label`, `direction`, `effect_hz`, `ci_low`, `ci_high`, `q_value`: the reference
-  effect (difference of mean readout rates, silenced minus stimulated; bootstrap 95 % CI;
-  BH q over the reference sweep).
-- `tier`, `failed_axes`, `untested_axes`, `thinly_tested`: the robustness verdict (below).
+  effect (difference of mean readout rates, silenced minus stimulated; bootstrap 95 % CI,
+  paired over trials by default; BH q over the reference sweep).
+- `tier`, `failed_axes`, `untested_axes`, `uninformative_axes`, `thinly_tested`: the
+  robustness verdict (below).
 - `replicate`: holds / weakens / flips / not testable / not run on the replicate dataset.
   Informational only.
 - `path_stability`: mean sign-stability x threshold-presence of the stimulus -> readout
@@ -114,14 +137,16 @@ verdicts:
 | w_syn | holds at every w_syn value |
 | NT signs | holds in at least 6 of 8 sign samples (any flip is listed) |
 | threshold | holds at every `min_weights` value |
-| random null | p < 0.05: silencing the candidate moves the readout further, in its direction, than silencing random sets of the same size bin and super_class |
+| random null | p < 0.05: silencing the candidate moves the readout further, in its direction, than silencing random sets of the same size bin and super_class (drawn from neurons that fire under the stimulus); **uninformative** when at least half the random sets changed nothing |
 | replicate | reported, never graded |
 
 - **Strong:** robust on every graded axis that ran.
 - **Conditional:** fails exactly one graded axis; the card names it.
 - **Fragile:** fails two or more.
 
-Axes that were off or not run are untested, not failed. No correction is applied across
+Axes that were off or not run are untested, not failed. An uninformative random null is
+neither a pass nor a fail, and does not count towards the two axes below which a hit is
+thinly tested. No correction is applied across
 variants; they test the stability of one effect, not new hypotheses.
 
 ## Caveats (on every evidence card)
@@ -138,11 +163,12 @@ variants; they test the stability of one effect, not new hypotheses.
 
 Two more limits of the random null:
 
-- The random null can be degenerate. In the MaleCNS golden run nearly all random sets
+- The random null can be degenerate. In the M13 MaleCNS golden run nearly all random sets
   changed the readout by exactly 0 Hz (GOLDEN_RESULTS 6j), so p floors at 1 / (n_sets + 1)
-  for any nonzero effect and "null p < 0.05" is then weak evidence. Check
-  `null.parquet` before relying on that axis. When at least half the random sets changed
-  nothing, the evidence card and `handoff.csv` (`random_null_note`) say so.
+  for any nonzero effect. Since M14 such a null scores `uninformative` and the pool is
+  restricted to neurons that fire under the stimulus (`pool: active`); a bin whose active
+  pool is smaller than the set size is skipped, with the reason recorded. Check
+  `null.parquet` before relying on that axis.
 - The random pool excludes the stimulus and the primary readout. If the primary readout
   is a whole super_class, candidates of that super_class get no null p and the axis is
   reported untested for them, with the reason on the card (`provenance.json`,

@@ -12,7 +12,7 @@ import pytest
 from flyconn.data.convert.common import write_parquet, write_provenance
 from flyconn.data.schema import conform_edges, conform_neurons
 from flyconn.data.store import Store
-from flyconn.experiments.robustness import run_robust_screen
+from flyconn.experiments.robustness import run_robust_screen, store_fingerprint
 from flyconn.experiments.spec import spec_from_dict
 from flyconn.testing import synthetic_connectome
 
@@ -72,9 +72,9 @@ def rep_store(tmp_path: Path) -> Store:
 
 
 def test_outputs_and_axes(small_store: Store, tmp_path: Path):
-    res = run_robust_screen(
-        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
-    )
+    # pool "all" so every null bin is drawn on the small synthetic store
+    d = _d(small_store, random_null={"n_sets": 3, "pool": "all"})
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
     out = tmp_path / "o"
     for f in (
         "robustness_plan.json",
@@ -218,7 +218,8 @@ def test_control_candidate_gets_null_p(small_store: Store, tmp_path: Path):
 def test_secondary_readout_does_not_empty_null_pool(small_store: Store, tmp_path: Path):
     # a super_class-wide secondary readout covers every neuron; the null pool excludes
     # only stimulus and primary-readout neurons, so sets are still drawn (spec 2.2)
-    d = _d(small_store)
+    # pool "all": this test is about exclusions; the synthetic active pool is too small
+    d = _d(small_store, random_null={"n_sets": 3, "pool": "all"})
     d["readouts"] = [*d["readouts"], {"name": "wide", "select": {"super_class": "*"}}]  # type: ignore[misc]
     res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
     assert len(res.null) > 0
@@ -312,3 +313,178 @@ def test_provenance_records_seeds_actually_used(small_store: Store, tmp_path: Pa
     assert rn["seeds"] == sorted({int(s) for s in res.null["seed"]})
     assert rn["keys_drawn"] == sorted({str(k) for k in res.null["key"]})
     assert not set(rn["keys_drawn"]) & set(rn["skipped"])
+
+
+def test_changed_store_refuses_resume(small_store: Store, tmp_path: Path):
+    from flyconn.experiments.robustness import store_fingerprint
+
+    spec = spec_from_dict(_d(small_store))
+    run_robust_screen(spec, out_dir=tmp_path / "o", store=small_store)
+    before = store_fingerprint(small_store)
+    small_store.provenance["inputs"] = [{"name": "x", "sha256": "0" * 64, "bytes": 1}]
+    assert store_fingerprint(small_store) != before
+    with pytest.raises(FileExistsError, match="different robustness plan"):
+        run_robust_screen(spec, out_dir=tmp_path / "o", store=small_store)
+
+
+def test_fingerprints_in_provenance(small_store: Store, tmp_path: Path):
+    from flyconn.experiments.robustness import store_fingerprint
+
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    fp = res.provenance["robustness"]["store_fingerprints"]
+    assert fp == {small_store.ref: store_fingerprint(small_store)}
+
+
+def test_active_pool_counts_neurons_that_fired(small_store: Store, tmp_path: Path):
+    res = run_robust_screen(
+        spec_from_dict(_d(small_store)), out_dir=tmp_path / "o", store=small_store
+    )
+    rn = res.provenance["robustness"]["random_null"]
+    counts = pd.read_parquet(tmp_path / "o" / "variants" / "reference" / "counts.parquet")
+    m = (counts["condition"] == "stimulated") & (counts["control"] == "none")
+    fired = set(counts.loc[m & (counts["count"] > 0), "neuron_id"].astype(int))
+    assert rn["pool"] == "active" and rn["n_active"] == len(fired) > 0
+
+
+@pytest.fixture
+def offroute_store(small_store: Store, tmp_path: Path) -> Store:
+    """small_store plus one neuron, TOFF, driven hard by every stimulus neuron, with no outputs.
+
+    It fires under the stimulus and lies on no stimulus -> readout path at any hop count.
+    The synthetic network is too dense for such a group to occur by chance.
+    """
+    neurons, edges = small_store.neurons(), small_store.edges()
+    ids = neurons["neuron_id"].tolist()
+    x = int(ids[10])  # neither stimulus (ids[:8]) nor readout (ids[-10:])
+    neurons.loc[neurons["neuron_id"] == x, "cell_type"] = "TOFF"
+    edges = edges[(edges["pre"] != x) & (edges["post"] != x)]
+    drive = edges.iloc[[0] * 8].copy()
+    drive["pre"] = ids[:8]
+    drive["post"] = x
+    drive["weight"] = 50
+    edges = pd.concat([edges, drive], ignore_index=True)
+    d = tmp_path / "offroute"
+    d.mkdir()
+    write_parquet(conform_neurons(neurons), d / "neurons.parquet")
+    write_parquet(conform_edges(edges), d / "edges.parquet")
+    write_provenance(
+        d,
+        dataset="malecns",
+        version="1.0",
+        converter="test",
+        inputs=[],
+        counts={"neurons": len(neurons), "edges": len(edges)},
+    )
+    return Store(d)
+
+
+def test_auto_negative_control_is_active_and_off_route(offroute_store: Store, tmp_path: Path):
+    from flyconn.graph.matrix import ConnectivityMatrix
+    from flyconn.graph.paths import find_paths
+
+    # ask for two: TOFF is the only off-route group, so exactly one may be chosen
+    spec = spec_from_dict(_d(offroute_store, negative_controls=2))
+    res = run_robust_screen(spec, out_dir=tmp_path / "o", store=offroute_store)
+    nc = res.provenance["sweep"]["negative_controls"]
+    assert nc["requested"] == 2 and nc["chosen"] == ["TOFF"], nc
+    ctl = res.controls.set_index("candidate").loc["TOFF"]
+    assert ctl["source"] == "auto" and ctl["stimulated_rate_hz"] >= 1.0 and ctl["informative"]
+    n = offroute_store.neurons()
+    ids = set(n.loc[n["cell_type"] == "TOFF", "neuron_id"].astype(int))
+    stim = [int(i) for i in spec.stimulate[0].select.ids or ()]
+    targets = [int(i) for i in spec.readouts[0].select.ids or ()]
+    m = ConnectivityMatrix.from_store(offroute_store, min_weight=1)
+    paths = find_paths(m, stim, targets, max_hops=3, min_weight=1)
+    on_route = {int(i) for p in paths["path"] for i in p}
+    assert not ids & on_route
+
+
+def test_no_off_route_group_is_recorded_not_crash(small_store: Store, tmp_path: Path):
+    d = _d(small_store, negative_controls=1)
+    readout_ids = d["readouts"][0]["select"]["ids"]  # type: ignore[index]
+    d["sweep"] = {
+        "silence_each": {"select": {"ids": readout_ids[:2]}, "group_by": "neuron", "max_items": 2}
+    }
+    # the only selectable neurons are readout neurons, which are excluded: nothing eligible
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    nc = res.provenance["sweep"]["negative_controls"]
+    assert nc["chosen"] == [] and nc["reason"] == "no active off-route group"
+
+
+def test_silent_extra_control_is_flagged(small_store: Store, tmp_path: Path):
+    d = _d(small_store, extra_candidates=[{"cell_type": "T007"}], negative_controls=0)
+    res = run_robust_screen(spec_from_dict(d), out_dir=tmp_path / "o", store=small_store)
+    row = res.controls.set_index("candidate").loc["T007"]
+    assert row["source"] == "extra"
+    assert bool(row["informative"]) == (row["stimulated_rate_hz"] > 0)
+
+
+def test_off_route_does_not_depend_on_path_enumeration(
+    offroute_store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # find_paths stops at max_paths; a truncated enumeration would call on-route groups
+    # off-route, so the control choice must come from reachability, not enumerated paths
+    import flyconn.experiments.sweep as sweep_mod
+
+    def boom(*_a: object, **_k: object) -> None:
+        raise AssertionError("off-route must not enumerate paths")
+
+    monkeypatch.setattr(sweep_mod, "find_paths", boom)
+    spec = spec_from_dict(_d(offroute_store, negative_controls=2))
+    res = run_robust_screen(spec, out_dir=tmp_path / "o", store=offroute_store)
+    assert res.provenance["sweep"]["negative_controls"]["chosen"] == ["TOFF"]
+
+
+def _replicate_spec_dict(store: Store) -> dict[str, object]:
+    ids = store.neurons()["neuron_id"].tolist()
+    d = _d(store, replicate="flywire@783")
+    types = store.neurons().set_index("neuron_id")["cell_type"]
+    d["stimulate"] = [{"select": {"cell_type": str(types[ids[0]])}, "rate_hz": 200}]
+    d["readouts"] = [{"name": "targets", "select": {"cell_type": str(types[ids[-1]])}}]
+    return d
+
+
+def test_pulling_replicate_later_resumes(
+    xref_store: Store, rep_store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # first run: replicate store not cached, so the replicate is "not run: pull ... first";
+    # after the user pulls it, the same directory must resume, not refuse
+    import flyconn.experiments.robustness as rmod
+
+    monkeypatch.setattr(rmod, "_replicate_store", lambda _ref: None)  # pyright: ignore[reportUnknownLambdaType]
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    first = run_robust_screen(spec, out_dir=out, store=xref_store)
+    assert "not run" in first.provenance["robustness"]["replicate"]["reason"]
+    done = (out / "variants" / "reference" / "done.json").stat().st_mtime_ns
+    again = run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert (out / "variants" / "reference" / "done.json").stat().st_mtime_ns == done
+    assert "replicate" in set(again.effects["axis"])
+
+
+def test_changed_replicate_store_reruns_only_the_replicate(
+    xref_store: Store, rep_store: Store, tmp_path: Path
+):
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    rep_store.provenance["inputs"] = [{"name": "x", "sha256": "1" * 64, "bytes": 1}]
+    res = run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert (out / "variants" / ".incomplete" / "rep_flywire_783-1").exists()
+    fp = res.provenance["robustness"]["store_fingerprints"]
+    assert fp[rep_store.ref] == store_fingerprint(rep_store)
+
+
+def test_same_replicate_store_resumes_replicate(
+    xref_store: Store, rep_store: Store, tmp_path: Path
+):
+    spec = spec_from_dict(_replicate_spec_dict(xref_store))
+    out = tmp_path / "o"
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    done = out / "variants" / "rep_flywire_783" / "done.json"
+    before = done.stat().st_mtime_ns
+    run_robust_screen(spec, out_dir=out, store=xref_store, replicate_store=rep_store)
+    assert done.stat().st_mtime_ns == before
+    assert not (out / "variants" / ".incomplete").exists()

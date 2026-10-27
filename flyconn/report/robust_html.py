@@ -63,6 +63,11 @@ def _null_text(hit: pd.Series) -> str:
     skipped = str(hit.get("random_null_skipped", "") or "")
     if skipped:
         return f"{_e(hit['random_null'])} (skipped: {_e(skipped)})"
+    if hit["random_null"] == "uninformative":
+        return (
+            f"uninformative (p {_p(hit['random_null_p'])}; most random sets changed "
+            "nothing, so the null cannot discriminate; not counted in the tier)"
+        )
     return f"{_e(hit['random_null'])} (p {_p(hit['random_null_p'])})"
 
 
@@ -140,6 +145,10 @@ def render_robust_report(
         "<p class='note'>Jaccard overlap between the reference selection and the one each "
         "variant's own ranking would have picked (candidates were fixed regardless).</p>",
         _table(result.selection_stability),
+        "<h2>Negative controls</h2>",
+        "<p class='note'>A control is informative only if it fires under the stimulus; "
+        "a silent control cannot change any run, so passing it says nothing.</p>",
+        _table(result.controls),
         "<h2>Not hits and controls</h2>",
         _table(pd.DataFrame(result.effects.loc[is_ref & ~in_hits])),
         *_footer(prov),

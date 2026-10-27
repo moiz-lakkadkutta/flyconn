@@ -117,6 +117,7 @@ class RobustScreenResult:
     effects: pd.DataFrame  # every candidate x variant on the primary readout, with label
     null: pd.DataFrame  # key, index, seed, n_neurons, difference
     selection_stability: pd.DataFrame  # variant, axis, jaccard
+    controls: pd.DataFrame = field(default_factory=pd.DataFrame)  # negative controls (M14 D4)
     provenance: dict[str, Any] = field(default_factory=dict[str, Any])
 
 
@@ -127,10 +128,22 @@ class _Loaded:
     natural: list[str]
 
 
-def _plan_hash(spec: ExperimentSpec, plan: list[Variant]) -> str:
+def store_fingerprint(store: Store) -> str:
+    """SHA-256 of a store's dataset ref, level and input checksums (its provenance.json)."""
+    prov = store.provenance
+    payload = {
+        "ref": store.ref,
+        "level": prov.get("level"),
+        "inputs": sorted(str(i.get("sha256", "")) for i in prov.get("inputs", [])),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _plan_hash(spec: ExperimentSpec, plan: list[Variant], fingerprints: dict[str, str]) -> str:
     payload = {
         "spec": spec.source_sha256,
         "variants": [(v.label, v.spec.source_sha256) for v in plan],
+        "stores": fingerprints,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -161,6 +174,23 @@ def _open_out(out: Path, plan_hash: str) -> None:
     plan_file.write_text(json.dumps({"hash": plan_hash}, indent=1))
 
 
+def _move_aside(d: Path) -> None:
+    """Move a variant directory to ``.incomplete/<name>-<n>`` (never deletes)."""
+    inc = d.parent / ".incomplete"
+    inc.mkdir(exist_ok=True)
+    n = 1
+    while (inc / f"{d.name}-{n}").exists():
+        n += 1
+    d.rename(inc / f"{d.name}-{n}")
+
+
+def _check_variant_store(d: Path, fingerprint: str) -> None:
+    """Move ``d`` aside unless it was run on the store with this fingerprint."""
+    f = d / "store_fingerprint.txt"
+    if d.exists() and (not f.exists() or f.read_text() != fingerprint):
+        _move_aside(d)
+
+
 def _run_or_load(
     d: Path,
     spec: ExperimentSpec,
@@ -180,12 +210,7 @@ def _run_or_load(
             pd.read_parquet(d / "sweep.parquet"), cands, [str(x) for x in meta["natural"]]
         )
     if d.exists():
-        inc = d.parent / ".incomplete"
-        inc.mkdir(exist_ok=True)
-        n = 1
-        while (inc / f"{d.name}-{n}").exists():
-            n += 1
-        d.rename(inc / f"{d.name}-{n}")
+        _move_aside(d)
     res = run_sweep(spec, out_dir=d, store=store, fixed=fixed, compute_natural=compute_natural)
     meta = {
         "candidates": [[c.label, list(c.neuron_ids), c.role] for c in res.candidates],
@@ -276,6 +301,56 @@ def _effect_label(axis: str, ref_difference: float, d: float, lo: float, hi: flo
     return variant_label(ref_difference, d, lo, hi)
 
 
+def _active_ids(ref_dir: Path) -> set[int]:
+    """Neurons with at least one spike in the reference stimulated run (counts.parquet)."""
+    c = pd.read_parquet(ref_dir / "counts.parquet")
+    m = (c["condition"] == "stimulated") & (c["control"] == "none") & (c["count"] > 0)
+    return {int(i) for i in c.loc[m, "neuron_id"]}
+
+
+CONTROL_COLUMNS = [
+    "candidate",
+    "source",
+    "stimulated_rate_hz",
+    "difference",
+    "ci_low",
+    "ci_high",
+    "null_p",
+    "informative",
+]
+
+
+def _control_summary(
+    ref_dir: Path,
+    ref: _Loaded,
+    cands: list[Candidate],
+    primary: str,
+    control_null_p: dict[str, float | None],
+) -> pd.DataFrame:
+    """One row per negative control; informative only if it fires under the stimulus."""
+    sweep_prov = json.loads((ref_dir / "provenance.json").read_text()).get("sweep", {})
+    auto = set(sweep_prov.get("negative_controls", {}).get("chosen", []))
+    rows = ref.sweep.loc[ref.sweep["readout"] == primary].set_index("variant")
+    out: list[dict[str, Any]] = []
+    for c in cands:
+        if c.role != "control":
+            continue
+        rate = float(rows.loc[c.label, "stimulated_rate_hz"])
+        out.append(
+            {
+                "candidate": c.label,
+                "source": "auto" if c.label in auto else "extra",
+                "stimulated_rate_hz": rate,
+                "difference": float(rows.loc[c.label, "difference"]),
+                "ci_low": float(rows.loc[c.label, "ci_low"]),
+                "ci_high": float(rows.loc[c.label, "ci_high"]),
+                "null_p": control_null_p.get(c.label),
+                "informative": rate > 0,
+            }
+        )
+    return pd.DataFrame(out, columns=pd.Index(CONTROL_COLUMNS))
+
+
 DEGENERATE_NULL_FRACTION = 0.5
 
 
@@ -301,8 +376,9 @@ def run_robust_screen(
 
     Writes ``robustness_plan.json``, ``variants/<label>/`` (each with ``done.json`` written
     last, so a rerun into the same directory resumes), ``variants/null/``, ``hits.parquet``
-    (the effects table), ``null.parquet``, ``selection_stability.parquet`` and
-    ``provenance.json``. A changed spec refuses to reuse an output directory.
+    (the effects table), ``null.parquet``, ``selection_stability.parquet``,
+    ``controls.parquet`` and ``provenance.json``. A changed spec refuses to reuse an
+    output directory.
     """
     r = spec.robustness
     sweep = spec.sweep
@@ -313,10 +389,19 @@ def run_robust_screen(
         msg = "a robustness screen needs a silence_each sweep"
         raise ValueError(msg)
     plan = plan_variants(spec)
-    plan_hash = _plan_hash(spec, plan)
+    store = store or Store(pull(spec.dataset, level="weights").store_dir)
+    rep_v = next((v for v in plan if v.axis == "replicate"), None)
+    rep_store = None
+    if rep_v is not None:
+        rep_store = replicate_store or _replicate_store(rep_v.spec.dataset)
+    # The plan hash covers the main store only: the replicate store may be pulled after a
+    # first run, and its variant directory records (and checks) its own fingerprint.
+    fingerprints = {store.ref: store_fingerprint(store)}
+    plan_hash = _plan_hash(spec, plan, fingerprints)
+    if rep_store is not None:
+        fingerprints[rep_store.ref] = store_fingerprint(rep_store)
     out = Path(out_dir)
     _open_out(out, plan_hash)
-    store = store or Store(pull(spec.dataset, level="weights").store_dir)
     vdir = out / "variants"
     vdir.mkdir(exist_ok=True)
     primary = r.primary_readout
@@ -341,9 +426,7 @@ def run_robust_screen(
             {"variant": v.label, "axis": v.axis, "jaccard": _jaccard(ref.natural, loaded.natural)}
         )
 
-    rep_v = next((v for v in plan if v.axis == "replicate"), None)
     if rep_v is not None:
-        rep_store = replicate_store or _replicate_store(rep_v.spec.dataset)
         if rep_store is None:
             why = f"not run: `flyconn data pull {rep_v.spec.dataset} --level weights` first"
             replicate_labels = {c.label: why for c in cands}
@@ -365,8 +448,12 @@ def run_robust_screen(
             if rspec is None:
                 replicate_labels = {c.label: why for c in cands}
             elif mapped:
+                _check_variant_store(vdir / rep_v.label, fingerprints[rep_store.ref])
                 loaded = _run_or_load(
                     vdir / rep_v.label, rspec, rep_store, fixed=mapped, compute_natural=False
+                )
+                (vdir / rep_v.label / "store_fingerprint.txt").write_text(
+                    fingerprints[rep_store.ref]
                 )
                 rows = _primary_rows("replicate", rep_v.label, loaded, primary)
                 effects.append(rows)
@@ -390,6 +477,7 @@ def run_robust_screen(
     null_rows: list[dict[str, Any]] = []
     null_by_cand: dict[str, float | None] = {}
     skipped: dict[str, str] = {}
+    pool_ids: set[int] | None = None
     if r.random_null_sets > 0:
         # stimulus + primary readout only, as the reference screen and replicate exclude
         excluded = set(rates_hz(spec.stimulate, neurons)) | {
@@ -398,8 +486,9 @@ def run_robust_screen(
             if ro.name == primary
             for i in resolve_selection(ro.select, neurons)
         }
+        pool_ids = _active_ids(vdir / "reference") if r.random_null_pool == "active" else None
         sets, skipped = draw_null_sets(
-            neurons, cands, excluded, n_sets=r.random_null_sets, seed=spec.seed
+            neurons, cands, excluded, n_sets=r.random_null_sets, seed=spec.seed, pool_ids=pool_ids
         )
         if sets:
             null_spec = derive(
@@ -446,26 +535,40 @@ def run_robust_screen(
             strict=True,
         )
     ]
-    hits = score_hits(eff, alpha=spec.report.alpha, null_p=null_by_cand, replicate=replicate_labels)
-    hits["path_stability"] = _path_stability(spec, store, hits, cands)
-    hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
     zero = {
         str(k): (int((g == 0).sum()), len(g))
         for k, g in null_df.groupby("key")["difference"]  # pyright: ignore[reportUnknownVariableType]
     }
+    degenerate = {
+        c.label: bool(degenerate_null_note(*zero.get(key_by_cand[c.label], (0, 0))))
+        for c in cands
+        if c.role == "candidate"
+    }
+    hits = score_hits(
+        eff,
+        alpha=spec.report.alpha,
+        null_p=null_by_cand,
+        replicate=replicate_labels,
+        null_degenerate=degenerate,
+    )
+    hits["path_stability"] = _path_stability(spec, store, hits, cands)
+    hits["random_null_skipped"] = [skipped.get(key_by_cand[str(c)], "") for c in hits["candidate"]]
     nz = [zero.get(key_by_cand[str(c)], (0, 0)) for c in hits["candidate"]]
     hits["random_null_zero_frac"] = [z / n if n else float("nan") for z, n in nz]
     hits["random_null_note"] = [degenerate_null_note(z, n) for z, n in nz]
 
     sel = pd.DataFrame(stability, columns=pd.Index(["variant", "axis", "jaccard"]))
+    controls = _control_summary(vdir / "reference", ref, cands, primary, control_null_p)
     write_table(eff, out / "hits.parquet")
     write_table(null_df, out / "null.parquet")
     write_table(sel, out / "selection_stability.parquet")
+    write_table(controls, out / "controls.parquet")
     ref_prov: dict[str, Any] = json.loads((vdir / "reference" / "provenance.json").read_text())
     prov = ref_prov | {
         "robustness": {
             "design": "one axis at a time around the calibrated reference (ADR-0011)",
             "plan_hash": plan_hash,
+            "store_fingerprints": fingerprints,
             "variants": [
                 {"axis": v.axis, "label": v.label, "spec_sha256": v.spec.source_sha256} for v in ran
             ],
@@ -476,18 +579,22 @@ def run_robust_screen(
             "replicate": rep_prov | {"ref": r.replicate},
             "random_null": {
                 "n_sets": r.random_null_sets,
+                "pool": r.random_null_pool,
+                "n_active": None if pool_ids is None else len(pool_ids),
                 "seeds": sorted({int(x) for x in null_df["seed"]}),
                 "keys_drawn": sorted({str(x) for x in null_df["key"]}),
                 "skipped": skipped,
-                "p_rule": "(1 + #null at least as extreme) / (n_sets + 1) < 0.05",
+                "p_rule": "(1 + #null at least as extreme) / (n_sets + 1) < 0.05; "
+                "uninformative (not counted in the tier) when >= 50% of sets have effect 0",
             },
             "extra_candidates": [s.describe() for s in r.extra_candidates],
             "control_null_p": control_null_p,
-            "statistics": "unpaired bootstrap CI and Mann-Whitney p; common random inputs "
-            "(conservative); no correction across variants",
+            "control_summary": controls.to_dict(orient="records"),
+            "statistics": f"{spec.report.statistics} (see sweep provenance); "
+            "no correction across variants",
         }
     }
-    result = RobustScreenResult(out, spec, hits, eff, null_df, sel, prov)
+    result = RobustScreenResult(out, spec, hits, eff, null_df, sel, controls, prov)
     cat = load_catalog() if catalog == "auto" else catalog
     prov["robustness"]["line_catalog"] = (
         cat.provenance if cat is not None else f"not looked up ({PULL_HINT})"
@@ -512,6 +619,7 @@ HANDOFF_COLUMNS = [
     "q_value",
     "failed_axes",
     "untested_axes",
+    "uninformative_axes",
     "thinly_tested",
     "random_null_note",
     "replicate",
@@ -556,6 +664,7 @@ def write_handoff(result: RobustScreenResult, catalog: LineCatalog | None) -> pd
             "q_value": h.get("q_value"),
             "failed_axes": h.get("failed_axes"),
             "untested_axes": h.get("untested_axes"),
+            "uninformative_axes": h.get("uninformative_axes"),
             "thinly_tested": h.get("thinly_tested"),
             "random_null_note": h.get("random_null_note"),
             "replicate": h.get("replicate"),

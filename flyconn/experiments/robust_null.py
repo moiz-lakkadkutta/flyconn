@@ -1,12 +1,14 @@
 """Random-silencing null for robustness screens (ADR-0011).
 
 A hit should matter more than silencing the same number of random neurons of the same
-super_class. Sets never contain candidate, stimulus or primary-readout neurons.
+super_class. Sets never contain candidate, stimulus or primary-readout neurons. With
+``pool_ids`` (the activity-matched pool, M14 D2) sets are drawn only from those ids.
 """
 
 from __future__ import annotations
 
 import math
+import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -43,6 +45,7 @@ def draw_null_sets(
     *,
     n_sets: int,
     seed: int,
+    pool_ids: set[int] | None = None,
 ) -> tuple[list[NullSet], dict[str, str]]:
     blocked = set(excluded) | {i for c in candidates for i in c.neuron_ids}
     # Controls get a null too: the negative control's null p is the honesty check (spec 4).
@@ -51,19 +54,22 @@ def draw_null_sets(
     )
     sets: list[NullSet] = []
     skipped: dict[str, str] = {}
-    for k_idx, key in enumerate(keys):
+    for key in keys:
         sc, bin_s = key.split("|")
         size = int(bin_s)
         pool_df = neurons[neurons["super_class"].astype(str) == sc]
-        pool = np.array(
-            sorted(set(pool_df["neuron_id"].astype(np.int64).tolist()) - blocked), dtype=np.int64
-        )
+        ids = set(pool_df["neuron_id"].astype(np.int64).tolist()) - blocked
+        if pool_ids is not None:
+            ids &= pool_ids
+        pool = np.array(sorted(ids), dtype=np.int64)
         if len(pool) < size:
-            skipped[key] = f"pool of {len(pool)} {sc} neurons is smaller than the set size {size}"
+            kind = f"active {sc}" if pool_ids is not None else sc
+            skipped[key] = f"pool of {len(pool)} {kind} neurons is smaller than the set size {size}"
             continue
         for i in range(n_sets):
             s = seed + 3000 + i
-            rng = np.random.default_rng([s, k_idx])
+            # keyed by the key text, so adding a candidate never reshuffles other keys' sets
+            rng = np.random.default_rng([s, zlib.crc32(key.encode())])
             ids = tuple(int(x) for x in np.sort(rng.choice(pool, size=size, replace=False)))
             sets.append(NullSet(key, i, s, ids))
     return sets, skipped

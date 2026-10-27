@@ -1,4 +1,4 @@
-"""M13 golden: robustness-audited pathway screen on MaleCNS (ADR-0011; GOLDEN_RESULTS 6j)."""
+"""Golden: robustness-audited pathway screen on MaleCNS (ADR-0011, ADR-0012; GOLDEN_RESULTS 6k)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from flyconn.data.pull import pull
 from flyconn.experiments.robustness import run_robust_screen
 from flyconn.experiments.spec import load_spec
 
@@ -29,6 +30,9 @@ SIX_H = {
 
 
 def test_robust_screen_malecns(tmp_path: Path):
+    # Without these pulls the nt and replicate axes are skipped, not run.
+    pull("malecns@1.0", level="nt-probs")
+    pull("flywire@783", level="weights")
     spec = load_spec(SPEC)
     t0 = time.time()
     res = run_robust_screen(spec, out_dir=tmp_path / "robust")
@@ -36,31 +40,39 @@ def test_robust_screen_malecns(tmp_path: Path):
     maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     rss_gb = maxrss / 1e9 if sys.platform == "darwin" else maxrss * 1024 / 1e9  # bytes vs KiB
     out = res.out_dir
-    print(f"\nM13 robust screen: {wall:.0f} s, peak RSS {rss_gb:.1f} GB")
+    print(f"\nM14 robust screen: {wall:.0f} s, peak RSS {rss_gb:.1f} GB")
     print(res.hits.to_string(index=False))
     print(pd.read_csv(out / "handoff.csv").to_string(index=False))
     print(res.selection_stability.to_string(index=False))
 
+    controls = pd.read_parquet(out / "controls.parquet").set_index("candidate")
+    print(controls.to_string())
     for f in ("report.html", "handoff.csv", "hits.parquet", "null.parquet", "provenance.json"):
         assert (out / f).exists()
     ref = res.effects[res.effects["axis"] == "reference"].set_index("candidate")
     for relay, (_d, lo, hi) in SIX_H.items():
         assert lo <= float(ref.loc[relay, "difference"]) <= hi, relay
-    control = ref[ref["role"] == "control"]
-    assert len(control) == 1
-    assert control.index[0] not in set(res.hits["candidate"])
-    # Pinned from GOLDEN_RESULTS 6j (MaleCNS golden run): one hit, Conditional on NT signs.
+    # M14 structure (ADR-0012): paired statistics, active null pool, store fingerprints
+    rob = res.provenance["robustness"]
+    assert res.provenance["statistics"].startswith("paired")
+    assert rob["random_null"]["pool"] == "active"
+    assert set(rob["store_fingerprints"]) == {"malecns@1.0", "flywire@783"}
+    # Controls: LC4 is silent under LB3 drive (6j), so uninformative; the automatic
+    # off-route control fires and is not a hit.
+    assert set(controls.index) == {"LC4", "MN11D"}  # pinned from the 2026-10-24 run (6k)
+    assert not bool(controls.loc["LC4", "informative"])
+    assert controls.loc["MN11D", "source"] == "auto" and bool(controls.loc["MN11D", "informative"])
+    assert controls.loc["MN11D", "ci_low"] <= 0 <= controls.loc["MN11D", "ci_high"]
+    assert float(controls.loc["MN11D", "null_p"]) >= 0.05  # 6k: 0.073
+    # Pinned from GOLDEN_RESULTS 6k: one hit, Conditional on NT signs; the activity-matched
+    # null is informative (central-brain sets -8.8 to +5.5 Hz) and GNG232 beats it.
     hits = res.hits.set_index("candidate")
     assert list(hits.index) == ["GNG232"]
     assert hits.loc["GNG232", "tier"] == "Conditional"
     assert hits.loc["GNG232", "failed_axes"] == "nt"
-    control_p = res.provenance["robustness"]["control_null_p"][control.index[0]]
-    print(
-        f"negative control {control.index[0]}: effect "
-        f"{float(control['difference'].iloc[0]):.2f} Hz, random-null p {control_p}"
-    )
-    assert control_p is not None
-    assert control_p >= 0.05  # pinned from the first run (GOLDEN_RESULTS 6j: p 0.95)
+    assert hits.loc["GNG232", "random_null"] == "robust"
+    assert hits.loc["GNG232", "uninformative_axes"] == ""
+    assert hits.loc["GNG232", "random_null_p"] < 0.05
     assert rss_gb < 16
     (ROOT / "benchmarks" / "robust_screen_malecns.json").write_text(
         json.dumps(

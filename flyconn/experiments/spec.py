@@ -90,6 +90,7 @@ class Controls:
 class ReportOptions:
     top_neurons: int = 30
     alpha: float = 0.05
+    statistics: str = "unpaired"  # "paired" | "unpaired"; paired only with a sweep (M14 D3)
 
 
 @dataclass(frozen=True)
@@ -152,7 +153,9 @@ class RobustnessOptions:
     min_weights: tuple[int, ...] = (3, 5)
     replicate: str | None = "flywire@783"
     random_null_sets: int = 40
+    random_null_pool: str = "active"  # "active" | "all" (M14 D2)
     extra_candidates: tuple[Selection, ...] = ()
+    negative_controls: int = 1  # automatic active off-route controls (M14 D4)
 
 
 Sweep = SilenceEachSweep | RateSweep
@@ -288,6 +291,7 @@ _ROBUSTNESS_KEYS = (
     "replicate",
     "random_null",
     "extra_candidates",
+    "negative_controls",
 )
 
 
@@ -339,6 +343,7 @@ def _robustness(
         msg = f"robustness replicate must differ from the dataset ({dataset})"
         raise ValueError(msg)
     null_raw = dd.get("random_null")
+    pool = "active"
     if null_raw is None or null_raw is True:
         n_sets = 40
     elif null_raw is False:
@@ -346,7 +351,13 @@ def _robustness(
     elif isinstance(null_raw, int):
         n_sets = null_raw  # `random_null: 0` disables it; a count sets n_sets
     elif isinstance(null_raw, dict):
-        n_sets = int(cast("dict[str, Any]", null_raw).get("n_sets", 40))
+        nd = cast("dict[str, Any]", null_raw)
+        unknown_null = sorted(set(nd) - {"n_sets", "pool"})
+        if unknown_null:
+            msg = f"unknown random_null key(s) {unknown_null}; expected some of ['n_sets', 'pool']"
+            raise ValueError(msg)
+        n_sets = int(nd.get("n_sets", 40))
+        pool = str(nd.get("pool", "active"))
     else:
         msg = (
             "robustness random_null must be true/false, a set count or {n_sets: N}, "
@@ -356,11 +367,18 @@ def _robustness(
     if n_sets < 0:
         msg = "robustness random_null n_sets must be >= 0"
         raise ValueError(msg)
+    if pool not in ("active", "all"):
+        msg = f"robustness random_null pool must be 'active' or 'all', got {pool!r}"
+        raise ValueError(msg)
     extras_raw = dd.get("extra_candidates") or []
     if not isinstance(extras_raw, list) or not all(
         isinstance(x, dict) for x in cast("list[Any]", extras_raw)
     ):
         msg = "robustness extra_candidates must be a list of selection mappings"
+        raise ValueError(msg)
+    nc_raw = dd.get("negative_controls", 1)
+    if not isinstance(nc_raw, int) or isinstance(nc_raw, bool) or nc_raw < 0:
+        msg = f"robustness negative_controls must be an int >= 0, got {nc_raw!r}"
         raise ValueError(msg)
     proxy = dd.get("readout_proxy")
     return RobustnessOptions(
@@ -371,7 +389,9 @@ def _robustness(
         min_weights=tuple(mw),
         replicate=str(replicate) if replicate is not None else None,
         random_null_sets=n_sets,
+        random_null_pool=pool,
         extra_candidates=tuple(_selection(x) for x in cast("list[Any]", extras_raw)),
+        negative_controls=nc_raw,
     )
 
 
@@ -408,6 +428,13 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
     net = d.get("network") or {}
     ctl = d.get("controls") or {}
     rep = d.get("report") or {}
+    unknown_report = sorted(set(rep) - {"top_neurons", "alpha", "statistics"})
+    if unknown_report:
+        msg = (
+            f"unknown report key(s) {unknown_report}; expected some of "
+            "['top_neurons', 'alpha', 'statistics']"
+        )
+        raise ValueError(msg)
     trials = int(d.get("trials", 30))
     if trials < 1:
         msg = "trials must be >= 1"
@@ -435,6 +462,14 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
         sweep=sweep,
         readout_names=[r.name for r in readouts],
     )
+    stat_default = "paired" if robustness is not None else "unpaired"
+    statistics = str(rep.get("statistics", stat_default))
+    if statistics not in ("paired", "unpaired"):
+        msg = f"report statistics must be 'paired' or 'unpaired', got {statistics!r}"
+        raise ValueError(msg)
+    if statistics == "paired" and sweep is None:
+        msg = "report statistics: paired needs a sweep (variants share the stimulated seeds)"
+        raise ValueError(msg)
     return ExperimentSpec(
         name=str(d["name"]),
         dataset=str(d["dataset"]),
@@ -456,7 +491,9 @@ def spec_from_dict(d: dict[str, Any]) -> ExperimentSpec:
             int(ctl.get("sign_shuffle", 5)),
             bool(ctl.get("unstimulated_baseline", True)),
         ),
-        report=ReportOptions(int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05))),
+        report=ReportOptions(
+            int(rep.get("top_neurons", 30)), float(rep.get("alpha", 0.05)), statistics
+        ),
         sweep=sweep,
         params=SimParams(float(w_raw) if w_raw is not None else None),
         robustness=robustness,

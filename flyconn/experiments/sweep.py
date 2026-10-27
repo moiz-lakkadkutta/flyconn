@@ -22,6 +22,7 @@ seeds. Benjamini-Hochberg correction runs across *all* variant x readout rows.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -50,8 +51,13 @@ from flyconn.experiments.spec import (
     SilenceEachSweep,
     resolve_selection,
 )
-from flyconn.experiments.stats import benjamini_hochberg, bootstrap_mean_ci, compare_groups
-from flyconn.graph.paths import find_paths
+from flyconn.experiments.stats import (
+    benjamini_hochberg,
+    bootstrap_mean_ci,
+    compare_groups,
+    compare_paired,
+)
+from flyconn.graph.paths import find_paths, nodes_on_paths
 
 
 @dataclass
@@ -108,6 +114,70 @@ def _extra_candidates(
             taken.add(name)
             out.append(Candidate(name, tuple(int(i) for i in grp.index), "control"))
     return out
+
+
+MIN_CONTROL_RATE_HZ = 1.0
+
+
+def _off_route_controls(
+    ctx: Context,
+    sweep: SilenceEachSweep,
+    primary: str,
+    stim_counts: np.ndarray,
+    n: int,
+    taken: set[str],
+) -> tuple[list[Candidate], dict[str, Any]]:
+    """Up to ``n`` groups that fire under the stimulus but are on no stimulus -> primary path.
+
+    "Off-route" means no neuron of the group is within reach of both ends: dist(stimulus ->
+    neuron) + dist(neuron -> readout) > max_hops at min_weight 1 (pathway.max_hops, else 3).
+    Computed by reachability, never by path enumeration, which truncates at max_paths.
+    Ranked by summed stimulated rate, ties by label. Such a control can change the readout
+    only through longer or weaker routes, so a large effect is a warning about the model,
+    not a hit (M14 D4).
+    """
+    info: dict[str, Any] = {"requested": n, "chosen": [], "reason": "off"}
+    if n == 0:
+        return [], info
+    max_hops = sweep.pathway.max_hops if sweep.pathway is not None else 3
+    sources = sorted(ctx.background)
+    targets = ctx.readout_ids[primary].tolist()
+    on_route = nodes_on_paths(ctx.matrix, sources, targets, max_hops=max_hops, min_weight=1)
+    blocked = set(sources) | {int(i) for i in targets}
+    ids = np.asarray(
+        [i for i in resolve_selection(sweep.select, ctx.neurons).tolist() if i not in blocked],
+        dtype=np.int64,
+    )
+    labels = _group_labels(ctx, sweep, ids)
+    rate = stim_counts.mean(axis=0) / ctx.seconds
+    df = pd.DataFrame(
+        {
+            "neuron_id": labels.index.to_numpy(dtype=np.int64),
+            "group": labels.to_numpy(),
+            "rate": rate[ctx.net.index_of(labels.index.tolist())],
+        }
+    )
+    df["on_route"] = df["neuron_id"].isin(list(on_route))
+    g = (
+        df.groupby("group", sort=True)
+        .agg(rate=("rate", "sum"), on_route=("on_route", "any"))
+        .reset_index()
+    )
+    keep = ~g["on_route"] & (g["rate"] >= MIN_CONTROL_RATE_HZ) & ~g["group"].isin(list(taken))
+    g = cast("pd.DataFrame", g.loc[keep])
+    g = g.sort_values(["rate", "group"], ascending=[False, True], kind="stable").head(n)
+    members = df.groupby("group")["neuron_id"].apply(list).to_dict()
+    out = [
+        Candidate(str(lbl), tuple(int(i) for i in members[lbl]), "control") for lbl in g["group"]
+    ]
+    info |= {
+        "chosen": [c.label for c in out],
+        "reason": "" if out else "no active off-route group",
+        "max_hops": max_hops,
+        "min_rate_hz": MIN_CONTROL_RATE_HZ,
+        "n_on_route_neurons": len(on_route),
+    }
+    return out, info
 
 
 def _variants_table(
@@ -312,6 +382,7 @@ def run_sweep(
 
     natural: list[str] = []
     candidates: list[Candidate] = []
+    nc_info: dict[str, Any] = {"requested": 0, "chosen": [], "reason": "off"}
     if isinstance(sweep, SilenceEachSweep):
         if compute_natural:
             natural_df, natural_variants = _silence_candidates(ctx, sweep, stim_counts)
@@ -322,14 +393,32 @@ def run_sweep(
             candidates = [Candidate(v.label, tuple(v.silence)) for v in natural_variants]
             extra = spec.robustness.extra_candidates if spec.robustness is not None else ()
             candidates += _extra_candidates(ctx, sweep, extra, set(natural))
+            rob = spec.robustness
+            if rob is not None and rob.negative_controls > 0:
+                auto, nc_info = _off_route_controls(
+                    ctx,
+                    sweep,
+                    rob.primary_readout,
+                    stim_counts,
+                    rob.negative_controls,
+                    {c.label for c in candidates},
+                )
+                candidates += auto
         else:
             candidates = list(fixed)
+        stim_rate = stim_counts.mean(axis=0) / ctx.seconds
         variants = [
             _Variant(
                 label=c.label,
                 stimulate=dict(ctx.background),
                 silence=list(c.neuron_ids),
-                info={"n_silenced": len(c.neuron_ids), "role": c.role},
+                info={
+                    "n_silenced": len(c.neuron_ids),
+                    "role": c.role,
+                    "stimulated_rate_hz": float(
+                        stim_rate[ctx.net.index_of(list(c.neuron_ids))].sum()
+                    ),
+                },
             )
             for c in candidates
         ]
@@ -345,6 +434,8 @@ def run_sweep(
         reference = "baseline" if ("baseline", "none") in by_key else "stimulated"
     ref_counts = by_key[(reference, "none")]
 
+    paired = spec.report.statistics == "paired"
+    compare = compare_paired if paired else compare_groups
     readout_neurons = np.unique(np.concatenate(list(ctx.readout_ids.values())))
     readout_idx = ctx.net.index_of(readout_neurons.tolist())
     rows: list[dict[str, Any]] = []
@@ -387,7 +478,7 @@ def run_sweep(
             test = ctx.group_rates(counts, ids)
             ref = ctx.group_rates(ref_counts, ids)
             lo, hi = bootstrap_mean_ci(test, seed=spec.seed)
-            r = compare_groups(test, ref, seed=spec.seed)
+            r = compare(test, ref, seed=spec.seed)
             rows.append(
                 {
                     "sweep_kind": sweep.kind,
@@ -423,6 +514,19 @@ def run_sweep(
         )
         table = table.sort_values(["readout", "rank"], kind="stable").reset_index(drop=True)
 
+    q_floor: float | None = None
+    if paired and not table.empty:
+        # exact two-sided Wilcoxon p >= 2 / 2**n; BH's best rank-1 q is n_rows times that
+        q_floor = min(1.0, len(table) * 2.0 ** (1 - spec.trials))
+        if q_floor >= spec.report.alpha:
+            warnings.warn(
+                f"paired statistics with {spec.trials} trials and {len(table)} variant x "
+                f"readout rows: the smallest attainable q is {q_floor:.3g} >= alpha "
+                f"{spec.report.alpha}, so no variant can be significant; raise trials or use "
+                "report statistics: unpaired",
+                UserWarning,
+                stacklevel=2,
+            )
     vc = pd.DataFrame(variant_conditions, columns=pd.Index(_CONDITION_COLUMNS))
     variants_df = variants_df.merge(
         vc.assign(variant=[v.label for v in variants])[
@@ -443,6 +547,7 @@ def run_sweep(
             "max_items": sweep.max_items,
             "natural_selection": natural,
             "fixed_candidates": fixed is not None,
+            "negative_controls": nc_info,
             "candidates": len(variants_df),
             "simulated": int(variants_df["simulated"].sum()),
             "ranked_by": (
@@ -459,6 +564,14 @@ def run_sweep(
         "sweep": sweep_prov,
         "n_variants_simulated": len(variants),
         "multiple_comparisons": "Benjamini-Hochberg across all variant x readout rows",
+        "q_floor": q_floor,
+        "statistics": (
+            "paired: per-trial differences vs the reference run (shared Poisson seed "
+            "streams), trial-bootstrap 95% CI, Wilcoxon signed-rank p"
+            if paired
+            else "unpaired: bootstrap 95% CI, Mann-Whitney p (conservative given shared "
+            "Poisson seed streams)"
+        ),
     }
     out = ctx.out
     write_table(table, out / "sweep.parquet")

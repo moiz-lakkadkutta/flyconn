@@ -93,3 +93,49 @@ def test_random_null_off_means_no_null(small_store: Store, raw: object, n: int):
 def test_random_null_bad_value(small_store: Store, raw: object):
     with pytest.raises(ValueError, match="random_null"):
         spec_from_dict(_d(small_store, {"primary_readout": "targets", "random_null": raw}))
+
+
+def test_statistics_defaults_and_validation(small_store: Store):
+    rob = _d(small_store, {"primary_readout": "targets"})
+    assert spec_from_dict(rob).report.statistics == "paired"
+    rob_unpaired = {**rob, "report": {"statistics": "unpaired"}}
+    assert spec_from_dict(rob_unpaired).report.statistics == "unpaired"
+    plain = _d(small_store, None)  # robustness: None
+    assert spec_from_dict(plain).report.statistics == "unpaired"
+    with pytest.raises(ValueError, match="report statistics must be 'paired' or 'unpaired'"):
+        spec_from_dict({**rob, "report": {"statistics": "welch"}})
+    no_sweep = {k: v for k, v in plain.items() if k != "sweep"}
+    with pytest.raises(ValueError, match="report statistics: paired needs a sweep"):
+        spec_from_dict({**no_sweep, "report": {"statistics": "paired"}})
+
+
+def test_random_null_pool_option(small_store: Store):
+    base = {"primary_readout": "targets"}
+    rob = spec_from_dict(_d(small_store, base)).robustness
+    assert rob is not None and rob.random_null_pool == "active"
+    rob = spec_from_dict(
+        _d(small_store, {**base, "random_null": {"n_sets": 5, "pool": "all"}})
+    ).robustness
+    assert rob is not None and rob.random_null_pool == "all"
+    with pytest.raises(ValueError, match="random_null pool must be 'active' or 'all'"):
+        spec_from_dict(_d(small_store, {**base, "random_null": {"pool": "silent"}}))
+
+
+def test_negative_controls_option(small_store: Store):
+    base = {"primary_readout": "targets"}
+    rob = spec_from_dict(_d(small_store, base)).robustness
+    assert rob is not None and rob.negative_controls == 1
+    rob = spec_from_dict(_d(small_store, {**base, "negative_controls": 0})).robustness
+    assert rob is not None and rob.negative_controls == 0
+    for bad in (-1, True, 1.5):
+        with pytest.raises(ValueError, match="negative_controls must be an int >= 0"):
+            spec_from_dict(_d(small_store, {**base, "negative_controls": bad}))
+
+
+def test_unknown_report_and_random_null_keys_are_refused(small_store: Store):
+    # a typo must not silently select different statistics or a different null pool
+    base = {"primary_readout": "targets"}
+    with pytest.raises(ValueError, match=r"unknown report key\(s\) \['statistic'\]"):
+        spec_from_dict({**_d(small_store, base), "report": {"statistic": "unpaired"}})
+    with pytest.raises(ValueError, match=r"unknown random_null key\(s\) \['pol'\]"):
+        spec_from_dict(_d(small_store, {**base, "random_null": {"pol": "all"}}))

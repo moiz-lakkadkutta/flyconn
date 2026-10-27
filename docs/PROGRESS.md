@@ -2,6 +2,28 @@
 
 Running log so a later session can resume. Newest entry first.
 
+## 2026-10-24 — M14 scientific hardening (branch m14-hardening)
+
+- Built (ADR-0012; plan `docs/superpowers/plans/2026-10-24-m14-scientific-hardening.md`): all on by default for robustness specs; plain experiments and sweeps unchanged.
+  - paired sweep statistics (`report.statistics`);
+  - activity-matched random-null pool (`random_null.pool`);
+  - `uninformative` null outcome, not counted in the tier (closes the M13 owner question);
+  - automatic active off-route negative control (`negative_controls`, `controls.parquet`);
+  - null seeds keyed by bin;
+  - store fingerprints in the plan hash;
+  - sugar-only example spec `w2_robust_pathway_mn9_sugar.yaml`.
+- Measured (GOLDEN_RESULTS 6k):
+  - **All LB3:** GNG232 -> MN9 is still the only hit, Conditional on NT signs. Its random null is now informative: 4/40 central-brain sets are at 0 (M13: 40/40), and the rest span -8.8 to +5.5 Hz. The auto control MN11D fires at 138.7 Hz and has no effect (+1.3 Hz, CI -1.3 to 3.8).
+  - **Sugar-only:** two hits, GNG232 (-20.7 Hz) and DNge080 (-14.2 Hz), both Conditional on NT signs. DNge080 was diluted by the water GRNs in the all-LB3 screen. Auto control: Tr flexor MN, -0.7 Hz.
+  - **Cost:** golden tests took 1,591 s / 10.3 GB (all LB3; M13: 1,088 s) and 1,175 s / 10.9 GB (sugar-only); `flyconn run` took 2,029 s / 11.2 GB and 1,300 s / 12.4 GB.
+- Paired statistics did not help at 10 trials: the exact Wilcoxon p floors at 0.002, so GNG232's q rose from 0.003 to 0.016. More trials, not pairing, would tighten q.
+- Sugar golden test runs in its own `robust-sugar` heavy shard (fourth job) to keep every job under 240 min. Both robustness golden tests now pull the MaleCNS NT probabilities and the FlyWire v783 replicate themselves. Without them the axes are skipped: heavy run 40178026092 skipped NT (GNG232 scored Strong instead of Conditional), and run 40282254552 skipped the replicate. Heavy run 40291949251 on the branch is green: 54 golden passed; core 2 h 57 min (the first run of the same suite took 1 h 43 min), robust-sugar 50 min.
+- Open:
+  - the sugar-only FlyWire replicate is not sugar-only (`match_types` maps LB3c/d to the same 131 GRNs as LB3*; use Shiu's sugar set);
+  - LC4's visual_projection|128 null bin cannot be drawn from active neurons;
+  - "off-route" is only within 3 hops;
+  - M12 open items unchanged.
+
 ## 2026-10-23 — heavy-validation sharded (merged fix-heavy-shards)
 
 - `heavy.yml` now runs three parallel jobs: `core` (all golden/benchmark/brian except the
