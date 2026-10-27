@@ -4,6 +4,10 @@ All notable changes. Format: Keep a Changelog; versions follow SemVer once 0.1.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
+Milestone M14. **Behaviour change:** robustness screens default to paired statistics, an activity-matched null and an automatic negative control (ADR-0012); their numbers are not comparable with 0.4.0.
+
 ### M14 scientific hardening
 - **Behaviour change for robustness specs** (ADR-0012). Defaults change to:
   - paired statistics;
